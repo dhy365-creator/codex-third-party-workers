@@ -1,0 +1,15 @@
+{
+  "models": [
+    {
+      "slug": "deepseek-v4-flash",
+      "display_name": "DeepSeek V4 Flash test fixture",
+      "input_modalities": ["text"],
+      "multi_agent_version": "v2"
+    },
+    {
+      "slug": "deepseek-v4-pro",
+      "display_name": "Unsupported test fixture",
+      "input_modalities": ["text"]
+    }
+  ]
+}

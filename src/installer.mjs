@@ -1,0 +1,305 @@
+import path from 'node:path';
+import crypto from 'node:crypto';
+import { fileURLToPath } from 'node:url';
+import {
+  DEFAULT_API_BASE,
+  DEFAULT_SETUP_SCRIPT_URL,
+  SERVICE_NAME,
+  assertSupportedPlatform,
+  discoverEnvironment,
+  parseBoolean,
+  parseThreshold,
+} from './environment.mjs';
+import { acquireCatalog, catalogJson } from './catalog.mjs';
+import { keychainReady } from './keychain.mjs';
+import {
+  copyOwnerOnly,
+  ensureDir,
+  fs,
+  lstatIfExists,
+  pathExists,
+  sha256,
+  writeFileIfChanged,
+} from './fs-utils.mjs';
+import {
+  agentToml,
+  agentsBlock,
+  bridgeWrapper,
+  preflightWrapper,
+  replaceAgentsBlock,
+  workerConfig,
+} from './templates.mjs';
+
+const INSTALL_VERSION = '0.1.0-beta.1';
+const SOURCE_DIR = path.dirname(fileURLToPath(import.meta.url));
+const RUNTIME_FILES = [
+  'bridge.mjs',
+  'bridge-cli.mjs',
+  'catalog.mjs',
+  'environment.mjs',
+  'fs-utils.mjs',
+  'keychain.mjs',
+  'preflight-runtime.mjs',
+  'routing.mjs',
+];
+
+function stamp() {
+  return new Date().toISOString().replaceAll(/[^0-9]/g, '').slice(0, 14);
+}
+
+function normalizeOptions(options) {
+  const plan = String(options.plan ?? '').toLowerCase();
+  if (!['plus', 'pro'].includes(plan)) throw new Error('plan must be plus or pro');
+  const threshold = parseThreshold(options.threshold ?? (plan === 'plus' ? 50 : 10));
+  const sparkAvailable = parseBoolean(
+    options.sparkAvailable ?? plan === 'pro',
+    'Spark availability',
+  );
+  const lunaAvailable = parseBoolean(options.lunaAvailable ?? true, 'Luna availability');
+  if (options.confirmMainPreserved !== true) {
+    throw new Error('confirm that the main model/provider/auth remain preserved');
+  }
+  if (options.consentData !== true) {
+    throw new Error('explicit consent is required because delegated data is sent to DeepSeek');
+  }
+  const model = String(options.model ?? 'deepseek-v4-flash').toLowerCase();
+  if (model !== 'deepseek-v4-flash') {
+    throw new Error('only deepseek-v4-flash is supported');
+  }
+  return { ...options, plan, threshold, sparkAvailable, lunaAvailable, model };
+}
+
+async function regularFile(filePath) {
+  const info = await lstatIfExists(filePath);
+  if (!info) return null;
+  if (info.isSymbolicLink() || !info.isFile()) {
+    throw new Error(`refusing to manage non-regular file: ${filePath}`);
+  }
+  return info;
+}
+
+async function readPreviousManifest(env) {
+  if (!(await pathExists(env.manifestPath))) return null;
+  const info = await regularFile(env.manifestPath);
+  if ((info.mode & 0o077) !== 0) throw new Error('existing install manifest is not owner-only');
+  const manifest = JSON.parse(await fs.readFile(env.manifestPath, 'utf8'));
+  if (manifest.schemaVersion !== 1 || manifest.environment?.homeDir !== env.homeDir) {
+    throw new Error('existing install manifest is incompatible with this home directory');
+  }
+  return manifest;
+}
+
+async function makeBackup(filePath, env) {
+  const info = await regularFile(filePath);
+  if (!info) return null;
+  const data = await fs.readFile(filePath);
+  await ensureDir(env.backupDir, 0o700);
+  const name = `${path.basename(filePath)}.${stamp()}-${crypto.randomBytes(5).toString('hex')}.bak`;
+  const backupPath = path.join(env.backupDir, name);
+  await copyOwnerOnly(filePath, backupPath);
+  return {
+    path: backupPath,
+    hash: sha256(data),
+    originalMode: info.mode & 0o777,
+  };
+}
+
+async function applyFile({ filePath, contents, mode, env, dryRun, previous }) {
+  const data = Buffer.isBuffer(contents) ? contents : Buffer.from(contents);
+  const info = await regularFile(filePath);
+  const current = info ? await fs.readFile(filePath) : null;
+  const currentHash = current ? sha256(current) : null;
+  const desiredHash = sha256(data);
+  const changed = !info || currentHash !== desiredHash || (info.mode & 0o777) !== mode;
+  let backup = previous?.backup ?? null;
+  if (changed && info && currentHash !== previous?.hash && !dryRun) {
+    backup = await makeBackup(filePath, env);
+  }
+  if (!dryRun && changed) await writeFileIfChanged(filePath, data, { mode });
+  return {
+    path: filePath,
+    hash: desiredHash,
+    mode,
+    changed,
+    backup,
+    preExisting: previous ? previous.preExisting === true : Boolean(info),
+  };
+}
+
+async function runtimeEntries(env, sourceDir) {
+  const entries = [];
+  for (const name of RUNTIME_FILES) {
+    entries.push({
+      filePath: path.join(env.runtimeDir, name),
+      contents: await fs.readFile(path.join(sourceDir, name)),
+      mode: 0o600,
+      kind: 'runtime',
+    });
+  }
+  return entries;
+}
+
+function previousByPath(manifest) {
+  return new Map((manifest?.managedFiles ?? []).map((entry) => [entry.path, entry]));
+}
+
+export async function install(options = {}) {
+  const normalized = normalizeOptions(options);
+  const platform = normalized.platform ?? process.platform;
+  const env = discoverEnvironment({ ...normalized, platform, env: normalized.env ?? process.env });
+  const dryRun = normalized.apply !== true;
+  if (!dryRun) assertSupportedPlatform(platform);
+
+  const source = normalized.catalogSource ?? 'auto';
+  const setupScriptUrl = normalized.setupScriptUrl ?? DEFAULT_SETUP_SCRIPT_URL;
+  const acquired = await acquireCatalog({
+    source,
+    setupScriptUrl,
+    fetchImpl: normalized.fetchImpl,
+    maxBytes: normalized.maxCatalogBytes,
+  });
+  if (!dryRun) {
+    const check = normalized.keychainReadyImpl ?? keychainReady;
+    const ready = await check({
+      account: env.keychainAccount,
+      service: SERVICE_NAME,
+      platform,
+      env: normalized.env ?? process.env,
+      execFileImpl: normalized.execFileImpl,
+    });
+    if (!ready) {
+      throw new Error('DeepSeek API key is not provisioned in macOS Keychain');
+    }
+  }
+
+  const previousManifest = await readPreviousManifest(env);
+  const previous = previousByPath(previousManifest);
+  const block = agentsBlock({
+    nodePath: env.nodePath,
+    preflightPath: env.preflightPath,
+    bridgePath: env.bridgePath,
+    threshold: normalized.threshold,
+    sparkAvailable: normalized.sparkAvailable,
+    lunaAvailable: normalized.lunaAvailable,
+  });
+  const existingAgents = await pathExists(env.agentsMarkerPath)
+    ? await fs.readFile(env.agentsMarkerPath, 'utf8')
+    : '';
+  const agentsMode = (await regularFile(env.agentsMarkerPath))?.mode & 0o777 || 0o600;
+  const configOptions = {
+    plan: normalized.plan,
+    sparkAvailable: normalized.sparkAvailable,
+    lunaAvailable: normalized.lunaAvailable,
+    threshold: normalized.threshold,
+    apiBase: normalized.apiBase ?? DEFAULT_API_BASE,
+    catalogSource: source,
+    setupScriptUrl,
+    bridgePath: env.bridgePath,
+    agentPath: env.agentPath,
+    catalogPath: env.catalogPath,
+    configPath: env.configPath,
+    keychainAccount: env.keychainAccount,
+    keychainService: SERVICE_NAME,
+  };
+  const entries = [
+    ...(await runtimeEntries(env, normalized.sourceDir ?? SOURCE_DIR)),
+    {
+      filePath: env.agentPath,
+      contents: agentToml({
+        catalogPath: env.catalogPath,
+        bridgePath: env.bridgePath,
+        bridgeCliPath: env.bridgeCliPath,
+        nodePath: env.nodePath,
+        keychainAccount: env.keychainAccount,
+      }),
+      mode: 0o600,
+      kind: 'agent',
+    },
+    {
+      filePath: env.configPath,
+      contents: workerConfig(configOptions),
+      mode: 0o600,
+      kind: 'config',
+    },
+    {
+      filePath: env.preflightPath,
+      contents: preflightWrapper({ runtimeDir: env.runtimeDir, configPath: env.configPath }),
+      mode: 0o700,
+      kind: 'preflight',
+    },
+    {
+      filePath: env.bridgeCliPath,
+      contents: bridgeWrapper({ runtimeDir: env.runtimeDir }),
+      mode: 0o700,
+      kind: 'bridge-cli',
+    },
+    {
+      filePath: env.agentsMarkerPath,
+      contents: replaceAgentsBlock(existingAgents, block),
+      mode: agentsMode,
+      kind: 'agents-marker',
+    },
+  ];
+  entries.push({
+    filePath: env.catalogPath,
+    contents: catalogJson(acquired.catalog),
+    mode: 0o600,
+    kind: 'catalog',
+  });
+
+  const managedFiles = [];
+  for (const entry of entries) {
+    const record = await applyFile({
+      ...entry,
+      env,
+      dryRun,
+      previous: previous.get(entry.filePath),
+    });
+    managedFiles.push({ ...record, kind: entry.kind });
+  }
+
+  const manifest = {
+    schemaVersion: 1,
+    installVersion: INSTALL_VERSION,
+    installedAt: new Date().toISOString(),
+    environment: {
+      homeDir: env.homeDir,
+      uid: env.uid,
+      username: env.username,
+      nodePath: env.nodePath,
+      bridgePath: env.bridgePath,
+    },
+    options: {
+      plan: normalized.plan,
+      sparkAvailable: normalized.sparkAvailable,
+      lunaAvailable: normalized.lunaAvailable,
+      threshold: normalized.threshold,
+      model: 'deepseek-v4-flash',
+      mainModelPreserved: true,
+      delegatedDataConsent: true,
+    },
+    managedFiles,
+    agentsBlock: block,
+    catalog: { source: acquired.source, fetched: acquired.fetched, model: 'deepseek-v4-flash' },
+    secretStorage: {
+      service: SERVICE_NAME,
+      account: env.keychainAccount,
+      value: 'keychain-only',
+    },
+  };
+  if (!dryRun) {
+    await writeFileIfChanged(env.manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, {
+      mode: 0o600,
+    });
+  }
+  return {
+    dryRun,
+    applied: !dryRun,
+    environment: env,
+    managedFiles,
+    manifestPath: env.manifestPath,
+    catalogAcquired: Boolean(acquired),
+    keychainVerified: !dryRun,
+    message: dryRun ? 'dry-run: no files or Keychain entries were changed' : 'installation applied',
+  };
+}

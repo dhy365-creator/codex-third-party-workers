@@ -1,0 +1,25 @@
+{
+  "name": "codex-deepseek-worker",
+  "version": "0.1.0-beta.1",
+  "description": "Unofficial macOS-only beta fallback worker for Codex Desktop that routes bounded text and code tasks to DeepSeek V4 Flash.",
+  "private": true,
+  "license": "MIT",
+  "type": "module",
+  "engines": {
+    "node": ">=20"
+  },
+  "keywords": [
+    "codex",
+    "deepseek",
+    "worker",
+    "fallback",
+    "macos"
+  ],
+  "scripts": {
+    "test": "node --test",
+    "install:dry": "node scripts/install.mjs",
+    "verify": "node scripts/verify.mjs",
+    "uninstall:dry": "node scripts/uninstall.mjs"
+  },
+  "dependencies": {}
+}

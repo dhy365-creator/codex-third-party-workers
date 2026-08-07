@@ -1,0 +1,167 @@
+import path from 'node:path';
+import { SERVICE_NAME } from './environment.mjs';
+
+export const AGENTS_START = '<!-- codex-deepseek-worker:start -->';
+export const AGENTS_END = '<!-- codex-deepseek-worker:end -->';
+
+function toml(value) {
+  return JSON.stringify(String(value ?? ''));
+}
+
+function shellQuoted(value) {
+  return `"${String(value).replaceAll('"', '\\"')}"`;
+}
+
+export function agentsBlock({
+  nodePath,
+  preflightPath,
+  bridgePath,
+  threshold,
+  sparkAvailable,
+  lunaAvailable,
+} = {}) {
+  return [
+    AGENTS_START,
+    '## codex-deepseek-worker routing guardrail',
+    '- Keep the main Codex thread on its configured OpenAI model and provider.',
+    '- Before every new `spawn_agent` or `followup_task`, run the preflight command below with a version-1 JSON request containing `operation`, `requestedAgent`, `taskName`, exact `message`, `cwd`, and `deepseekSuitable`. A follow-up also includes `existingAgentType` and `target`.',
+    `- Command: ${shellQuoted(nodePath)} ${shellQuoted(preflightPath)}`,
+    '- For normal work request `spark-worker`; apply the returned `action`, `agentType`, `target`, and `forkTurns` exactly, and stop on `deny`. Never send a live probe task merely to discover quota.',
+    '- When DeepSeek is selected, spawn/follow up with only a minimal instruction to use the configured bridge; the exact task is already in the owner-only bridge. For Spark or Luna, send the scoped task normally.',
+    '- Do not use status-only messaging to assign a new scoped task. Confirm that the DeepSeek active slot was archived before starting another DeepSeek task.',
+    `- Installed policy: Spark entitlement=${Boolean(sparkAvailable)}, Luna available=${Boolean(lunaAvailable)}, DeepSeek threshold=${threshold}%. At the threshold use Luna; only below it may suitable text/code work use DeepSeek after Spark is unavailable.`,
+    '- DeepSeek is limited to text, code, research synthesis, and local validation. Never delegate credentials, images, audio, video, desktop control, or browser control.',
+    `- The DeepSeek bridge is ${shellQuoted(bridgePath)}. It is a single owner-only slot; never overwrite an active task or delete an archive.`,
+    '- Codex Desktop may not enforce this hook natively. The main agent must run it manually; treat it as a policy-assisted guardrail, not a security boundary.',
+    AGENTS_END,
+  ].join('\n');
+}
+
+export function agentToml({
+  catalogPath,
+  bridgePath,
+  bridgeCliPath,
+  nodePath,
+  keychainAccount,
+  keychainService = SERVICE_NAME,
+} = {}) {
+  const completeCommand = `${shellQuoted(nodePath)} ${shellQuoted(bridgeCliPath)} complete "<taskBasename>"`;
+  const failCommand = `${shellQuoted(nodePath)} ${shellQuoted(bridgeCliPath)} fail "<taskBasename>"`;
+  const instructions = [
+    'You are an implementation-focused fallback worker using DeepSeek V4 Flash.',
+    'Handle only the bounded text, code, research-synthesis, or local-validation task provided through the configured bridge.',
+    'Do not handle credentials, images, audio, video, desktop control, browser control, destructive changes, public API changes, or persisted-schema changes without explicit user approval.',
+    'Preserve unrelated and uncommitted workspace changes. Prefer minimal diffs and run relevant local checks.',
+    `At the start of every turn, read only ${bridgePath}/active/task.json. Verify its parent directory is owner-only 0700, the file is owner-only 0600, version is 1, status is pending or running, and taskBasename matches the final normalized component of taskName.`,
+    'Treat only message as the task and cwd as its working directory. If the bridge is absent or invalid, report failure and do not guess from encrypted content or scan archives.',
+    `Before a successful final response run: ${completeCommand}`,
+    `If the task cannot complete run: ${failCommand}`,
+    'Never print the task body or a credential. Report changed files, tests, failures, and residual risks.',
+  ].join('\n');
+  return [
+    'name = "deepseek_worker"',
+    'description = "Text-and-code fallback worker using DeepSeek V4 Flash."',
+    'model = "deepseek-v4-flash"',
+    'model_provider = "deepseek"',
+    'model_reasoning_effort = "high"',
+    `model_catalog_json = ${toml(catalogPath)}`,
+    '',
+    'developer_instructions = """',
+    instructions,
+    '"""',
+    '',
+    '[model_providers.deepseek]',
+    'name = "DeepSeek"',
+    'base_url = "https://api.deepseek.com/"',
+    'wire_api = "responses"',
+    '',
+    '[model_providers.deepseek.auth]',
+    'command = "/usr/bin/security"',
+    `args = ["find-generic-password", "-a", ${toml(keychainAccount)}, "-s", ${toml(keychainService)}, "-w"]`,
+    'timeout_ms = 5000',
+    'refresh_interval_ms = 0',
+    '',
+  ].join('\n');
+}
+
+export function workerConfig(options = {}) {
+  return `${JSON.stringify({
+    schemaVersion: 1,
+    role: 'deepseek_worker',
+    model: 'deepseek-v4-flash',
+    plan: options.plan,
+    sparkAvailable: Boolean(options.sparkAvailable),
+    lunaAvailable: Boolean(options.lunaAvailable),
+    threshold: options.threshold,
+    apiBase: options.apiBase,
+    catalogSource: options.catalogSource,
+    setupScriptUrl: options.setupScriptUrl,
+    bridgePath: options.bridgePath,
+    agentPath: options.agentPath,
+    catalogPath: options.catalogPath,
+    configPath: options.configPath,
+    keychainAccount: options.keychainAccount,
+    keychainService: options.keychainService ?? SERVICE_NAME,
+    platform: 'darwin',
+    mainModelPreserved: true,
+    delegatedDataConsent: true,
+  }, null, 2)}\n`;
+}
+
+export function preflightWrapper({ runtimeDir, configPath } = {}) {
+  const modulePath = path.join(runtimeDir, 'preflight-runtime.mjs');
+  return [
+    '#!/usr/bin/env node',
+    `import { preflightMain } from ${toml(modulePath)};`,
+    `await preflightMain(${toml(configPath)});`,
+    '',
+  ].join('\n');
+}
+
+export function bridgeWrapper({ runtimeDir } = {}) {
+  const modulePath = path.join(runtimeDir, 'bridge-cli.mjs');
+  return [
+    '#!/usr/bin/env node',
+    `import { bridgeMain } from ${toml(modulePath)};`,
+    'await bridgeMain();',
+    '',
+  ].join('\n');
+}
+
+function markerPositions(source) {
+  const starts = [...source.matchAll(new RegExp(AGENTS_START, 'g'))];
+  const ends = [...source.matchAll(new RegExp(AGENTS_END, 'g'))];
+  if (starts.length > 1 || ends.length > 1 || starts.length !== ends.length) {
+    throw new Error('AGENTS.md contains malformed codex-deepseek-worker markers');
+  }
+  if (!starts.length) return null;
+  if (ends[0].index < starts[0].index) throw new Error('AGENTS.md marker order is invalid');
+  return { start: starts[0].index, end: ends[0].index + AGENTS_END.length };
+}
+
+export function replaceAgentsBlock(existing, block) {
+  const source = String(existing ?? '');
+  const positions = markerPositions(source);
+  if (!positions) {
+    return `${source}${source && !source.endsWith('\n') ? '\n' : ''}${block}\n`;
+  }
+  return `${source.slice(0, positions.start)}${block}${source.slice(positions.end)}`;
+}
+
+export function extractAgentsBlock(source) {
+  const text = String(source ?? '');
+  const positions = markerPositions(text);
+  return positions ? text.slice(positions.start, positions.end) : null;
+}
+
+export function removeAgentsBlock(source, expectedBlock) {
+  const text = String(source ?? '');
+  const positions = markerPositions(text);
+  if (!positions) return { changed: false, text };
+  const current = text.slice(positions.start, positions.end);
+  if (current !== expectedBlock) throw new Error('managed AGENTS.md block was modified');
+  const before = text.slice(0, positions.start).replace(/[ \t]+$/u, '');
+  const after = text.slice(positions.end).replace(/^\n/u, '');
+  const combined = `${before}${after}`;
+  return { changed: true, text: combined && !combined.endsWith('\n') ? `${combined}\n` : combined };
+}
