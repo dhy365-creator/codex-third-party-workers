@@ -6,6 +6,7 @@
 
 - 版本：`0.2.0-beta.1`，MIT，Node.js `>=20`，macOS-only。
 - 公开仓库：`https://github.com/dhy365-creator/codex-third-party-workers`。
+- 仓库入口提供英文 `README.md` 与简体中文 `README.zh-CN.md`，顶部可相互切换。
 - 架构升级为通用 provider-pack 形态，当前唯一内置 pack 为 DeepSeek。
 - 安装器、预检、桥接、验证器和卸载器全部支持 provider pack 的路径、文件名和
   配置。

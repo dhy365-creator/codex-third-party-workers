@@ -1,5 +1,7 @@
 # codex-third-party-workers
 
+**English** | [简体中文](README.zh-CN.md)
+
 > Public beta `0.2.0-beta.1`. Unofficial, macOS-only, and not endorsed by
 > OpenAI or DeepSeek.
 
@@ -47,6 +49,20 @@ Suggested defaults:
 - Node.js `>=20`.
 - Provider credentials in macOS Keychain.
 - A working `luna_worker` if Luna fallback is enabled.
+
+Downloading or cloning the repository is only the first step. Before the worker
+can run, you must store the provider API key in Keychain, review a dry-run,
+apply the configuration, restart Codex Desktop, and verify the installation.
+
+## 0. Download the repository
+
+```sh
+git clone https://github.com/dhy365-creator/codex-third-party-workers.git
+cd codex-third-party-workers
+```
+
+You can also download the GitHub ZIP and run the following commands from the
+extracted directory.
 
 ## 1. Store the API key safely
 
