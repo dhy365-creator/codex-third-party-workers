@@ -26,6 +26,7 @@ function toSet(values) {
 }
 
 export const DEEPSEEK_V4_FLASH_ID = 'deepseek-v4-flash';
+export const MINIMAX_M3_ID = 'MiniMax-M3';
 
 const deepseekPack = {
   id: 'deepseek',
@@ -38,7 +39,7 @@ const deepseekPack = {
   wireApi: 'responses',
   keychainService: 'codex-deepseek-api-key',
   catalogSourceHint: 'https://cdn.deepseek.com/api-docs/codex-deepseek-setup.sh',
-  setupScriptHost: /(^|\.)deepseek\.com$/i,
+  catalogSourceHost: /(^|\.)deepseek\.com$/i,
   catalog: {
     file: DEEPSEEK_V4_FLASH_ID + '.json',
     modelId: DEEPSEEK_V4_FLASH_ID,
@@ -82,7 +83,64 @@ const deepseekPack = {
   },
 };
 
-const BUILTIN_PACKS = Object.freeze([deepseekPack]);
+const minimaxPack = {
+  id: 'minimax',
+  displayName: 'MiniMax',
+  role: 'minimax_worker',
+  model: MINIMAX_M3_ID,
+  modelProvider: 'minimax',
+  modelProviderName: 'MiniMax',
+  modelContextWindow: 1000000,
+  apiBase: 'https://api.minimaxi.com/v1',
+  wireApi: 'responses',
+  keychainService: 'codex-minimax-api-key',
+  catalogSourceHint: 'https://platform.minimaxi.com/docs/token-plan/codex.md',
+  catalogSourceHost: /(^|\.)minimaxi\.com$/i,
+  catalog: {
+    file: 'minimax-m3.json',
+    modelId: MINIMAX_M3_ID,
+    requiredModalities: toSet(['text']),
+    outputModalities: toSet(['text']),
+    sourceFormat: 'markdown-json',
+    extraMaxBytes: DEFAULT_MAX_CATALOG_BYTES,
+  },
+  capabilities: {
+    supported: toSet([
+      PROVIDER_CAPABILITIES.TEXT,
+      PROVIDER_CAPABILITIES.CODE,
+      PROVIDER_CAPABILITIES.RESEARCH,
+      PROVIDER_CAPABILITIES.VALIDATION,
+    ]),
+    unsuitable: toSet([
+      'images',
+      'image',
+      'audio',
+      'video',
+      'browser',
+      'desktop',
+      'mcp',
+      'computer use',
+    ]),
+  },
+  agentFile: 'minimax_worker.toml',
+  files: {
+    preflightFile: 'subagent-preflight.mjs',
+    bridgeFile: 'codex-third-party-worker-bridge.mjs',
+    runtimeDir: 'codex-third-party-workers',
+    configFile: 'codex-third-party-workers.json',
+    manifestFile: 'codex-third-party-workers-install.json',
+    backupDir: 'codex-third-party-workers-backups',
+  },
+  prompt: {
+    roleLine: 'Fallback worker for bounded text, code, research synthesis, and local validation with MiniMax.',
+  },
+  thresholds: {
+    plus: 50,
+    pro: 10,
+  },
+};
+
+const BUILTIN_PACKS = Object.freeze([deepseekPack, minimaxPack]);
 
 export function listProviderPackIds() {
   return BUILTIN_PACKS.map((pack) => pack.id);
@@ -96,4 +154,4 @@ export function resolveProviderPack(value = DEFAULT_PROVIDER_ID) {
   return found;
 }
 
-export { deepseekPack as BUILTIN_PROVIDER_PACK, BUILTIN_PACKS };
+export { deepseekPack as BUILTIN_PROVIDER_PACK, BUILTIN_PACKS, minimaxPack };

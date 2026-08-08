@@ -12,6 +12,7 @@ import {
   DEFAULT_MAX_CATALOG_BYTES,
   acquireCatalog,
   catalogJson,
+  extractCatalogDocument,
   reduceCatalogForProvider,
 } from './catalog.mjs';
 import { keychainReady } from './keychain.mjs';
@@ -37,7 +38,7 @@ import {
   workerConfig,
 } from './templates.mjs';
 
-const INSTALL_VERSION = '0.2.0-beta.1';
+const INSTALL_VERSION = '0.3.0-beta.1';
 const SOURCE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RUNTIME_FILES = [
   'bridge.mjs',
@@ -173,10 +174,14 @@ export async function install(options = {}) {
     source,
     setupScriptUrl,
     maxBytes: normalized.maxCatalogBytes ?? providerPack.catalog?.extraMaxBytes ?? DEFAULT_MAX_CATALOG_BYTES,
+    extract: (text) => extractCatalogDocument(text, {
+      sourceFormat: providerPack.catalog?.sourceFormat ?? 'auto',
+    }),
     validateHost: (candidate) => {
       const url = new URL(candidate);
-      if (url.protocol !== 'https:' || !providerPack.setupScriptHost.test(url.hostname)) {
-        throw new Error('official setup script host is not allowed for this provider pack');
+      const sourceHost = providerPack.catalogSourceHost ?? providerPack.setupScriptHost;
+      if (url.protocol !== 'https:' || !sourceHost?.test(url.hostname)) {
+        throw new Error('official catalog source host is not allowed for this provider pack');
       }
       return candidate;
     },

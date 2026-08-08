@@ -2,12 +2,12 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-> Public beta `0.2.0-beta.1`. Unofficial, macOS-only, and not endorsed by
-> OpenAI or DeepSeek.
+> Public beta `0.3.0-beta.1`. Unofficial, macOS-only, and not endorsed by
+> OpenAI, DeepSeek, or MiniMax.
 
 Run configurable provider-pack fallback workers for Codex Desktop without
-replacing the primary OpenAI model/provider/auth stack. The default built-in
-pack is **DeepSeek V4 Flash**.
+replacing the primary OpenAI model/provider/auth stack. Built-in packs are
+**DeepSeek V4 Flash** and **MiniMax-M3**; DeepSeek remains the default.
 
 ## Read this first
 
@@ -17,8 +17,8 @@ pack is **DeepSeek V4 Flash**.
 - Supported work is text, code, research synthesis, and local validation only.
   Images, files-as-multimodal-input, audio, video, browser control, desktop
   control, MCP, and computer use are out of scope.
-- The default installed provider pack supports `deepseek-v4-flash` only and rejects
-  V4 Pro.
+- The DeepSeek pack supports `deepseek-v4-flash` only and rejects V4 Pro. The
+  MiniMax pack supports `MiniMax-M3` only.
 - A configured `luna_worker` is expected when Luna is selected as the OpenAI
   fallback. This repository does not install or alter Luna.
 - Codex Desktop does not guarantee native interception of every collaboration call.
@@ -69,8 +69,14 @@ extracted directory.
 Run in Terminal. Keep `-w` at the end so macOS prompts without putting key in
 shell history:
 
+Choose the service matching the pack you will install:
+
 ```sh
+# DeepSeek
 /usr/bin/security add-generic-password -a "$(id -un)" -s codex-deepseek-api-key -U -w
+
+# MiniMax
+/usr/bin/security add-generic-password -a "$(id -un)" -s codex-minimax-api-key -U -w
 ```
 
 The installer only verifies that this Keychain item exists. It never accepts
@@ -78,9 +84,9 @@ The installer only verifies that this Keychain item exists. It never accepts
 
 ## 2. Review a dry-run
 
-Dry-run is the default. It fetches the official provider setup script as inert
-text, extracts `CODEX_MODELS_JSON`, validates it, and keeps a reduced catalog
-for the selected provider pack.
+Dry-run is the default. It fetches the official provider catalog source as inert
+text, extracts the supported catalog format, validates it, and keeps a reduced
+text-only catalog for the selected provider pack.
 
 Plus example:
 
@@ -107,6 +113,10 @@ node scripts/install.mjs \
   --confirm-main-preserved \
   --consent-data
 ```
+
+MiniMax uses the same routing options with `--provider minimax`. The installer
+manages one selected provider fallback at a time; changing `--provider` changes
+the actively routed provider pack without changing the main OpenAI thread.
 
 For an offline installation, add
 `--catalog-source /absolute/path/to/catalog-or-setup-script`.
@@ -143,8 +153,8 @@ credentials and bridge archives are intentionally retained.
 
 ## Installed files
 
-- `~/.codex/agents/deepseek_worker.toml`
-- `~/.codex/model-catalogs/deepseek-v4-flash.json`
+- `~/.codex/agents/<provider>_worker.toml`
+- `~/.codex/model-catalogs/<provider-model>.json`
 - `~/.codex/bin/subagent-preflight.mjs`
 - `~/.codex/bin/codex-third-party-worker-bridge.mjs`
 - `~/.codex/lib/codex-third-party-workers/`
@@ -169,8 +179,9 @@ implementations. They do not access real API keys, Keychain, Codex quota,
 ### Adding another provider pack
 
 This release provides an extensible provider-pack core, not a claim that every
-third-party model already works. DeepSeek V4 Flash is the first built-in,
-isolated-tested pack; public-installer runtime verification is tracked separately.
+third-party model already works. DeepSeek V4 Flash and MiniMax-M3 are built-in,
+isolated-tested packs. MiniMax-M3 has also passed a real Codex Desktop subagent
+smoke test; public-installer apply/verify status is tracked separately.
 New providers are added as reviewed code in `src/provider-packs.mjs` with tests;
 the installer does not load arbitrary remote pack manifests.
 
@@ -191,6 +202,8 @@ See [configuration-zh](docs/configuration-zh.md),
 - [OpenAI: Codex configuration reference](https://learn.chatgpt.com/docs/config-file/config-reference)
 - [DeepSeek: Codex integration](https://api-docs.deepseek.com/zh-cn/quick_start/agent_integrations/codex/)
 - [DeepSeek: Responses API compatibility](https://api-docs.deepseek.com/zh-cn/guides/responses_api/)
+- [MiniMax: M3 in Codex](https://platform.minimaxi.com/docs/token-plan/codex)
+- [MiniMax: Responses API](https://platform.minimaxi.com/docs/api-reference/responses-create)
 
 ## License
 

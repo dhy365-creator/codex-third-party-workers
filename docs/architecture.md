@@ -3,7 +3,7 @@
 ## Boundaries
 
 - Main Codex model/provider/auth are never changed.
-- DeepSeek is the default and currently the only verified provider pack.
+- DeepSeek is the default provider pack. MiniMax-M3 is the second built-in pack.
   Additional providers are added as reviewed built-in definitions with tests;
   arbitrary remote pack manifests are intentionally not loaded.
 - macOS Keychain is the only credential source.
@@ -14,20 +14,21 @@
 
 ### Agent definition
 
-`~/.codex/agents/deepseek_worker.toml` selects the provider pack model, defines
+`~/.codex/agents/<provider>_worker.toml` selects the provider pack model, defines
 its model provider block, and reads credentials from Keychain. The installer never
 writes `~/.codex/config.toml`.
 
 ### Runtime catalog
 
-The installer reads the official provider setup script as inert text (or local source
-for offline mode), enforces a size limit, extracts the `CODEX_MODELS_JSON`
-heredoc, parses JSON, manually follows a bounded redirect chain while validating
-every destination against the pack host policy, and applies pack policy:
+The installer reads the official provider catalog source as inert text (or a local
+source for offline mode), enforces a size limit, extracts the pack's reviewed
+heredoc or Markdown JSON format, parses JSON, manually follows a bounded redirect
+chain while validating every destination against the pack host policy, and applies
+pack policy:
 
 - model identity target
 - rejected model patterns (for the built-in DeepSeek pack, V4 Pro)
-- required input modalities (text-only)
+- required source modalities and an installed text-only capability boundary
 
 The resulting catalog is written as owner-only runtime data.
 

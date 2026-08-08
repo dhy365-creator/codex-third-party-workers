@@ -44,16 +44,25 @@ function extractOfficialHeredoc(text) {
   return lines.slice(0, end).join('\n');
 }
 
+function extractOfficialMarkdownCatalog(text) {
+  const pattern = /```json[^\n]*\r?\n([\s\S]*?)\r?\n```/gi;
+  for (const match of text.matchAll(pattern)) {
+    const parsed = parseDocument(match[1].trim());
+    if (modelEntries(parsed).length > 0) return parsed;
+  }
+  return null;
+}
+
 function assertWithinSize(text, maxBytes) {
   if (!Number.isInteger(maxBytes) || maxBytes <= 0) {
     throw new Error('catalog size limit must be positive');
   }
   if (Buffer.byteLength(text, 'utf8') > maxBytes) {
-    throw new Error('setup script exceeds the catalog size limit');
+    throw new Error('catalog source exceeds the size limit');
   }
 }
 
-function assertTextOnlyModalities(model, required) {
+function assertRequiredModalities(model, required) {
   const modalities = (model?.input_modalities ?? []).map((value) => String(value).toLowerCase());
   if (!Array.isArray(modalities) || modalities.length === 0) {
     throw new Error('selected model must include input modalities');
@@ -62,11 +71,8 @@ function assertTextOnlyModalities(model, required) {
     ? required
     : new Set((required ?? ['text']).map((value) => String(value).toLowerCase()));
   if (requiredSet.size === 0) requiredSet.add('text');
-  const hasAllowedRequired = requiredSet.has('text')
-    ? modalities.includes('text')
-    : modalities.some((value) => requiredSet.has(value));
-  if (!hasAllowedRequired || modalities.some((value) => !requiredSet.has(value))) {
-    throw new Error('selected model must be text-only');
+  if ([...requiredSet].some((value) => !modalities.includes(value))) {
+    throw new Error('selected model is missing a required input modality');
   }
 }
 
@@ -83,30 +89,51 @@ function rejectIfAny(entries, rejectIf) {
 
 export function reduceCatalogForProvider(document, options = {}) {
   const entries = modelEntries(document);
-  const targetModel = String(options.modelId ?? '').toLowerCase();
-  if (!targetModel) throw new Error('catalog policy must include modelId');
-  const selected = entries.find((entry) => modelId(entry) === targetModel);
+  const targetModel = String(options.modelId ?? '');
+  const normalizedTarget = targetModel.toLowerCase();
+  if (!normalizedTarget) throw new Error('catalog policy must include modelId');
+  const selected = entries.find((entry) => modelId(entry) === normalizedTarget);
   if (!selected) {
     if (rejectIfAny(entries, options.rejectIf)) {
       throw new Error('unsupported provider model variant is present');
     }
-    throw new Error(`catalog does not contain ${targetModel}`);
+    throw new Error(`catalog does not contain ${normalizedTarget}`);
   }
-  assertTextOnlyModalities(selected, options.requiredModalities);
-  const reduced = { models: [{ ...selected, slug: targetModel }] };
+  assertRequiredModalities(selected, options.requiredModalities);
+  const reducedModel = { ...selected, slug: targetModel };
+  if (options.outputModalities) {
+    reducedModel.input_modalities = [...options.outputModalities];
+  }
+  const reduced = { models: [reducedModel] };
   return reduced;
 }
 
-export function extractCatalogFromScript(scriptText) {
-  const text = typeof scriptText === 'string' ? scriptText : String(scriptText ?? '');
+export function extractCatalogDocument(sourceText, options = {}) {
+  const sourceFormat = String(options.sourceFormat ?? 'auto').toLowerCase();
+  if (!['auto', 'heredoc', 'markdown-json'].includes(sourceFormat)) {
+    throw new Error(`unsupported catalog source format: ${sourceFormat}`);
+  }
+  const text = typeof sourceText === 'string' ? sourceText : String(sourceText ?? '');
   assertWithinSize(text, DEFAULT_MAX_CATALOG_BYTES);
   const direct = parseDocument(text.trim());
   if (direct) return direct;
-  const heredoc = extractOfficialHeredoc(text);
-  if (!heredoc) throw new Error('could not find the official CODEX_MODELS_JSON heredoc');
-  const embedded = parseDocument(heredoc.trim());
-  if (!embedded) throw new Error('official embedded model catalog is invalid JSON');
-  return embedded;
+  if (sourceFormat !== 'markdown-json') {
+    const heredoc = extractOfficialHeredoc(text);
+    if (heredoc) {
+      const embedded = parseDocument(heredoc.trim());
+      if (!embedded) throw new Error('official embedded model catalog is invalid JSON');
+      return embedded;
+    }
+  }
+  if (sourceFormat !== 'heredoc') {
+    const markdown = extractOfficialMarkdownCatalog(text);
+    if (markdown) return markdown;
+  }
+  throw new Error('could not find a supported official model catalog');
+}
+
+export function extractCatalogFromScript(scriptText) {
+  return extractCatalogDocument(scriptText);
 }
 
 export async function acquireCatalog({
@@ -116,6 +143,7 @@ export async function acquireCatalog({
   maxBytes = DEFAULT_MAX_CATALOG_BYTES,
   validateHost,
   reduce,
+  extract = extractCatalogFromScript,
 } = {}) {
   if (typeof reduce !== 'function') {
     throw new Error('catalog reducer is required');
@@ -126,14 +154,14 @@ export async function acquireCatalog({
     const data = await fs.readFile(resolved);
     if (data.byteLength > maxBytes) throw new Error('catalog source exceeds the size limit');
     return {
-      catalog: reduce(extractCatalogFromScript(data.toString('utf8'))),
+      catalog: reduce(extract(data.toString('utf8'))),
       source: resolved,
       fetched: false,
     };
   }
 
   if (typeof setupScriptUrl !== 'string' || !setupScriptUrl.trim()) {
-    throw new Error('setup script URL is required');
+    throw new Error('catalog source URL is required');
   }
   if (typeof validateHost !== 'function') {
     throw new Error('catalog host validator is required');
@@ -169,7 +197,7 @@ export async function acquireCatalog({
   const data = Buffer.from(await response.arrayBuffer());
   if (data.byteLength > maxBytes) throw new Error('catalog source exceeds the size limit');
   return {
-    catalog: reduce(extractCatalogFromScript(data.toString('utf8'))),
+    catalog: reduce(extract(data.toString('utf8'))),
     source: currentUrl.href,
     fetched: true,
   };

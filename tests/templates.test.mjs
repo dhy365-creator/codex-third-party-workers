@@ -29,6 +29,24 @@ test('agent TOML keeps DeepSeek inside the child and uses Keychain auth', () => 
   assert.doesNotMatch(result, /deepseek-v4-pro/i);
 });
 
+test('agent TOML configures MiniMax M3 with command-backed Keychain auth', () => {
+  const providerPack = resolveProviderPack('minimax');
+  const result = agentToml({
+    catalogPath: '/tmp/minimax-catalog.json',
+    bridgePath: '/tmp/bridge',
+    bridgeCliPath: '/tmp/bridge-cli.mjs',
+    nodePath: '/usr/local/bin/node',
+    keychainAccount: 'fixture-user',
+    providerPack,
+  });
+  assert.match(result, /name = "minimax_worker"/);
+  assert.match(result, /model = "MiniMax-M3"/);
+  assert.match(result, /model_provider = "minimax"/);
+  assert.match(result, /model_context_window = 1000000/);
+  assert.match(result, /codex-minimax-api-key/);
+  assert.equal(result.includes(`experimental_${'bearer_token'}`), false);
+});
+
 test('AGENTS marker update is idempotent and removable without touching user text', () => {
   const block = agentsBlock({
     nodePath: '/node',
