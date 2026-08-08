@@ -2,15 +2,18 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { chooseRoute, ROLES } from '../src/routing.mjs';
 
+const providerRole = 'deepseek_worker';
+
 const base = {
   operation: 'spawn',
   requestedAgent: ROLES.SPARK,
   threshold: 10,
   sparkAvailable: true,
   lunaAvailable: true,
-  deepseekReady: true,
-  deepseekSuitable: true,
+  providerReady: true,
+  providerSuitable: true,
   bridgeBusy: false,
+  providerRole,
 };
 
 test('live Spark quota has first priority even when general quota is low', () => {
@@ -24,17 +27,17 @@ test('Spark exhaustion falls back to Luna at the threshold', () => {
   assert.equal(route.chosenAgent, ROLES.LUNA);
 });
 
-test('below threshold selects DeepSeek only when suitable and ready', () => {
+test('below threshold selects provider fallback only when suitable and ready', () => {
   assert.equal(
-    chooseRoute({ ...base, sparkRemaining: 0, generalRemaining: 9 }).chosenAgent,
-    ROLES.DEEPSEEK,
+    chooseRoute({ ...base, requestedAgent: providerRole, sparkRemaining: 0, generalRemaining: 9 }).chosenAgent,
+    providerRole,
   );
   assert.equal(
-    chooseRoute({ ...base, sparkRemaining: 0, generalRemaining: 9, deepseekSuitable: false }).chosenAgent,
+    chooseRoute({ ...base, requestedAgent: providerRole, sparkRemaining: 0, generalRemaining: 9, providerSuitable: false }).chosenAgent,
     ROLES.LUNA,
   );
   assert.equal(
-    chooseRoute({ ...base, sparkRemaining: 0, generalRemaining: 9, bridgeBusy: true }).chosenAgent,
+    chooseRoute({ ...base, requestedAgent: providerRole, sparkRemaining: 0, generalRemaining: 9, bridgeBusy: true }).chosenAgent,
     ROLES.LUNA,
   );
 });
@@ -51,7 +54,8 @@ test('followup is reused only when the chosen role matches', () => {
   const followup = chooseRoute({
     ...base,
     operation: 'followup',
-    existingAgentType: ROLES.DEEPSEEK,
+    requestedAgent: providerRole,
+    existingAgentType: providerRole,
     sparkRemaining: 0,
     generalRemaining: 1,
   });
@@ -59,9 +63,11 @@ test('followup is reused only when the chosen role matches', () => {
   const changedRole = chooseRoute({
     ...base,
     operation: 'followup',
+    requestedAgent: providerRole,
     existingAgentType: ROLES.LUNA,
     sparkRemaining: 0,
     generalRemaining: 1,
   });
   assert.equal(changedRole.action, 'spawn');
+  assert.equal(changedRole.chosenAgent, providerRole);
 });

@@ -1,9 +1,10 @@
 import path from 'node:path';
 import { catalogIsSafe } from './catalog.mjs';
-import { discoverEnvironment, SERVICE_NAME } from './environment.mjs';
+import { discoverEnvironment } from './environment.mjs';
 import { fs, lstatIfExists, sha256File } from './fs-utils.mjs';
 import { keychainReady } from './keychain.mjs';
 import { extractAgentsBlock } from './templates.mjs';
+import { resolveProviderPack, DEFAULT_PROVIDER_ID as PACK_DEFAULT } from './provider-packs.mjs';
 
 const RUNTIME_FILES = [
   'bridge.mjs',
@@ -42,7 +43,7 @@ async function readManifest(env) {
 }
 
 export async function verify(options = {}) {
-  const env = discoverEnvironment({ ...options, env: options.env ?? process.env });
+  const env = discoverEnvironment({ provider: options.provider ?? PACK_DEFAULT, ...options, env: options.env ?? process.env });
   const issues = [];
   const warnings = [];
   let manifest;
@@ -51,6 +52,7 @@ export async function verify(options = {}) {
   } catch (error) {
     return { configured: false, runtimeVerified: false, issues: [error.message], warnings, environment: env };
   }
+
   if (!manifest) {
     return {
       configured: false,
@@ -60,6 +62,15 @@ export async function verify(options = {}) {
       environment: env,
     };
   }
+
+  const providerId = manifest.options?.providerId ?? env.providerPack?.id ?? PACK_DEFAULT;
+  let providerPack;
+  try {
+    providerPack = resolveProviderPack(providerId);
+  } catch {
+    issues.push(`unknown provider pack in manifest: ${providerId}`);
+  }
+
   const allowed = allowedPaths(env);
   const recorded = new Set();
   for (const record of manifest.managedFiles ?? []) {
@@ -96,17 +107,21 @@ export async function verify(options = {}) {
   for (const required of allowed) {
     if (!recorded.has(required)) issues.push(`manifest is missing a managed path: ${required}`);
   }
+
   try {
     const catalog = JSON.parse(await fs.readFile(env.catalogPath, 'utf8'));
-    if (!catalogIsSafe(catalog)) issues.push('runtime catalog is not Flash-only');
+    if (providerPack && !catalogIsSafe(catalog, providerPack.catalog)) {
+      issues.push('runtime catalog is not safe for this provider pack');
+    }
   } catch {
     issues.push('runtime catalog is missing or invalid');
   }
+
   try {
     const config = JSON.parse(await fs.readFile(env.configPath, 'utf8'));
-    if (config.model !== 'deepseek-v4-flash' || config.mainModelPreserved !== true) {
-      issues.push('worker config model or main-model boundary is invalid');
-    }
+    if (config.providerId !== providerId) issues.push('runtime config provider id is invalid');
+    if (providerPack && config.model !== providerPack.model) issues.push('runtime config model is invalid');
+    if (config.providerRole && config.providerRole !== providerPack?.role) issues.push('runtime config provider role is invalid');
   } catch {
     issues.push('worker config is missing or invalid');
   }
@@ -115,21 +130,27 @@ export async function verify(options = {}) {
   if (options.checkKeychain !== false) {
     try {
       const check = options.keychainReadyImpl ?? keychainReady;
-      credentialReady = await check({
-        account: env.keychainAccount,
-        service: SERVICE_NAME,
-        platform: options.platform ?? process.platform,
-        env: options.env ?? process.env,
-        execFileImpl: options.execFileImpl,
-      });
-      if (!credentialReady) issues.push('DeepSeek Keychain credential is unavailable');
+      const keychainService = providerPack?.keychainService ?? (manifest.secretStorage?.service ?? null);
+      if (!keychainService) {
+        issues.push('cannot verify keychain service for this provider');
+      } else {
+        credentialReady = await check({
+          account: env.keychainAccount,
+          service: keychainService,
+          platform: options.platform ?? process.platform,
+          env: options.env ?? process.env,
+          execFileImpl: options.execFileImpl,
+        });
+        if (!credentialReady) issues.push(`provider keychain credential for ${providerId} is unavailable`);
+      }
     } catch {
-      issues.push('DeepSeek Keychain credential could not be checked');
+      issues.push('provider keychain credential could not be checked');
     }
   } else {
     warnings.push('Keychain credential check was skipped');
   }
   warnings.push('No live Codex subagent task was run; runtime remains unverified');
+
   return {
     configured: issues.length === 0,
     runtimeVerified: false,

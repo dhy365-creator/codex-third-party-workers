@@ -14,7 +14,7 @@ const ACTIVE_STATUSES = new Set(['pending', 'running']);
 const ARCHIVE_STATUSES = new Set(['completed', 'failed']);
 
 export class BridgeBusyError extends Error {
-  constructor(message = 'DeepSeek bridge is busy') {
+  constructor(message = 'provider bridge is busy') {
     super(message);
     this.name = 'BridgeBusyError';
     this.code = 'BRIDGE_BUSY';

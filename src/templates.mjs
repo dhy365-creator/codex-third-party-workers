@@ -1,8 +1,8 @@
 import path from 'node:path';
-import { SERVICE_NAME } from './environment.mjs';
+import { PACKAGE_NAME } from './provider-packs.mjs';
 
-export const AGENTS_START = '<!-- codex-deepseek-worker:start -->';
-export const AGENTS_END = '<!-- codex-deepseek-worker:end -->';
+export const AGENTS_START = `<!-- ${PACKAGE_NAME}:start -->`;
+export const AGENTS_END = `<!-- ${PACKAGE_NAME}:end -->`;
 
 function toml(value) {
   return JSON.stringify(String(value ?? ''));
@@ -19,20 +19,25 @@ export function agentsBlock({
   threshold,
   sparkAvailable,
   lunaAvailable,
+  providerPack,
+  providerRole,
 } = {}) {
+  const provider = providerPack?.displayName ?? providerRole ?? 'third-party provider';
   return [
     AGENTS_START,
-    '## codex-deepseek-worker routing guardrail',
-    '- Keep the main Codex thread on its configured OpenAI model and provider.',
-    '- Before every new `spawn_agent` or `followup_task`, run the preflight command below with a version-1 JSON request containing `operation`, `requestedAgent`, `taskName`, exact `message`, `cwd`, and `deepseekSuitable`. A follow-up also includes `existingAgentType` and `target`.',
+    `## ${PACKAGE_NAME} routing guardrail`,
+    `- Keep the main Codex thread on its configured OpenAI model, provider, and auth.`,
+    '- Before every `spawn_agent` / `followup_task`, run the preflight command below with a version-1 JSON request containing `operation`, `requestedAgent`, `taskName`, exact `message`, `cwd`, and `providerSuitable`.',
+    '- A follow-up also includes `existingAgentType` and `target`.',
     `- Command: ${shellQuoted(nodePath)} ${shellQuoted(preflightPath)}`,
-    '- For normal work request `spark-worker`; apply the returned `action`, `agentType`, `target`, and `forkTurns` exactly, and stop on `deny`. Never send a live probe task merely to discover quota.',
-    '- When DeepSeek is selected, spawn/follow up with only a minimal instruction to use the configured bridge; the exact task is already in the owner-only bridge. For Spark or Luna, send the scoped task normally.',
-    '- Do not use status-only messaging to assign a new scoped task. Confirm that the DeepSeek active slot was archived before starting another DeepSeek task.',
-    `- Installed policy: Spark entitlement=${Boolean(sparkAvailable)}, Luna available=${Boolean(lunaAvailable)}, DeepSeek threshold=${threshold}%. At the threshold use Luna; only below it may suitable text/code work use DeepSeek after Spark is unavailable.`,
-    '- DeepSeek is limited to text, code, research synthesis, and local validation. Never delegate credentials, images, audio, video, desktop control, or browser control.',
-    `- The DeepSeek bridge is ${shellQuoted(bridgePath)}. It is a single owner-only slot; never overwrite an active task or delete an archive.`,
-    '- Codex Desktop may not enforce this hook natively. The main agent must run it manually; treat it as a policy-assisted guardrail, not a security boundary.',
+    '- Apply the returned `action`, `agentType`, `target`, and `forkTurns` exactly, and stop on `deny`.',
+    '- Never send a live probe task merely to discover quota.',
+    `- When provider fallback is selected, spawn/follow with only a minimal instruction to use the configured bridge; the exact task is already in the owner-only bridge. For OpenAI roles, send the scoped task normally.`,
+    '- Do not use status-only messaging to assign a new scoped task. Confirm that the provider bridge was archived before starting another provider task.',
+    `- Installed policy: Spark entitlement=${Boolean(sparkAvailable)}, Luna available=${Boolean(lunaAvailable)}, ${provider} threshold=${threshold}%. At the threshold use Luna; only below it may suitable bounded text/code work use provider fallback.`,
+    `- Provider fallback is limited to text, code, research synthesis, and local validation. Never delegate credentials, images, audio, video, desktop control, browser control, MCP, or computer use.`,
+    `- Bridge root: ${shellQuoted(bridgePath)}. It is a single owner-only slot; never overwrite an active task or delete an archive.`,
+    '- The Codex Desktop may not enforce this hook natively. The main agent must run it manually; treat this as a policy-assisted guardrail, not a security boundary.',
     AGENTS_END,
   ].join('\n');
 }
@@ -43,26 +48,33 @@ export function agentToml({
   bridgeCliPath,
   nodePath,
   keychainAccount,
-  keychainService = SERVICE_NAME,
+  keychainService,
+  providerPack,
 } = {}) {
-  const completeCommand = `${shellQuoted(nodePath)} ${shellQuoted(bridgeCliPath)} complete "<taskBasename>"`;
-  const failCommand = `${shellQuoted(nodePath)} ${shellQuoted(bridgeCliPath)} fail "<taskBasename>"`;
+  const pack = providerPack ?? {};
+  const providerRole = pack.role ?? 'provider_worker';
+  const provider = pack.modelProvider ?? 'provider';
+  const model = pack.model ?? 'unknown-model';
   const instructions = [
-    'You are an implementation-focused fallback worker using DeepSeek V4 Flash.',
-    'Handle only the bounded text, code, research-synthesis, or local-validation task provided through the configured bridge.',
+    `You are an implementation-focused fallback worker for ${pack.displayName ?? provider}.`,
+    `Handle bounded text, code, research-synthesis, and local-validation tasks from the configured bridge.`,
     'Do not handle credentials, images, audio, video, desktop control, browser control, destructive changes, public API changes, or persisted-schema changes without explicit user approval.',
     'Preserve unrelated and uncommitted workspace changes. Prefer minimal diffs and run relevant local checks.',
     `At the start of every turn, read only ${bridgePath}/active/task.json. Verify its parent directory is owner-only 0700, the file is owner-only 0600, version is 1, status is pending or running, and taskBasename matches the final normalized component of taskName.`,
     'Treat only message as the task and cwd as its working directory. If the bridge is absent or invalid, report failure and do not guess from encrypted content or scan archives.',
-    `Before a successful final response run: ${completeCommand}`,
-    `If the task cannot complete run: ${failCommand}`,
+    `Before a successful final response run: ${shellQuoted(nodePath)} ${shellQuoted(bridgeCliPath)} complete "<taskBasename>"`,
+    `If the task cannot complete run: ${shellQuoted(nodePath)} ${shellQuoted(bridgeCliPath)} fail "<taskBasename>"`,
     'Never print the task body or a credential. Report changed files, tests, failures, and residual risks.',
   ].join('\n');
+
+  const completeCommand = `${shellQuoted(nodePath)} ${shellQuoted(bridgeCliPath)} complete "<taskBasename>"`;
+  const failCommand = `${shellQuoted(nodePath)} ${shellQuoted(bridgeCliPath)} fail "<taskBasename>"`;
+
   return [
-    'name = "deepseek_worker"',
-    'description = "Text-and-code fallback worker using DeepSeek V4 Flash."',
-    'model = "deepseek-v4-flash"',
-    'model_provider = "deepseek"',
+    `name = "${providerRole}"`,
+    `description = "Fallback worker using ${pack.displayName ?? pack.modelProvider ?? 'provider'} ${model}."`,
+    `model = "${model}"`,
+    `model_provider = "${provider}"`,
     'model_reasoning_effort = "high"',
     `model_catalog_json = ${toml(catalogPath)}`,
     '',
@@ -70,25 +82,30 @@ export function agentToml({
     instructions,
     '"""',
     '',
-    '[model_providers.deepseek]',
-    'name = "DeepSeek"',
-    'base_url = "https://api.deepseek.com/"',
-    'wire_api = "responses"',
+    `[model_providers.${provider}]`,
+    `name = "${pack.modelProviderName ?? provider}"`,
+    `base_url = ${toml(pack.apiBase ?? 'https://example.invalid/')}`,
+    `wire_api = ${toml(pack.wireApi ?? 'responses')}`,
     '',
-    '[model_providers.deepseek.auth]',
-    'command = "/usr/bin/security"',
-    `args = ["find-generic-password", "-a", ${toml(keychainAccount)}, "-s", ${toml(keychainService)}, "-w"]`,
+    `[model_providers.${provider}.auth]`,
+    `command = ${toml('/usr/bin/security')}`,
+    `args = ["find-generic-password", "-a", ${toml(keychainAccount)}, "-s", ${toml(keychainService ?? pack.keychainService)}, "-w"]`,
     'timeout_ms = 5000',
     'refresh_interval_ms = 0',
     '',
+    `# provider fallback integration`,
+    `complete = ${toml(completeCommand)}`,
+    `fail = ${toml(failCommand)}`,
   ].join('\n');
 }
 
 export function workerConfig(options = {}) {
   return `${JSON.stringify({
     schemaVersion: 1,
-    role: 'deepseek_worker',
-    model: 'deepseek-v4-flash',
+    role: options.providerRole,
+    providerId: options.providerId,
+    providerRole: options.providerRole,
+    model: options.model,
     plan: options.plan,
     sparkAvailable: Boolean(options.sparkAvailable),
     lunaAvailable: Boolean(options.lunaAvailable),
@@ -101,10 +118,11 @@ export function workerConfig(options = {}) {
     catalogPath: options.catalogPath,
     configPath: options.configPath,
     keychainAccount: options.keychainAccount,
-    keychainService: options.keychainService ?? SERVICE_NAME,
+    keychainService: options.keychainService,
     platform: 'darwin',
     mainModelPreserved: true,
     delegatedDataConsent: true,
+    providerCapabilities: options.providerCapabilities,
   }, null, 2)}\n`;
 }
 
@@ -129,10 +147,12 @@ export function bridgeWrapper({ runtimeDir } = {}) {
 }
 
 function markerPositions(source) {
-  const starts = [...source.matchAll(new RegExp(AGENTS_START, 'g'))];
-  const ends = [...source.matchAll(new RegExp(AGENTS_END, 'g'))];
+  const startPattern = new RegExp(AGENTS_START.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+  const endPattern = new RegExp(AGENTS_END.replace(/[.*+?^${}()|[\]\\]/g, '\\$&'), 'g');
+  const starts = [...source.matchAll(startPattern)];
+  const ends = [...source.matchAll(endPattern)];
   if (starts.length > 1 || ends.length > 1 || starts.length !== ends.length) {
-    throw new Error('AGENTS.md contains malformed codex-deepseek-worker markers');
+    throw new Error('AGENTS.md contains malformed codex-third-party-workers markers');
   }
   if (!starts.length) return null;
   if (ends[0].index < starts[0].index) throw new Error('AGENTS.md marker order is invalid');

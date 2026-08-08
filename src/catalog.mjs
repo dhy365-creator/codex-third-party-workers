@@ -1,11 +1,17 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { DEFAULT_SETUP_SCRIPT_URL } from './environment.mjs';
 
 export const DEFAULT_MAX_CATALOG_BYTES = 2 * 1024 * 1024;
-export const DEEPSEEK_FLASH_ID = 'deepseek-v4-flash';
-const HEREDOC_MARKER = 'CODEX_MODELS_JSON';
+export const DEFAULT_MAX_CATALOG_REDIRECTS = 5;
+
+function parseDocument(text) {
+  try {
+    return JSON.parse(text);
+  } catch {
+    return null;
+  }
+}
 
 function modelEntries(document) {
   if (!document || typeof document !== 'object') return [];
@@ -24,17 +30,11 @@ function modelId(model) {
   return String(model.slug ?? model.id ?? model.model ?? model.name ?? '').toLowerCase();
 }
 
-function parseDocument(text) {
-  try {
-    return JSON.parse(text);
-  } catch {
-    return null;
-  }
-}
+const HEREDOC_MARKER = 'CODEX_MODELS_JSON';
 
 function extractOfficialHeredoc(text) {
-  const startPattern = new RegExp(`<<['\"]?${HEREDOC_MARKER}['\"]?\\r?\\n`);
-  const match = startPattern.exec(text);
+  const pattern = new RegExp(`<<['\"]?${HEREDOC_MARKER}['\"]?\\r?\\n`);
+  const match = pattern.exec(text);
   if (!match) return null;
   const payloadStart = match.index + match[0].length;
   const rest = text.slice(payloadStart);
@@ -44,113 +44,148 @@ function extractOfficialHeredoc(text) {
   return lines.slice(0, end).join('\n');
 }
 
-export function findFlashModel(document) {
-  const entries = modelEntries(document);
-  const flash = entries.find((entry) => modelId(entry) === DEEPSEEK_FLASH_ID);
-  if (!flash) {
-    if (entries.some((entry) => modelId(entry).includes('v4-pro'))) {
-      throw new Error('DeepSeek V4 Pro is not supported');
-    }
-    throw new Error('catalog does not contain deepseek-v4-flash');
+function assertWithinSize(text, maxBytes) {
+  if (!Number.isInteger(maxBytes) || maxBytes <= 0) {
+    throw new Error('catalog size limit must be positive');
   }
-  const selected = { ...flash, slug: DEEPSEEK_FLASH_ID };
-  if (selected.input_modalities) {
-    const modalities = selected.input_modalities.map((value) => String(value).toLowerCase());
-    if (!modalities.includes('text') || modalities.some((value) => value !== 'text')) {
-      throw new Error('deepseek-v4-flash catalog must be text-only');
-    }
+  if (Buffer.byteLength(text, 'utf8') > maxBytes) {
+    throw new Error('setup script exceeds the catalog size limit');
   }
-  return selected;
 }
 
-export function validateAndReduceCatalog(document) {
-  const selected = findFlashModel(document);
-  if (modelId(selected) !== DEEPSEEK_FLASH_ID) {
-    throw new Error('catalog model identity changed unexpectedly');
+function assertTextOnlyModalities(model, required) {
+  const modalities = (model?.input_modalities ?? []).map((value) => String(value).toLowerCase());
+  if (!Array.isArray(modalities) || modalities.length === 0) {
+    throw new Error('selected model must include input modalities');
   }
-  const reduced = { models: [selected] };
-  if (JSON.stringify(reduced).toLowerCase().includes('deepseek-v4-pro')) {
-    throw new Error('reduced catalog unexpectedly contains DeepSeek V4 Pro');
+  const requiredSet = required instanceof Set
+    ? required
+    : new Set((required ?? ['text']).map((value) => String(value).toLowerCase()));
+  if (requiredSet.size === 0) requiredSet.add('text');
+  const hasAllowedRequired = requiredSet.has('text')
+    ? modalities.includes('text')
+    : modalities.some((value) => requiredSet.has(value));
+  if (!hasAllowedRequired || modalities.some((value) => !requiredSet.has(value))) {
+    throw new Error('selected model must be text-only');
   }
+}
+
+function rejectIfAny(entries, rejectIf) {
+  if (!rejectIf) return false;
+  if (typeof rejectIf === 'function') {
+    return entries.some((entry) => rejectIf(modelId(entry)));
+  }
+  if (rejectIf instanceof RegExp) {
+    return entries.some((entry) => rejectIf.test(modelId(entry)));
+  }
+  return false;
+}
+
+export function reduceCatalogForProvider(document, options = {}) {
+  const entries = modelEntries(document);
+  const targetModel = String(options.modelId ?? '').toLowerCase();
+  if (!targetModel) throw new Error('catalog policy must include modelId');
+  const selected = entries.find((entry) => modelId(entry) === targetModel);
+  if (!selected) {
+    if (rejectIfAny(entries, options.rejectIf)) {
+      throw new Error('unsupported provider model variant is present');
+    }
+    throw new Error(`catalog does not contain ${targetModel}`);
+  }
+  assertTextOnlyModalities(selected, options.requiredModalities);
+  const reduced = { models: [{ ...selected, slug: targetModel }] };
   return reduced;
 }
 
 export function extractCatalogFromScript(scriptText) {
   const text = typeof scriptText === 'string' ? scriptText : String(scriptText ?? '');
-  if (Buffer.byteLength(text, 'utf8') > DEFAULT_MAX_CATALOG_BYTES) {
-    throw new Error('DeepSeek setup script exceeds the catalog size limit');
-  }
+  assertWithinSize(text, DEFAULT_MAX_CATALOG_BYTES);
   const direct = parseDocument(text.trim());
-  if (direct) return validateAndReduceCatalog(direct);
+  if (direct) return direct;
   const heredoc = extractOfficialHeredoc(text);
-  if (!heredoc) {
-    throw new Error('could not find the official CODEX_MODELS_JSON heredoc');
-  }
+  if (!heredoc) throw new Error('could not find the official CODEX_MODELS_JSON heredoc');
   const embedded = parseDocument(heredoc.trim());
   if (!embedded) throw new Error('official embedded model catalog is invalid JSON');
-  return validateAndReduceCatalog(embedded);
-}
-
-async function readSource(source, maxBytes) {
-  const resolved = source.startsWith('file://') ? fileURLToPath(source) : path.resolve(source);
-  const data = await fs.readFile(resolved);
-  if (data.byteLength > maxBytes) throw new Error('catalog source exceeds the size limit');
-  return { text: data.toString('utf8'), resolved };
-}
-
-function assertOfficialUrl(value) {
-  const url = new URL(value);
-  if (url.protocol !== 'https:' || !/(^|\.)deepseek\.com$/i.test(url.hostname)) {
-    throw new Error('setup script URL must use HTTPS on an official deepseek.com host');
-  }
-  return url.href;
-}
-
-async function fetchText(url, { fetchImpl, maxBytes }) {
-  if (typeof fetchImpl !== 'function') throw new Error('fetch is unavailable');
-  const response = await fetchImpl(url, { redirect: 'follow' });
-  if (!response?.ok) {
-    throw new Error(`DeepSeek setup script download failed (${response?.status ?? 'unknown'})`);
-  }
-  const length = Number(response.headers?.get?.('content-length') ?? 0);
-  if (length > maxBytes) throw new Error('DeepSeek setup script exceeds the catalog size limit');
-  const data = Buffer.from(await response.arrayBuffer());
-  if (data.byteLength > maxBytes) throw new Error('DeepSeek setup script exceeds the catalog size limit');
-  return data.toString('utf8');
+  return embedded;
 }
 
 export async function acquireCatalog({
   source = 'auto',
-  setupScriptUrl = DEFAULT_SETUP_SCRIPT_URL,
+  setupScriptUrl,
   fetchImpl = globalThis.fetch,
   maxBytes = DEFAULT_MAX_CATALOG_BYTES,
+  validateHost,
+  reduce,
 } = {}) {
+  if (typeof reduce !== 'function') {
+    throw new Error('catalog reducer is required');
+  }
+
   if (source && source !== 'auto') {
-    const local = await readSource(source, maxBytes);
+    const resolved = source.startsWith('file://') ? fileURLToPath(source) : path.resolve(source);
+    const data = await fs.readFile(resolved);
+    if (data.byteLength > maxBytes) throw new Error('catalog source exceeds the size limit');
     return {
-      catalog: extractCatalogFromScript(local.text),
-      source: local.resolved,
+      catalog: reduce(extractCatalogFromScript(data.toString('utf8'))),
+      source: resolved,
       fetched: false,
     };
   }
-  const officialUrl = assertOfficialUrl(setupScriptUrl);
-  const text = await fetchText(officialUrl, { fetchImpl, maxBytes });
+
+  if (typeof setupScriptUrl !== 'string' || !setupScriptUrl.trim()) {
+    throw new Error('setup script URL is required');
+  }
+  if (typeof validateHost !== 'function') {
+    throw new Error('catalog host validator is required');
+  }
+
+  let currentUrl = new URL(validateHost(setupScriptUrl));
+  let response;
+  for (let redirects = 0; redirects <= DEFAULT_MAX_CATALOG_REDIRECTS; redirects++) {
+    response = await fetchImpl(currentUrl.href, { redirect: 'manual' });
+    const status = Number(response?.status ?? 0);
+    const location = response?.headers?.get?.('location') ?? null;
+    if (status >= 300 && status < 400) {
+      if (!location) {
+        throw new Error('catalog redirect is missing Location header');
+      }
+      if (redirects >= DEFAULT_MAX_CATALOG_REDIRECTS) {
+        throw new Error('catalog redirect count exceeded');
+      }
+      currentUrl = new URL(validateHost(new URL(location, currentUrl.href).href));
+      continue;
+    }
+    break;
+  }
+
+  const responseUrl = typeof response?.url === 'string' && response.url ? response.url : currentUrl.href;
+  currentUrl = new URL(validateHost(responseUrl));
+
+  if (!response || !response.ok) {
+    throw new Error(`catalog download failed (${response?.status ?? 'unknown'})`);
+  }
+  const length = Number(response.headers?.get?.('content-length') ?? 0);
+  if (length > maxBytes) throw new Error('catalog source exceeds the size limit');
+  const data = Buffer.from(await response.arrayBuffer());
+  if (data.byteLength > maxBytes) throw new Error('catalog source exceeds the size limit');
   return {
-    catalog: extractCatalogFromScript(text),
-    source: officialUrl,
+    catalog: reduce(extractCatalogFromScript(data.toString('utf8'))),
+    source: currentUrl.href,
     fetched: true,
   };
 }
 
 export function catalogJson(catalog) {
-  return `${JSON.stringify(validateAndReduceCatalog(catalog), null, 2)}\n`;
+  return `${JSON.stringify(catalog, null, 2)}\n`;
 }
 
-export function catalogIsSafe(catalog) {
+export function catalogIsSafe(catalog, options) {
   try {
-    const reduced = validateAndReduceCatalog(catalog);
-    return reduced.models.length === 1 && modelId(reduced.models[0]) === DEEPSEEK_FLASH_ID;
+    const reduced = reduceCatalogForProvider(catalog, options);
+    return reduced.models.length === 1 && modelId(reduced.models[0]) === String(options?.modelId ?? '').toLowerCase();
   } catch {
     return false;
   }
 }
+
+export { parseDocument, modelEntries, modelId };

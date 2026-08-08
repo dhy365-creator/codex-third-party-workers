@@ -28,7 +28,7 @@ test('repository contains no personal absolute paths, fixed UID, or credential v
     const text = data.toString('utf8');
     for (const value of forbidden) assert.equal(text.includes(value), false, `${file} contains ${value}`);
     assert.doesNotMatch(text, /\/Users\/[A-Za-z0-9._-]+/);
-    assert.doesNotMatch(text, /codex-deepseek-task-bridge-[0-9]{2,}/);
+    assert.doesNotMatch(text, /codex-(?:deepseek|third-party-worker)-task-bridge-[0-9]{2,}/);
     assert.doesNotMatch(text, /sk-[A-Za-z0-9_-]{12,}/);
   }
 });

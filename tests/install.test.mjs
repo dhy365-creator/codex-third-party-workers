@@ -7,6 +7,7 @@ import { fileURLToPath } from 'node:url';
 import { install } from '../src/installer.mjs';
 import { uninstall } from '../src/uninstaller.mjs';
 import { verify } from '../src/verifier.mjs';
+import { AGENTS_START, AGENTS_END } from '../src/templates.mjs';
 
 const fixtureCatalog = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
@@ -77,7 +78,7 @@ test('dry-run writes nothing, apply is idempotent, verify is honest, and uninsta
   await fs.appendFile(path.join(fixture.codexDir, 'AGENTS.md'), '# Later user rule\n');
   await install({ ...fixture.options, apply: true });
   const agents = await fs.readFile(path.join(fixture.codexDir, 'AGENTS.md'), 'utf8');
-  assert.equal(agents.split('<!-- codex-deepseek-worker:start -->').length - 1, 1);
+  assert.equal(agents.split(AGENTS_START).length - 1, 1);
 
   const uninstallDry = await uninstall({ ...fixture.options });
   assert.equal(uninstallDry.dryRun, true);
@@ -89,7 +90,8 @@ test('dry-run writes nothing, apply is idempotent, verify is honest, and uninsta
   const finalAgents = await fs.readFile(path.join(fixture.codexDir, 'AGENTS.md'), 'utf8');
   assert.match(finalAgents, /# Existing user rules/);
   assert.match(finalAgents, /# Later user rule/);
-  assert.doesNotMatch(finalAgents, /codex-deepseek-worker:start/);
+  assert.doesNotMatch(finalAgents, new RegExp(AGENTS_START));
+  assert.doesNotMatch(finalAgents, new RegExp(AGENTS_END));
   await assert.rejects(fs.stat(applied.environment.agentPath), /ENOENT/);
   await assert.rejects(fs.stat(applied.manifestPath), /ENOENT/);
 });
@@ -113,7 +115,7 @@ test('missing Keychain credential fails before any configuration write', async (
   );
   assert.equal(await fs.readFile(fixture.configToml, 'utf8'), fixture.sentinel);
   await assert.rejects(fs.stat(path.join(fixture.codexDir, 'agents')), /ENOENT/);
-  await assert.rejects(fs.stat(path.join(fixture.codexDir, 'codex-deepseek-worker-install.json')), /ENOENT/);
+  await assert.rejects(fs.stat(path.join(fixture.codexDir, 'codex-third-party-workers-install.json')), /ENOENT/);
 });
 
 test('uninstall restores a validated pre-existing managed file', async (t) => {

@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Only the current `0.1.0-beta.1` release line is supported. Pre-release versions
+Only the current `0.2.0-beta.1` release line is supported. Pre-release versions
 are experimental; report issues promptly.
 
 ## Reporting a vulnerability
@@ -23,7 +23,7 @@ task body or credentials in any report.
 
 - API keys are never stored in this repository. Credentials live in the macOS
   Keychain and are read at runtime only.
-- The task bridge allows exactly one active DeepSeek task at a time. The active
+- The task bridge allows exactly one active provider task at a time. The active
   slot and its task file are owner-only (`0700` / `0600`), reject symlinks, and
   are atomically archived to `completed-*` or `failed-*` when the task ends.
   `message` and `cwd` are replaced with `[REDACTED]` before the atomic archive
@@ -33,7 +33,8 @@ task body or credentials in any report.
 - Uninstall validates every managed hash and backup before applying any action.
   A conflict stops the entire uninstall plan instead of partially removing
   files or overwriting user edits.
-- Only bounded, pre-approved text and code tasks are delegated to DeepSeek.
+- Only bounded, pre-approved text and code tasks are delegated to fallback
+  providers.
   Images, audio, video, desktop control, and browser control are out of scope.
 - The Desktop preflight is a policy-assisted guardrail and is not guaranteed
   native automatic interception; treat it as defense-in-depth, not a boundary.

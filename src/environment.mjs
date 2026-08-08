@@ -1,42 +1,47 @@
 import os from 'node:os';
 import path from 'node:path';
+import { DEFAULT_PROVIDER_ID, resolveProviderPack, PACKAGE_NAME } from './provider-packs.mjs';
 
-export const SERVICE_NAME = 'codex-deepseek-api-key';
-export const BRIDGE_PREFIX = 'codex-deepseek-task-bridge-';
-export const DEFAULT_API_BASE = 'https://api.deepseek.com/';
-export const DEFAULT_SETUP_SCRIPT_URL =
-  'https://cdn.deepseek.com/api-docs/codex-deepseek-setup.sh';
-export const DEFAULT_CATALOG_FILE = 'deepseek-v4-flash.json';
-export const DEFAULT_AGENT_FILE = 'deepseek_worker.toml';
-export const DEFAULT_CONFIG_FILE = 'codex-deepseek-worker.json';
-export const PREFLIGHT_FILE = 'subagent-preflight.mjs';
-export const BRIDGE_CLI_FILE = 'codex-deepseek-worker-bridge.mjs';
-export const MANIFEST_FILE = 'codex-deepseek-worker-install.json';
-export const BACKUP_DIR = 'codex-deepseek-worker-backups';
-export const RUNTIME_DIR = 'codex-deepseek-worker';
+export const BRIDGE_PREFIX = 'codex-third-party-worker-task-bridge-';
 
-export function parseBoolean(value, name = 'boolean') {
-  if (typeof value === 'boolean') return value;
-  const normalized = String(value ?? '').trim().toLowerCase();
-  if (['true', 'yes', 'y', '1', 'on'].includes(normalized)) return true;
-  if (['false', 'no', 'n', '0', 'off'].includes(normalized)) return false;
-  throw new Error(`${name} must be true or false`);
+function getPack(options = {}) {
+  if (options.providerPack) return options.providerPack;
+  return resolveProviderPack(options.provider ?? DEFAULT_PROVIDER_ID);
 }
 
 export function parseThreshold(value) {
   const number = Number(value);
   if (!Number.isInteger(number) || number < 0 || number > 100) {
-    throw new Error('DeepSeek threshold must be an integer from 0 to 100');
+    throw new Error('provider threshold must be an integer from 0 to 100');
   }
   return number;
 }
 
-export function getBridgeRoot({ uid, platform = process.platform, tmpDir, env = process.env } = {}) {
+export function parseBoolean(value, name = 'boolean') {
+  if (typeof value === 'boolean') return value;
+  const normalized = String(value ?? '').trim().toLowerCase();
+  if ([
+    'true',
+    'yes',
+    'y',
+    '1',
+    'on',
+  ].includes(normalized)) return true;
+  if ([
+    'false',
+    'no',
+    'n',
+    '0',
+    'off',
+  ].includes(normalized)) return false;
+  throw new Error(`${name} must be true or false`);
+}
+
+export function getBridgeRoot({ uid, platform, tmpDir, env = process.env } = {}) {
   const user = os.userInfo();
   const resolvedUid = uid ?? (typeof process.getuid === 'function' ? process.getuid() : user.uid);
-  if (env.DEEPSEEK_WORKER_BRIDGE_ROOT) {
-    return path.resolve(env.DEEPSEEK_WORKER_BRIDGE_ROOT);
-  }
+  const override = env.CODEX_THIRD_PARTY_WORKER_BRIDGE_ROOT ?? env.DEEPSEEK_WORKER_BRIDGE_ROOT;
+  if (override) return path.resolve(override);
   const root = platform === 'darwin' ? '/private/tmp' : (tmpDir ?? os.tmpdir());
   return path.join(root, `${BRIDGE_PREFIX}${resolvedUid}`);
 }
@@ -49,15 +54,18 @@ export function discoverEnvironment({
   platform = process.platform,
   tmpDir,
   env = process.env,
+  provider,
+  providerPack,
 } = {}) {
   const user = os.userInfo();
   const resolvedHome = path.resolve(homeDir ?? os.homedir());
   const resolvedUid = uid ?? (typeof process.getuid === 'function' ? process.getuid() : user.uid);
   const resolvedUsername = username ?? user.username;
   const resolvedNode = nodePath ?? process.execPath;
+  const pack = getPack({ providerPack, provider });
   const bridgePath = getBridgeRoot({ uid: resolvedUid, platform, tmpDir, env });
   const codexDir = path.join(resolvedHome, '.codex');
-  const runtimeDir = path.join(codexDir, 'lib', RUNTIME_DIR);
+  const runtimeDir = path.join(codexDir, 'lib', pack.files.runtimeDir);
   return {
     platform,
     homeDir: resolvedHome,
@@ -68,19 +76,22 @@ export function discoverEnvironment({
     bridgePath,
     codexDir,
     runtimeDir,
-    agentPath: path.join(codexDir, 'agents', DEFAULT_AGENT_FILE),
-    configPath: path.join(codexDir, DEFAULT_CONFIG_FILE),
-    catalogPath: path.join(codexDir, 'model-catalogs', DEFAULT_CATALOG_FILE),
-    preflightPath: path.join(codexDir, 'bin', PREFLIGHT_FILE),
-    bridgeCliPath: path.join(codexDir, 'bin', BRIDGE_CLI_FILE),
-    manifestPath: path.join(codexDir, MANIFEST_FILE),
-    backupDir: path.join(codexDir, BACKUP_DIR),
+    providerPack: pack,
+    agentPath: path.join(codexDir, 'agents', pack.agentFile),
+    configPath: path.join(codexDir, pack.files.configFile),
+    catalogPath: path.join(codexDir, 'model-catalogs', pack.catalog.file),
+    preflightPath: path.join(codexDir, 'bin', pack.files.preflightFile),
+    bridgeCliPath: path.join(codexDir, 'bin', pack.files.bridgeFile),
+    manifestPath: path.join(codexDir, pack.files.manifestFile),
+    backupDir: path.join(codexDir, pack.files.backupDir),
     agentsMarkerPath: path.join(codexDir, 'AGENTS.md'),
   };
 }
 
 export function assertSupportedPlatform(platform = process.platform) {
   if (platform !== 'darwin') {
-    throw new Error('codex-deepseek-worker is macOS-only (darwin)');
+    throw new Error('codex-third-party-workers is macOS-only (darwin)');
   }
 }
+
+export { PACKAGE_NAME, DEFAULT_PROVIDER_ID as DEFAULT_PROVIDER_ID };

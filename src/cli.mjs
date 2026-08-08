@@ -3,9 +3,11 @@ import { stdin as input, stdout as output } from 'node:process';
 import { install } from './installer.mjs';
 import { uninstall } from './uninstaller.mjs';
 import { verify } from './verifier.mjs';
+import { listProviderPackIds, DEFAULT_PROVIDER_ID } from './provider-packs.mjs';
 
 const VALUE_FLAGS = new Set([
   'plan',
+  'provider',
   'spark-available',
   'luna-available',
   'threshold',
@@ -53,6 +55,11 @@ async function askInstallOptions(parsed, streams = { input, output }) {
     return answer || fallback;
   };
   try {
+    const availableProviders = listProviderPackIds();
+    const provider = (
+      parsed.provider
+      ?? await ask(`Provider pack [${DEFAULT_PROVIDER_ID}] (available: ${availableProviders.join(', ')}): `, DEFAULT_PROVIDER_ID)
+    ).toLowerCase();
     const plan = (parsed.plan ?? await ask('Subscription plan (plus/pro) [plus]: ', 'plus')).toLowerCase();
     const plus = plan === 'plus';
     const sparkAvailable = parsed['spark-available']
@@ -60,13 +67,14 @@ async function askInstallOptions(parsed, streams = { input, output }) {
     const lunaAvailable = parsed['luna-available']
       ?? await ask('Luna worker available? [yes]: ', 'yes');
     const threshold = parsed.threshold
-      ?? await ask(`DeepSeek threshold percent [${plus ? '50' : '10'}]: `, plus ? '50' : '10');
+      ?? await ask(`Fallback threshold percent [${plus ? '50' : '10'}]: `, plus ? '50' : '10');
     const confirmMainPreserved = parsed['confirm-main-preserved']
-      ?? yes(await ask('Keep the main OpenAI model/provider/auth unchanged? [yes]: ', 'yes'));
+      ?? yes(await ask('Keep the main model/provider/auth unchanged? [yes]: ', 'yes'));
     const consentData = parsed['consent-data']
-      ?? yes(await ask('Allow suitable delegated task data to be sent to DeepSeek? [no]: ', 'no'));
+      ?? yes(await ask(`Allow suitable provider tasks and bridge task bodies to be delegated to ${provider}? [no]: `, 'no'));
     return {
       apply: parsed.apply === true,
+      provider,
       plan,
       sparkAvailable,
       lunaAvailable,
@@ -84,6 +92,7 @@ async function askInstallOptions(parsed, streams = { input, output }) {
 function installHelp() {
   return `Usage: node scripts/install.mjs [options]\n\n` +
     `Dry-run is the default. Add --apply to write files.\n\n` +
+    `  --provider <provider-pack-id>\n` +
     `  --plan <plus|pro>\n` +
     `  --spark-available <true|false>\n` +
     `  --luna-available <true|false>\n` +
@@ -91,7 +100,7 @@ function installHelp() {
     `  --confirm-main-preserved\n` +
     `  --consent-data\n` +
     `  --catalog-source <auto|local-path>\n` +
-    `  --setup-script-url <official-deepseek-url>\n` +
+    `  --setup-script-url <official-provider-url>\n` +
     `  --apply\n`;
 }
 
@@ -133,7 +142,7 @@ export function verifyCli(argv = process.argv.slice(2)) {
   return run(async () => {
     const parsed = parseArgs(argv);
     if (parsed.help) return process.stdout.write('Usage: node scripts/verify.mjs [--skip-keychain-check]\n');
-    const result = await verify({ checkKeychain: parsed['skip-keychain-check'] !== true });
+    const result = await verify({ checkKeychain: parsed['skip-keychain-check'] !== true, provider: parsed.provider });
     process.stdout.write(`${JSON.stringify({
       configured: result.configured,
       runtimeVerified: result.runtimeVerified,

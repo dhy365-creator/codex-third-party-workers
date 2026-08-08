@@ -3,8 +3,9 @@ import { bridgeBusy, completeBridgeTask, failBridgeTask } from './bridge.mjs';
 export async function bridgeMain(argv = process.argv.slice(2), env = process.env) {
   const command = argv[0] ?? 'status';
   const expectedTaskBasename = argv[1];
-  const options = env.DEEPSEEK_WORKER_BRIDGE_ROOT
-    ? { root: env.DEEPSEEK_WORKER_BRIDGE_ROOT }
+  const bridgeRoot = env.CODEX_THIRD_PARTY_WORKER_BRIDGE_ROOT ?? env.DEEPSEEK_WORKER_BRIDGE_ROOT;
+  const options = bridgeRoot
+    ? { root: bridgeRoot }
     : {};
   try {
     if (command === 'status') {

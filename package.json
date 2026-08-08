@@ -1,18 +1,27 @@
 {
-  "name": "codex-deepseek-worker",
-  "version": "0.1.0-beta.1",
-  "description": "Unofficial macOS-only beta fallback worker for Codex Desktop that routes bounded text and code tasks to DeepSeek V4 Flash.",
+  "name": "codex-third-party-workers",
+  "version": "0.2.0-beta.1",
+  "description": "Unofficial macOS-only beta provider-pack architecture for Codex Desktop that routes bounded text and code tasks to fallback providers.",
   "private": true,
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/dhy365-creator/codex-third-party-workers.git"
+  },
+  "homepage": "https://github.com/dhy365-creator/codex-third-party-workers#readme",
+  "bugs": {
+    "url": "https://github.com/dhy365-creator/codex-third-party-workers/issues"
+  },
   "type": "module",
   "engines": {
     "node": ">=20"
   },
   "keywords": [
     "codex",
-    "deepseek",
-    "worker",
+    "codex-third-party",
+    "provider-pack",
     "fallback",
+    "third-party",
     "macos"
   ],
   "scripts": {

@@ -2,16 +2,23 @@ import path from 'node:path';
 import crypto from 'node:crypto';
 import { fileURLToPath } from 'node:url';
 import {
-  DEFAULT_API_BASE,
-  DEFAULT_SETUP_SCRIPT_URL,
-  SERVICE_NAME,
   assertSupportedPlatform,
   discoverEnvironment,
   parseBoolean,
   parseThreshold,
+  DEFAULT_PROVIDER_ID,
 } from './environment.mjs';
-import { acquireCatalog, catalogJson } from './catalog.mjs';
+import {
+  DEFAULT_MAX_CATALOG_BYTES,
+  acquireCatalog,
+  catalogJson,
+  reduceCatalogForProvider,
+} from './catalog.mjs';
 import { keychainReady } from './keychain.mjs';
+import {
+  resolveProviderPack,
+  listProviderPackIds,
+} from './provider-packs.mjs';
 import {
   copyOwnerOnly,
   ensureDir,
@@ -30,7 +37,7 @@ import {
   workerConfig,
 } from './templates.mjs';
 
-const INSTALL_VERSION = '0.1.0-beta.1';
+const INSTALL_VERSION = '0.2.0-beta.1';
 const SOURCE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RUNTIME_FILES = [
   'bridge.mjs',
@@ -48,25 +55,34 @@ function stamp() {
 }
 
 function normalizeOptions(options) {
+  const providerId = String(options.provider ?? DEFAULT_PROVIDER_ID).toLowerCase();
   const plan = String(options.plan ?? '').toLowerCase();
   if (!['plus', 'pro'].includes(plan)) throw new Error('plan must be plus or pro');
-  const threshold = parseThreshold(options.threshold ?? (plan === 'plus' ? 50 : 10));
+  const providerPack = resolveProviderPack(providerId);
+  const providerDefaultThreshold = plan === 'plus' ? providerPack.thresholds?.plus ?? 50 : providerPack.thresholds?.pro ?? 10;
+  const threshold = parseThreshold(options.threshold ?? providerDefaultThreshold);
   const sparkAvailable = parseBoolean(
     options.sparkAvailable ?? plan === 'pro',
     'Spark availability',
   );
   const lunaAvailable = parseBoolean(options.lunaAvailable ?? true, 'Luna availability');
+  const knownProviders = listProviderPackIds();
+  if (!knownProviders.includes(providerId)) throw new Error(`unsupported provider: ${providerId}`);
   if (options.confirmMainPreserved !== true) {
     throw new Error('confirm that the main model/provider/auth remain preserved');
   }
   if (options.consentData !== true) {
-    throw new Error('explicit consent is required because delegated data is sent to DeepSeek');
+    throw new Error('explicit consent is required because delegated data is sent to a provider');
   }
-  const model = String(options.model ?? 'deepseek-v4-flash').toLowerCase();
-  if (model !== 'deepseek-v4-flash') {
-    throw new Error('only deepseek-v4-flash is supported');
-  }
-  return { ...options, plan, threshold, sparkAvailable, lunaAvailable, model };
+  return {
+    ...options,
+    providerId,
+    providerPack,
+    plan,
+    threshold,
+    sparkAvailable,
+    lunaAvailable,
+  };
 }
 
 async function regularFile(filePath) {
@@ -146,29 +162,39 @@ function previousByPath(manifest) {
 export async function install(options = {}) {
   const normalized = normalizeOptions(options);
   const platform = normalized.platform ?? process.platform;
-  const env = discoverEnvironment({ ...normalized, platform, env: normalized.env ?? process.env });
+  const providerPack = normalized.providerPack;
+  const env = discoverEnvironment({ ...normalized, providerPack, platform, env: normalized.env ?? process.env });
   const dryRun = normalized.apply !== true;
   if (!dryRun) assertSupportedPlatform(platform);
 
   const source = normalized.catalogSource ?? 'auto';
-  const setupScriptUrl = normalized.setupScriptUrl ?? DEFAULT_SETUP_SCRIPT_URL;
+  const setupScriptUrl = normalized.setupScriptUrl ?? providerPack.catalogSourceHint;
   const acquired = await acquireCatalog({
     source,
     setupScriptUrl,
+    maxBytes: normalized.maxCatalogBytes ?? providerPack.catalog?.extraMaxBytes ?? DEFAULT_MAX_CATALOG_BYTES,
+    validateHost: (candidate) => {
+      const url = new URL(candidate);
+      if (url.protocol !== 'https:' || !providerPack.setupScriptHost.test(url.hostname)) {
+        throw new Error('official setup script host is not allowed for this provider pack');
+      }
+      return candidate;
+    },
+    reduce: (catalog) => reduceCatalogForProvider(catalog, providerPack.catalog),
     fetchImpl: normalized.fetchImpl,
-    maxBytes: normalized.maxCatalogBytes,
   });
+
   if (!dryRun) {
     const check = normalized.keychainReadyImpl ?? keychainReady;
     const ready = await check({
       account: env.keychainAccount,
-      service: SERVICE_NAME,
+      service: providerPack.keychainService,
       platform,
       env: normalized.env ?? process.env,
       execFileImpl: normalized.execFileImpl,
     });
     if (!ready) {
-      throw new Error('DeepSeek API key is not provisioned in macOS Keychain');
+      throw new Error('provider Keychain credential is not provisioned in macOS Keychain');
     }
   }
 
@@ -181,6 +207,8 @@ export async function install(options = {}) {
     threshold: normalized.threshold,
     sparkAvailable: normalized.sparkAvailable,
     lunaAvailable: normalized.lunaAvailable,
+    providerPack,
+    providerRole: providerPack.role,
   });
   const existingAgents = await pathExists(env.agentsMarkerPath)
     ? await fs.readFile(env.agentsMarkerPath, 'utf8')
@@ -191,7 +219,7 @@ export async function install(options = {}) {
     sparkAvailable: normalized.sparkAvailable,
     lunaAvailable: normalized.lunaAvailable,
     threshold: normalized.threshold,
-    apiBase: normalized.apiBase ?? DEFAULT_API_BASE,
+    apiBase: providerPack.apiBase,
     catalogSource: source,
     setupScriptUrl,
     bridgePath: env.bridgePath,
@@ -199,8 +227,13 @@ export async function install(options = {}) {
     catalogPath: env.catalogPath,
     configPath: env.configPath,
     keychainAccount: env.keychainAccount,
-    keychainService: SERVICE_NAME,
+    keychainService: providerPack.keychainService,
+    providerId: providerPack.id,
+    providerRole: providerPack.role,
+    model: providerPack.model,
+    providerCapabilities: Array.from(providerPack.capabilities.supported.values()),
   };
+
   const entries = [
     ...(await runtimeEntries(env, normalized.sourceDir ?? SOURCE_DIR)),
     {
@@ -211,6 +244,8 @@ export async function install(options = {}) {
         bridgeCliPath: env.bridgeCliPath,
         nodePath: env.nodePath,
         keychainAccount: env.keychainAccount,
+        keychainService: providerPack.keychainService,
+        providerPack,
       }),
       mode: 0o600,
       kind: 'agent',
@@ -239,13 +274,13 @@ export async function install(options = {}) {
       mode: agentsMode,
       kind: 'agents-marker',
     },
+    {
+      filePath: env.catalogPath,
+      contents: catalogJson(acquired.catalog),
+      mode: 0o600,
+      kind: 'catalog',
+    },
   ];
-  entries.push({
-    filePath: env.catalogPath,
-    contents: catalogJson(acquired.catalog),
-    mode: 0o600,
-    kind: 'catalog',
-  });
 
   const managedFiles = [];
   for (const entry of entries) {
@@ -268,30 +303,33 @@ export async function install(options = {}) {
       username: env.username,
       nodePath: env.nodePath,
       bridgePath: env.bridgePath,
+      providerId: providerPack.id,
     },
     options: {
+      providerId: providerPack.id,
       plan: normalized.plan,
       sparkAvailable: normalized.sparkAvailable,
       lunaAvailable: normalized.lunaAvailable,
       threshold: normalized.threshold,
-      model: 'deepseek-v4-flash',
+      model: providerPack.model,
       mainModelPreserved: true,
       delegatedDataConsent: true,
     },
     managedFiles,
     agentsBlock: block,
-    catalog: { source: acquired.source, fetched: acquired.fetched, model: 'deepseek-v4-flash' },
     secretStorage: {
-      service: SERVICE_NAME,
+      service: providerPack.keychainService,
       account: env.keychainAccount,
       value: 'keychain-only',
     },
   };
+
   if (!dryRun) {
     await writeFileIfChanged(env.manifestPath, `${JSON.stringify(manifest, null, 2)}\n`, {
       mode: 0o600,
     });
   }
+
   return {
     dryRun,
     applied: !dryRun,
@@ -300,6 +338,6 @@ export async function install(options = {}) {
     manifestPath: env.manifestPath,
     catalogAcquired: Boolean(acquired),
     keychainVerified: !dryRun,
-    message: dryRun ? 'dry-run: no files or Keychain entries were changed' : 'installation applied',
+    message: dryRun ? 'dry-run: no files or keychain entries were changed' : 'installation applied',
   };
 }

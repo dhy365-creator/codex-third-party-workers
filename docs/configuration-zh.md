@@ -1,27 +1,25 @@
 # 配置指南
 
-`codex-deepseek-worker` 把 DeepSeek V4 Flash 配置为 Codex Desktop 的有界
-子代理，不替换主线程 OpenAI 模型。本版本为非官方、macOS-only、未发布 beta。
+`codex-third-party-workers` 把可选 fallback provider 封装为 Codex Desktop 的有界子代理，不替换主线程 OpenAI 模型。本版本为非官方、macOS-only、公开 beta。
 
 ## 安装前确认
 
-安装器会要求确认以下信息：
+安装器会要求确认：
 
 1. 套餐是 Plus 还是 Pro。
 2. 账号是否真实具备 Spark，以及是否已经有可调用的 `luna_worker`。
-3. DeepSeek 从剩余多少百分比开始接班。
-4. 主线程的 model、provider、auth 保持不变。
-5. 同意把适合委派的任务正文发送到 DeepSeek API。
+3. 通用额度多少百分比后允许 provider fallback 接班。
+4. 主线程的 model/provider/auth 保持不变。
+5. 同意把适合委派的任务正文发送到 provider。
 
 建议默认值：
 
-| 套餐 | Spark | Luna | DeepSeek 阈值 |
+| 套餐 | Spark | Luna | provider 阈值 |
 | --- | --- | --- | --- |
 | Plus | 否 | 是 | 50% |
 | Pro（含 Spark） | 是 | 是 | 10% |
 
-套餐只用于生成默认值。每次路由仍读取实际额度；不能仅凭“Pro”推断 Spark
-仍有剩余额度。
+套餐只用于生成默认值。每次路由仍读取实际额度；不能仅凭“Pro”推断 Spark 仍有剩余。
 
 ## 1. 将 API key 写入 macOS Keychain
 
@@ -31,9 +29,7 @@
 /usr/bin/security add-generic-password -a "$(id -un)" -s codex-deepseek-api-key -U -w
 ```
 
-`-w` 放在命令末尾时，由 macOS 安全提示输入内容，不会把 key 放进普通命令
-参数或 shell 历史。安装器没有 `--api-key` 参数，只检查这个 Keychain 项是否
-存在。
+`-w` 放在命令末尾时，由 macOS 安全提示输入内容，不会把 key 放进普通命令参数或 shell 历史。安装器没有 `--api-key` 参数，只检查这个 Keychain 项是否存在。
 
 ## 2. 先做 dry-run
 
@@ -41,6 +37,7 @@
 
 ```sh
 node scripts/install.mjs \
+  --provider deepseek \
   --plan plus \
   --spark-available false \
   --luna-available true \
@@ -52,8 +49,8 @@ node scripts/install.mjs \
 Pro 用户把 `plan` 改为 `pro`、Spark 收为 `true`、阈值改为 `10`。不传完整
 参数并在交互式终端运行时，安装器会逐项询问。
 
-dry-run 会从 DeepSeek 官方地址下载安装脚本的文本，但绝不执行它；只提取
-`CODEX_MODELS_JSON`，验证后保留 `deepseek-v4-flash`。离线时可追加：
+dry-run 会从官方地址下载安装脚本文本，但绝不执行它；只提取 `CODEX_MODELS_JSON`
+并按 provider-pack 策略校验后落盘。离线时可追加：
 
 ```sh
 --catalog-source /absolute/path/to/local-catalog-or-setup-script
@@ -71,8 +68,8 @@ dry-run 会从 DeepSeek 官方地址下载安装脚本的文本，但绝不执�
 
 写入范围仅包括：
 
-- DeepSeek 自定义子代理文件。
-- Flash-only 的运行时模型目录。
+- 默认 DeepSeek provider 的自定义子代理文件。
+- provider-pack 的 runtime catalog。
 - 实时额度预检与单槽任务桥模块。
 - `~/.codex/AGENTS.md` 内的一段带起止标记的规则。
 - owner-only 的安装清单和必要备份。
@@ -87,20 +84,22 @@ dry-run 会从 DeepSeek 官方地址下载安装脚本的文本，但绝不执�
 node scripts/verify.mjs
 ```
 
-`configured: true` 只表示本地文件、权限、hash、Keychain 和 Flash-only 目录
-正确。`runtimeVerified` 仍会是 `false`，直到你真正运行一次适合的文本/代码
-子任务并由主线程复核结果。
+`configured: true` 只表示本地文件、权限、hash、Keychain 和 catalog 校验正确。
+`runtimeVerified` 仍会是 `false`，直到你真正运行一次适合的文本/代码子任务并由
+主线程复核结果。
 
 ## 路由规则
 
-1. Spark 真实有额度时优先 Spark。
-2. Spark 不可用后，通用额度高于或等于阈值时用 Luna。
-3. 只有低于阈值、任务适合、Keychain/配置正常且桥为空闲时才用 DeepSeek。
-4. 额度查询失败时保留 OpenAI worker，不自动外发给 DeepSeek。
-5. 图片、音视频、浏览器、桌面和多模态任务不得交给 DeepSeek。
+1. Spark 真实有额度时优先 `spark-worker`。
+2. Spark 不可用后，通用额度高于或等于阈值时用 OpenAI 回退（`luna_worker` 先于
+   `spark-worker`）。
+3. 只有低于阈值、任务适合、Keychain/配置正常且桥为空闲时才会走 provider
+   fallback。
+4. 额度查询失败时保留 OpenAI worker，不自动外发给 provider。
+5. 图片、音视频、浏览器、桌面和非文本多模态任务不得交给 provider。
 
-Codex Desktop 目前不保证原生拦截所有协作调用，因此预检属于需要主代理主动
-执行的策略护栏，不是系统级安全边界。
+Codex Desktop 目前不保证原生拦截所有协作调用，因此预检属于需要主代理主动执行
+的策略护栏，不是系统级安全边界。
 
 ## 卸载
 

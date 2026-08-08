@@ -8,14 +8,17 @@ import {
   removeAgentsBlock,
   replaceAgentsBlock,
 } from '../src/templates.mjs';
+import { resolveProviderPack } from '../src/provider-packs.mjs';
 
 test('agent TOML keeps DeepSeek inside the child and uses Keychain auth', () => {
+  const providerPack = resolveProviderPack('deepseek');
   const result = agentToml({
     catalogPath: '/tmp/catalog.json',
     bridgePath: '/tmp/bridge',
     bridgeCliPath: '/tmp/bridge-cli.mjs',
     nodePath: '/usr/local/bin/node',
     keychainAccount: 'fixture-user',
+    providerPack,
   });
   assert.match(result, /model = "deepseek-v4-flash"/);
   assert.match(result, /model_provider = "deepseek"/);
@@ -44,7 +47,7 @@ test('AGENTS marker update is idempotent and removable without touching user tex
   assert.equal(removed.changed, true);
   assert.match(removed.text, /# User rules/);
   assert.match(removed.text, /# Later user rule/);
-  assert.doesNotMatch(removed.text, /codex-deepseek-worker:start/);
+  assert.doesNotMatch(removed.text, new RegExp(AGENTS_START));
 });
 
 test('malformed markers fail closed', () => {

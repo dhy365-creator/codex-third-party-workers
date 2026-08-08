@@ -6,7 +6,19 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
-- No changes yet.
+## [0.2.0-beta.1] - 2026-08-08
+
+- Refactor core flow to provider-pack architecture in `codex-third-party-workers`:
+  - generic provider discovery, provider metadata, and runtime path resolution;
+  - catalog acquisition/reduction policy decoupled from DeepSeek-specific
+    constants;
+  - preflight/routing/verifier/install hooks accept provider pack selection with
+    backward-compatible `providerSuitable`/`deepseekSuitable` input semantics;
+  - runtime bridge and bridge CLI now use shared alias-aware root resolution.
+- Require a provider host validator for automatic catalog acquisition and
+  validate every destination in a bounded manual redirect chain.
+- Publish the generic provider-pack beta with DeepSeek V4 Flash as the first
+  verified built-in pack.
 
 ## [0.1.0-beta.1] - 2026-08-06
 

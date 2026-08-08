@@ -43,6 +43,7 @@ async function fixture(t) {
     configPath,
     keychainAccount: 'fixture-user',
     keychainService: 'fixture-service',
+    providerId: 'deepseek',
     platform: 'darwin',
   };
 }
@@ -73,6 +74,18 @@ test('preflight prepares DeepSeek only after Spark is exhausted and quota is low
   assert.equal(result.action, 'spawn');
   assert.equal(result.bridgePrepared, true);
   assert.equal(bridgeRequest.message, 'bounded text and code task');
+});
+
+test('preflight accepts legacy deepseekSuitable compatibility flag', async (t) => {
+  const config = await fixture(t);
+  const result = await runPreflight(input(), config, {
+    readRateLimits: async () => rateLimits(),
+    keychainReadyImpl: async () => true,
+    bridgeBusyImpl: async () => false,
+    createBridgeImpl: async () => {},
+    providerSuitable: undefined,
+  });
+  assert.equal(result.bridgePrepared, true);
 });
 
 test('quota lookup failure keeps the requested OpenAI worker', async (t) => {

@@ -1,10 +1,7 @@
 export const ROLES = Object.freeze({
   SPARK: 'spark-worker',
   LUNA: 'luna_worker',
-  DEEPSEEK: 'deepseek_worker',
 });
-
-const KNOWN_ROLES = new Set(Object.values(ROLES));
 
 function finite(value) {
   return value !== null && value !== undefined && value !== '' && Number.isFinite(Number(value));
@@ -42,16 +39,23 @@ function result(base, chosenAgent, reason) {
     ...base,
     decision: chosenAgent ? 'allow' : 'deny',
     chosenAgent,
-    agentType: chosenAgent,
     action: actionFor(base.operation, chosenAgent, base.existingChild),
     reason,
   };
 }
 
+function validateRoles(roles) {
+  if (!roles || !roles.requested || !roles.providerRole) {
+    throw new Error('routing roles are required');
+  }
+  if (![ROLES.SPARK, ROLES.LUNA, roles.providerRole].includes(roles.requested)) {
+    throw new Error('unknown requested agent');
+  }
+}
+
 /**
  * Pure routing policy. `sparkAvailable` means the account is entitled to use
- * Spark; `sparkRemaining` is the live quota reading. They are deliberately
- * separate so plan names never masquerade as live availability.
+ * Spark; `sparkRemaining` is the live quota reading. They are separate.
  */
 export function chooseRoute({
   operation = 'spawn',
@@ -59,18 +63,23 @@ export function chooseRoute({
   requestedAgent = ROLES.SPARK,
   existingChild,
   existingAgentType,
-  suitable = false,
-  deepseekSuitable,
+  providerSuitable = false,
+  providerReady = false,
+  providerRole = 'deepseek_worker',
   threshold = 20,
   sparkAvailable = false,
   sparkRemaining,
   generalRemaining,
   quotaRemaining,
   lunaAvailable = true,
-  deepseekReady = false,
   bridgeBusy = false,
 } = {}) {
   const resolvedOperation = kind ?? operation;
+  const provider = {
+    requested: requestedAgent,
+    providerRole,
+  };
+  validateRoles(provider);
   const general = generalRemaining ?? quotaRemaining;
   const base = {
     operation: resolvedOperation,
@@ -79,27 +88,29 @@ export function chooseRoute({
     threshold: Number(threshold),
     sparkRemaining: finite(sparkRemaining) ? Number(sparkRemaining) : null,
     generalRemaining: finite(general) ? Number(general) : null,
-    suitable: deepseekSuitable ?? suitable,
+    providerSuitable,
     bridgeBusy: bridgeBusy === true,
+    providerRole,
   };
+
   if (!['spawn', 'followup'].includes(resolvedOperation)) {
     throw new Error('operation must be spawn or followup');
   }
-  if (!KNOWN_ROLES.has(requestedAgent)) throw new Error('unknown requested agent');
   if (!Number.isInteger(base.threshold) || base.threshold < 0 || base.threshold > 100) {
     throw new Error('threshold must be an integer from 0 to 100');
   }
 
-  const deepseekUsable = base.suitable === true && ready(deepseekReady) && !base.bridgeBusy;
+  const providerUsable = base.providerSuitable === true && ready(providerReady) && !base.bridgeBusy;
   const sparkQuotaKnown = finite(sparkRemaining);
   const sparkUsable = sparkAvailable === true && sparkQuotaKnown && Number(sparkRemaining) > 0;
+  const providerRequested = requestedAgent === providerRole;
 
-  if (requestedAgent === ROLES.DEEPSEEK) {
-    if (deepseekUsable) return result(base, ROLES.DEEPSEEK, 'explicit-deepseek-ready');
+  if (requestedAgent === providerRole) {
+    if (providerUsable) return result(base, providerRole, 'explicit-provider-ready');
     return result(
       base,
-      availableOpenAi({ requestedAgent: ROLES.LUNA, sparkUsable, lunaAvailable }),
-      base.bridgeBusy ? 'deepseek-bridge-busy-safe-openai-fallback' : 'deepseek-not-ready-safe-openai-fallback',
+      availableOpenAi({ requestedAgent: requestedAgent === ROLES.LUNA ? ROLES.LUNA : ROLES.SPARK, sparkUsable, lunaAvailable }),
+      base.bridgeBusy ? 'provider-bridge-busy-fallback-openai' : 'provider-not-ready-fallback-openai',
     );
   }
 
@@ -116,23 +127,24 @@ export function chooseRoute({
   }
 
   if (Number(general) >= base.threshold) {
-    const fallback = lunaAvailable
-      ? ROLES.LUNA
-      : availableOpenAi({ requestedAgent, sparkUsable, lunaAvailable });
+    const fallback = availableOpenAi({ requestedAgent, sparkUsable, lunaAvailable });
     const reason = Number(general) === base.threshold
       ? 'quota-at-threshold-uses-luna'
       : 'quota-above-threshold-uses-openai';
     return result(base, fallback, fallback ? reason : 'no-openai-fallback-available');
   }
 
-  if (deepseekUsable) {
-    return result(base, ROLES.DEEPSEEK, 'quota-below-threshold-deepseek-ready');
+  if (providerUsable) {
+    return result(base, providerRole, 'quota-below-threshold-provider-ready');
   }
-  const fallback = availableOpenAi({ requestedAgent: ROLES.LUNA, sparkUsable, lunaAvailable });
+
+  const fallback = availableOpenAi({ requestedAgent, sparkUsable, lunaAvailable });
   return result(
     base,
     fallback,
-    base.bridgeBusy ? 'deepseek-bridge-busy-safe-openai-fallback' : 'deepseek-unsuitable-or-unavailable',
+    base.bridgeBusy
+      ? 'provider-bridge-busy-safe-openai-fallback'
+      : 'provider-unsuitable-or-unavailable',
   );
 }
 
@@ -141,7 +153,9 @@ export function validatePreflightInput(input) {
   if (!['spawn', 'followup'].includes(input.operation)) {
     throw new Error('operation must be spawn or followup');
   }
-  if (!KNOWN_ROLES.has(input.requestedAgent)) throw new Error('unknown requested agent');
+  if (typeof input.requestedAgent !== 'string' || !input.requestedAgent.trim()) {
+    throw new Error('requestedAgent is required');
+  }
   if (typeof input.taskName !== 'string' || !input.taskName.trim()) {
     throw new Error('taskName is required');
   }
@@ -149,11 +163,11 @@ export function validatePreflightInput(input) {
     throw new Error('message is required');
   }
   if (typeof input.cwd !== 'string' || !input.cwd.trim()) throw new Error('cwd is required');
-  if (typeof input.deepseekSuitable !== 'boolean') {
-    throw new Error('deepseekSuitable must be boolean');
+  if (typeof (input.providerSuitable ?? input.deepseekSuitable) !== 'boolean') {
+    throw new Error('providerSuitable must be boolean');
   }
   if (input.operation === 'followup') {
-    if (!KNOWN_ROLES.has(input.existingAgentType)) {
+    if (typeof input.existingAgentType !== 'string' || !input.existingAgentType.trim()) {
       throw new Error('existingAgentType is required for followup');
     }
     if (typeof input.target !== 'string' || !input.target.trim()) {

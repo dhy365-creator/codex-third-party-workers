@@ -9,7 +9,10 @@ import {
   hasArchivedBridgeTask,
 } from './bridge.mjs';
 import { keychainReady } from './keychain.mjs';
+import { resolveProviderPack, DEFAULT_PROVIDER_ID } from './provider-packs.mjs';
 import { chooseRoute, ROLES, validatePreflightInput } from './routing.mjs';
+
+const FALLBACK_AGENT = 'codex-third-party-workers';
 
 function codexBinary(env = process.env) {
   const candidates = [
@@ -56,14 +59,14 @@ export function readRateLimitsFromAppServer({ env = process.env, timeoutMs = 700
           else finish(null, message.result);
           return;
         } catch {
-          // Ignore diagnostics and wait for the JSON-RPC response with id 2.
+          // Ignore malformed lines.
         }
       }
     });
     child.stdin.write(`${JSON.stringify({
       method: 'initialize',
       id: 1,
-      params: { clientInfo: { name: 'codex-deepseek-worker', version: '0.1.0-beta.1' } },
+      params: { clientInfo: { name: FALLBACK_AGENT, version: '0.2.0-beta.1' } },
     })}\n`);
     child.stdin.write(`${JSON.stringify({ method: 'account/rateLimits/read', id: 2 })}\n`);
   });
@@ -92,21 +95,22 @@ export function quotaSnapshot(result) {
   };
 }
 
-async function installedDeepSeekReady(config, deps = {}) {
-  const exists = deps.existsSync ?? existsSync;
-  if (![config.agentPath, config.catalogPath, config.configPath].every((file) => exists(file))) {
+async function installedProviderReady(config, deps = {}) {
+  const providerPack = resolveProviderPack(config.providerId ?? DEFAULT_PROVIDER_ID);
+  const filesExist = deps.existsSync ?? existsSync;
+  if (![config.agentPath, config.catalogPath, config.configPath].every((file) => filesExist(file))) {
     return false;
   }
   try {
     const catalog = JSON.parse(await fs.readFile(config.catalogPath, 'utf8'));
-    if (!catalogIsSafe(catalog)) return false;
+    if (!catalogIsSafe(catalog, providerPack.catalog)) return false;
   } catch {
     return false;
   }
   const check = deps.keychainReadyImpl ?? keychainReady;
   return check({
     account: config.keychainAccount,
-    service: config.keychainService,
+    service: providerPack.keychainService,
     platform: config.platform ?? process.platform,
     env: deps.env ?? process.env,
     execFileImpl: deps.execFileImpl,
@@ -119,13 +123,13 @@ async function routingState(config, deps = {}) {
     const read = deps.readRateLimits ?? readRateLimitsFromAppServer;
     quota = quotaSnapshot(await read({ env: deps.env ?? process.env }));
   } catch {
-    // Unknown quota must keep work on an OpenAI role.
+    // Unknown quota must keep an OpenAI role.
   }
-  let deepseekReady = false;
+  let providerReady = false;
   try {
-    deepseekReady = await installedDeepSeekReady(config, deps);
+    providerReady = await installedProviderReady(config, deps);
   } catch {
-    // Credential/config lookup failure is an unavailable DeepSeek worker.
+    // Provider readiness check failure means unavailable fallback provider.
   }
   let busy = true;
   try {
@@ -133,7 +137,7 @@ async function routingState(config, deps = {}) {
   } catch {
     // Invalid bridge state fails closed.
   }
-  return { ...quota, deepseekReady, bridgeBusy: busy };
+  return { ...quota, providerReady, bridgeBusy: busy };
 }
 
 function outputFor(input, route, state, bridgePrepared = false) {
@@ -160,21 +164,24 @@ function outputFor(input, route, state, bridgePrepared = false) {
 export async function runPreflight(input, config, deps = {}) {
   validatePreflightInput(input);
   const state = await routingState(config, deps);
+  const providerReady = await installedProviderReady(config, deps);
+  const providerPack = resolveProviderPack(config.providerId ?? DEFAULT_PROVIDER_ID);
   const routeInput = {
     operation: input.operation,
     requestedAgent: input.requestedAgent,
     existingAgentType: input.existingAgentType,
-    deepseekSuitable: input.deepseekSuitable,
+    providerSuitable: input.providerSuitable ?? input.deepseekSuitable,
+    providerRole: providerPack.role,
     threshold: config.threshold,
     sparkAvailable: config.sparkAvailable,
     sparkRemaining: state.sparkRemaining,
     generalRemaining: state.generalRemaining,
     lunaAvailable: config.lunaAvailable,
-    deepseekReady: state.deepseekReady,
+    providerReady,
     bridgeBusy: state.bridgeBusy,
   };
   let route = chooseRoute(routeInput);
-  if (route.chosenAgent !== ROLES.DEEPSEEK) return outputFor(input, route, state);
+  if (route.chosenAgent !== providerPack.role) return outputFor(input, route, state);
 
   let taskName = input.taskName;
   if (route.action === 'followup') {
@@ -182,9 +189,13 @@ export async function runPreflight(input, config, deps = {}) {
       input.target,
       { root: config.bridgePath },
     );
-    if (archived) taskName = input.target;
-    else route = { ...route, action: 'spawn', reason: `${route.reason}; existing target is not bridge-compatible` };
+    if (archived) {
+      taskName = input.target;
+    } else {
+      route = { ...route, action: 'spawn', reason: `${route.reason}; existing target is not bridge-compatible` };
+    }
   }
+
   try {
     await (deps.createBridgeImpl ?? createBridgeTask)({
       root: config.bridgePath,
@@ -195,12 +206,16 @@ export async function runPreflight(input, config, deps = {}) {
     return outputFor(input, route, state, true);
   } catch (error) {
     const busy = error instanceof BridgeBusyError || error?.code === 'BRIDGE_BUSY';
-    route = chooseRoute({ ...routeInput, deepseekReady: false, bridgeBusy: true });
+    route = chooseRoute({
+      ...routeInput,
+      providerReady: false,
+      bridgeBusy: true,
+    });
     route = {
       ...route,
       reason: busy
-        ? 'DeepSeek bridge is busy; using a safe OpenAI fallback.'
-        : 'DeepSeek bridge preparation failed; using a safe OpenAI fallback.',
+        ? 'provider bridge is busy; safe OpenAI fallback'
+        : 'provider bridge preparation failed; safe OpenAI fallback',
     };
     return outputFor(input, route, state);
   }
