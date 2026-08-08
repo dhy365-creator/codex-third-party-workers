@@ -153,7 +153,8 @@ npm test
 Keychain、Codex 额度、`~/.codex` 或外部网络。
 
 本项目提供的是可扩展 Provider Pack 核心，并不代表所有第三方模型已经可以直接使用。
-DeepSeek V4 Flash 是首个经过验证的 Pack。新增 Provider 需要以经过代码审查的方式修改
+DeepSeek V4 Flash 是首个内置并通过隔离测试的 Pack；公开安装器的真实运行验证单独记录。
+新增 Provider 需要以经过代码审查的方式修改
 `src/provider-packs.mjs` 并补充测试；安装器不会加载任意远程 Pack manifest。
 
 候选 Provider 至少需要满足：兼容 Codex 使用的 Responses API、支持命令读取凭据、
@@ -165,6 +166,7 @@ DeepSeek V4 Flash 是首个经过验证的 Pack。新增 Provider 需要以经�
 - [中文配置指南](docs/configuration-zh.md)
 - [架构说明](docs/architecture.md)
 - [故障排查](docs/troubleshooting.md)
+- [国产模型 Provider 兼容性矩阵](docs/provider-compatibility.zh-CN.md)
 - [可直接发送给 Codex 的安装提示词](docs/CODEX_INSTALL_PROMPT.zh-CN.md)
 - [安全策略](SECURITY.md)
 

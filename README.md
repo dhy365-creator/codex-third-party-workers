@@ -169,7 +169,8 @@ implementations. They do not access real API keys, Keychain, Codex quota,
 ### Adding another provider pack
 
 This release provides an extensible provider-pack core, not a claim that every
-third-party model already works. DeepSeek V4 Flash is the first verified pack.
+third-party model already works. DeepSeek V4 Flash is the first built-in,
+isolated-tested pack; public-installer runtime verification is tracked separately.
 New providers are added as reviewed code in `src/provider-packs.mjs` with tests;
 the installer does not load arbitrary remote pack manifests.
 
@@ -180,6 +181,7 @@ policy, bounded text/code capabilities, and deterministic offline tests. See
 
 See [configuration-zh](docs/configuration-zh.md),
 [architecture](docs/architecture.md), [troubleshooting](docs/troubleshooting.md),
+[Chinese-provider compatibility matrix](docs/provider-compatibility.md),
 [copyable Codex install prompt](docs/CODEX_INSTALL_PROMPT.zh-CN.md), and
 [security policy](SECURITY.md).
 
