@@ -14,6 +14,11 @@ const fixtureCatalog = path.join(
   'fixtures',
   'catalog.json',
 );
+const minimaxFixture = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  'fixtures',
+  'minimax-codex.md',
+);
 
 async function setup(t) {
   const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-dsw-home-'));
@@ -116,6 +121,33 @@ test('missing Keychain credential fails before any configuration write', async (
   assert.equal(await fs.readFile(fixture.configToml, 'utf8'), fixture.sentinel);
   await assert.rejects(fs.stat(path.join(fixture.codexDir, 'agents')), /ENOENT/);
   await assert.rejects(fs.stat(path.join(fixture.codexDir, 'codex-third-party-workers-install.json')), /ENOENT/);
+});
+
+test('installs and verifies the MiniMax worker without changing the main Codex config', async (t) => {
+  const fixture = await setup(t);
+  const options = {
+    ...fixture.options,
+    provider: 'minimax',
+    catalogSource: minimaxFixture,
+  };
+  const applied = await install({ ...options, apply: true });
+  assert.equal(await fs.readFile(fixture.configToml, 'utf8'), fixture.sentinel);
+  const agent = await fs.readFile(applied.environment.agentPath, 'utf8');
+  assert.match(agent, /name = "minimax_worker"/);
+  assert.match(agent, /model = "MiniMax-M3"/);
+  assert.match(agent, /model_provider = "minimax"/);
+  assert.match(agent, /model_context_window = 1000000/);
+  assert.match(agent, /codex-minimax-api-key/);
+  const catalog = JSON.parse(await fs.readFile(applied.environment.catalogPath, 'utf8'));
+  assert.deepEqual(catalog.models.map((model) => model.slug), ['MiniMax-M3']);
+  assert.deepEqual(catalog.models[0].input_modalities, ['text']);
+  const checked = await verify({
+    ...options,
+    checkKeychain: true,
+    keychainReadyImpl: async () => true,
+  });
+  assert.equal(checked.configured, true);
+  assert.equal(checked.runtimeVerified, false);
 });
 
 test('uninstall restores a validated pre-existing managed file', async (t) => {

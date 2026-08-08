@@ -20,10 +20,13 @@
 - [x] GitHub 仓库入口提供中英文双语说明与完整下载、配置、验证步骤。
 - [x] 基于官方资料发布中英文国产模型 Provider 兼容性矩阵，区分直连、网关、候选与
   运行时验证状态。
+- [x] 新增 MiniMax-M3 Pack，并完成真实 API、流式、Function Calling、Codex CLI 与
+  Keychain 验证。
 
 ## Provider 扩展待办
 
-- [ ] 按 MiniMax -> StepFun -> Qwen -> 火山方舟顺序逐一进行真实 API 与 Codex 子代理验证。
+- [ ] 重启 Codex Desktop，运行并人工复核一个真实 `minimax_worker` 子任务。
+- [ ] 按 StepFun -> Qwen -> 火山方舟顺序逐一进行真实 API 与 Codex 子代理验证。
 - [ ] 对通过验证的 Provider 单独新增 Pack、Keychain service、目录策略、离线测试和文档。
 - [ ] 对千帆与 TokenHub 保持“网关候选”标识，不把网关通过写成模型厂商直连通过。
 - [ ] 官方新增 Responses 支持后，重新核对 Kimi、智谱、混元传统接口和 SiliconFlow。

@@ -29,8 +29,8 @@
 
 | Provider / 模型 | 接入类型 | 当前结论 | 下一步 |
 | --- | --- | --- | --- |
-| DeepSeek / `deepseek-v4-flash` | 官方 Responses | **唯一内置 Pack；公开安装器运行时验证待完成** | 保持回归测试；当前不扩展 V4 Pro |
-| MiniMax / `MiniMax-M3` | 官方 Responses；官方给出 Codex Desktop 配置 | **A 级候选，优先级 1** | 提供测试账号的 Keychain 凭据后做真实验证 |
+| DeepSeek / `deepseek-v4-flash` | 官方 Responses | **内置 Pack；公开安装器运行时验证待完成** | 保持回归测试；当前不扩展 V4 Pro |
+| MiniMax / `MiniMax-M3` | 官方 Responses；官方给出 Codex Desktop 配置 | **内置 Pack；真实 API 与 Codex CLI 已验证，Desktop 子代理待重启验证** | 重启后运行 `minimax_worker` 任务并复核 |
 | 阶跃星辰 / `step-3.7-flash` | 官方 `/v1/responses` | **A 级候选，优先级 2** | 验证流式工具循环和 Codex 子代理运行 |
 | 阿里云百炼 / Qwen Responses 模型 | 官方 Responses；官方给出最新版 Codex 配置 | **A 级候选，优先级 3** | 需要确认计费方案、地域、Workspace ID 和准确模型 ID |
 | 火山方舟 / 豆包 Responses 模型 | 官方 `/api/v3/responses` | **A 级候选，优先级 4** | 需要账号实际可用的模型或 Endpoint ID |
@@ -42,7 +42,7 @@
 | SiliconFlow 直连 | 官方文本接口当前公开 `/chat/completions` | **暂不兼容** | 等待官方 Responses 文档，不用 API key 盲测 |
 
 这里的 “A 级” 仍然只是**值得提供 API key 测试**，不是已经完美支持。DeepSeek V4
-Flash 是当前唯一内置 Pack，但公开安装器版本仍保留真实用户环境验证待办；按上述严格
+Flash 与 MiniMax-M3 已内置，但公开安装器版本仍保留真实用户环境验证待办；按上述严格
 口径，目前没有任何 Provider 可以直接标成“完美支持”。
 
 ## 推荐测试顺序

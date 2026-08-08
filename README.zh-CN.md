@@ -2,12 +2,12 @@
 
 [English](README.md) | **简体中文**
 
-> 公开测试版 `0.2.0-beta.1`。这是非官方、仅支持 macOS 的项目，未经
-> OpenAI 或 DeepSeek 官方背书。
+> 公开测试版 `0.3.0-beta.1`。这是非官方、仅支持 macOS 的项目，未经
+> OpenAI、DeepSeek 或 MiniMax 官方背书。
 
 本项目让 Codex Desktop 通过可配置的 Provider Pack 使用第三方模型子代理，
-同时保持主线程的 OpenAI 模型、Provider 和认证不变。当前默认且唯一经过验证的
-内置 Pack 是 **DeepSeek V4 Flash**。
+同时保持主线程的 OpenAI 模型、Provider 和认证不变。当前内置 Pack 为
+**DeepSeek V4 Flash** 与 **MiniMax-M3**，DeepSeek 仍是默认选择。
 
 ## 使用前必读
 
@@ -15,7 +15,8 @@
 - 被委派的任务正文会发送给所选 Provider。不得委派凭据、隐私内容或无权外发的资料。
 - 仅适合文本、代码、研究整理和本地验证。图片、音频、视频、浏览器控制、桌面控制、
   MCP 和 Computer Use 不在支持范围内。
-- 当前 DeepSeek Pack 只支持 `deepseek-v4-flash`，并明确拒绝 V4 Pro。
+- DeepSeek Pack 只支持 `deepseek-v4-flash` 并明确拒绝 V4 Pro；MiniMax Pack
+  只支持 `MiniMax-M3`。
 - 路由需要 Luna 时，用户必须已经配置好可用的 `luna_worker`；本仓库不会安装或修改 Luna。
 - Codex Desktop 不保证原生拦截所有子代理调用。安装的预检脚本属于需要主代理主动执行的
   策略护栏，并不是系统级安全边界。
@@ -61,16 +62,22 @@ cd codex-third-party-workers
 在 macOS Terminal 中执行。请保留命令末尾的 `-w`，系统会提示输入 API key，
 避免把 key 写入普通命令参数或 shell 历史：
 
+按准备安装的 Pack 选择 Keychain service：
+
 ```sh
+# DeepSeek
 /usr/bin/security add-generic-password -a "$(id -un)" -s codex-deepseek-api-key -U -w
+
+# MiniMax
+/usr/bin/security add-generic-password -a "$(id -un)" -s codex-minimax-api-key -U -w
 ```
 
 安装器只检查该 Keychain 项是否存在，不接受 `--api-key` 参数，也不会把密钥写入文件。
 
 ## 2. 先执行 dry-run
 
-dry-run 是默认行为。它会把官方 Provider 安装脚本作为普通文本读取，提取并校验
-`CODEX_MODELS_JSON`，然后只保留 Provider Pack 允许的模型目录；不会执行官方脚本。
+dry-run 是默认行为。它会把官方 Provider 目录来源作为普通文本读取，提取并校验
+受支持的目录格式，然后只保留 Provider Pack 允许的文本能力目录；不会执行下载内容。
 
 Plus 示例：
 
@@ -97,6 +104,10 @@ node scripts/install.mjs \
   --confirm-main-preserved \
   --consent-data
 ```
+
+MiniMax 使用相同路由参数，只需把命令中的 Provider 改成 `--provider minimax`。
+安装器一次管理一个当前路由的 Provider fallback；切换 Pack 不会改变主线程 OpenAI
+模型、Provider 或认证。
 
 离线安装可以追加：
 
@@ -131,8 +142,8 @@ node scripts/uninstall.mjs --apply
 
 ## 安装内容
 
-- `~/.codex/agents/deepseek_worker.toml`
-- `~/.codex/model-catalogs/deepseek-v4-flash.json`
+- `~/.codex/agents/<provider>_worker.toml`
+- `~/.codex/model-catalogs/<provider-model>.json`
 - `~/.codex/bin/subagent-preflight.mjs`
 - `~/.codex/bin/codex-third-party-worker-bridge.mjs`
 - `~/.codex/lib/codex-third-party-workers/`
@@ -153,7 +164,7 @@ npm test
 Keychain、Codex 额度、`~/.codex` 或外部网络。
 
 本项目提供的是可扩展 Provider Pack 核心，并不代表所有第三方模型已经可以直接使用。
-DeepSeek V4 Flash 是首个内置并通过隔离测试的 Pack；公开安装器的真实运行验证单独记录。
+DeepSeek V4 Flash 与 MiniMax-M3 均已内置并通过隔离测试；公开安装器的真实运行验证单独记录。
 新增 Provider 需要以经过代码审查的方式修改
 `src/provider-packs.mjs` 并补充测试；安装器不会加载任意远程 Pack manifest。
 
@@ -176,6 +187,8 @@ DeepSeek V4 Flash 是首个内置并通过隔离测试的 Pack；公开安装器
 - [OpenAI：Codex 配置参考](https://learn.chatgpt.com/docs/config-file/config-reference)
 - [DeepSeek：Codex 接入](https://api-docs.deepseek.com/zh-cn/quick_start/agent_integrations/codex/)
 - [DeepSeek：Responses API 兼容说明](https://api-docs.deepseek.com/zh-cn/guides/responses_api/)
+- [MiniMax：在 Codex 中使用 M3](https://platform.minimaxi.com/docs/token-plan/codex)
+- [MiniMax：Responses API](https://platform.minimaxi.com/docs/api-reference/responses-create)
 
 ## 开源协议
 

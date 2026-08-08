@@ -26,10 +26,14 @@
 在系统终端执行：
 
 ```sh
+# DeepSeek
 /usr/bin/security add-generic-password -a "$(id -un)" -s codex-deepseek-api-key -U -w
+
+# MiniMax
+/usr/bin/security add-generic-password -a "$(id -un)" -s codex-minimax-api-key -U -w
 ```
 
-`-w` 放在命令末尾时，由 macOS 安全提示输入内容，不会把 key 放进普通命令参数或 shell 历史。安装器没有 `--api-key` 参数，只检查这个 Keychain 项是否存在。
+`-w` 放在命令末尾时，由 macOS 安全提示输入内容，不会把 key 放进普通命令参数或 shell 历史。安装器没有 `--api-key` 参数，只检查当前 Pack 对应的 Keychain 项是否存在。
 
 ## 2. 先做 dry-run
 
@@ -46,11 +50,13 @@ node scripts/install.mjs \
   --consent-data
 ```
 
-Pro 用户把 `plan` 改为 `pro`、Spark 收为 `true`、阈值改为 `10`。不传完整
+MiniMax 把 `--provider deepseek` 改成 `--provider minimax`。安装器一次管理一个当前
+路由的 Provider Pack。Pro 用户把 `plan` 改为 `pro`、Spark 设为 `true`、阈值改为 `10`。不传完整
 参数并在交互式终端运行时，安装器会逐项询问。
 
-dry-run 会从官方地址下载安装脚本文本，但绝不执行它；只提取 `CODEX_MODELS_JSON`
-并按 provider-pack 策略校验后落盘。离线时可追加：
+dry-run 会从官方地址下载目录来源文本，但绝不执行它；DeepSeek 提取
+`CODEX_MODELS_JSON`，MiniMax 提取官方 Codex 指南中的 JSON 目录，再按
+provider-pack 策略校验后落盘。离线时可追加：
 
 ```sh
 --catalog-source /absolute/path/to/local-catalog-or-setup-script
@@ -68,7 +74,7 @@ dry-run 会从官方地址下载安装脚本文本，但绝不执行它；只提
 
 写入范围仅包括：
 
-- 默认 DeepSeek provider 的自定义子代理文件。
+- 当前所选 provider 的自定义子代理文件。
 - provider-pack 的 runtime catalog。
 - 实时额度预检与单槽任务桥模块。
 - `~/.codex/AGENTS.md` 内的一段带起止标记的规则。

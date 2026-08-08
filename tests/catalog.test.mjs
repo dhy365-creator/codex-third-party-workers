@@ -6,6 +6,7 @@ import { fileURLToPath } from 'node:url';
 import {
   acquireCatalog,
   catalogIsSafe,
+  extractCatalogDocument,
   extractCatalogFromScript,
   reduceCatalogForProvider,
 } from '../src/catalog.mjs';
@@ -13,6 +14,12 @@ import { resolveProviderPack } from '../src/provider-packs.mjs';
 
 const fixture = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'catalog.json');
 const providerPack = resolveProviderPack('deepseek');
+const minimaxFixture = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  'fixtures',
+  'minimax-codex.md',
+);
+const minimaxPack = resolveProviderPack('minimax');
 
 test('reduces a local catalog to DeepSeek V4 Flash', async () => {
   const result = await acquireCatalog({
@@ -38,6 +45,15 @@ test('extracts only the inert official heredoc and never executes it', async () 
   const reduced = extractCatalogFromScript(script);
   assert.equal(reduced.models.length, 2);
   assert.equal(reduced.models[0].slug, 'deepseek-v4-flash');
+});
+
+test('extracts and bounds the MiniMax catalog from official-document-shaped markdown', async () => {
+  const markdown = await fs.readFile(minimaxFixture, 'utf8');
+  const parsed = extractCatalogDocument(markdown, { sourceFormat: 'markdown-json' });
+  const reduced = reduceCatalogForProvider(parsed, minimaxPack.catalog);
+  assert.equal(reduced.models[0].slug, 'MiniMax-M3');
+  assert.deepEqual(reduced.models[0].input_modalities, ['text']);
+  assert.equal(catalogIsSafe(reduced, minimaxPack.catalog), true);
 });
 
 test('rejects a Pro-only catalog when reduced by provider policy', () => {

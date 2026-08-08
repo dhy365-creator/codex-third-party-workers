@@ -76,6 +76,7 @@ export function agentToml({
     `model = "${model}"`,
     `model_provider = "${provider}"`,
     'model_reasoning_effort = "high"',
+    ...(pack.modelContextWindow ? [`model_context_window = ${pack.modelContextWindow}`] : []),
     `model_catalog_json = ${toml(catalogPath)}`,
     '',
     'developer_instructions = """',

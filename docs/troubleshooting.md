@@ -5,7 +5,11 @@
 不要把 key 发到聊天窗口，也不要使用命令行 `--api-key`。在系统终端执行：
 
 ```sh
+# DeepSeek
 /usr/bin/security add-generic-password -a "$(id -un)" -s codex-deepseek-api-key -U -w
+
+# MiniMax
+/usr/bin/security add-generic-password -a "$(id -un)" -s codex-minimax-api-key -U -w
 ```
 
 然后重新运行安装。`-w` 位于末尾时由 macOS 安全提示输入。
@@ -18,7 +22,7 @@
 node scripts/install.mjs ... --catalog-source /absolute/local/path
 ```
 
-本项目不会执行下载的脚本。官方 heredoc 标记或模型结构变化会失败关闭，而不是
+本项目不会执行下载的脚本。官方 heredoc、Markdown 目录或模型结构变化会失败关闭，而不是
 猜测内容。
 
 ## 一直选择 Spark / Luna

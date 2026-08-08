@@ -6,6 +6,17 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.3.0-beta.1] - 2026-08-08
+
+- Add MiniMax-M3 as the second reviewed built-in provider pack.
+- Acquire the MiniMax Codex catalog from the official Markdown guide as inert
+  text, restrict the installed catalog to text input, and preserve the exact
+  case-sensitive API model ID.
+- Add provider-specific Keychain auth, a `minimax_worker` agent definition,
+  isolated installer tests, and live API/Codex CLI verification records.
+- Keep Codex Desktop subagent runtime verification separate until the app is
+  restarted and a real delegated task is reviewed.
+
 ## [0.2.0-beta.1] - 2026-08-08
 
 - Refactor core flow to provider-pack architecture in `codex-third-party-workers`:
@@ -18,7 +29,7 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 - Require a provider host validator for automatic catalog acquisition and
   validate every destination in a bounded manual redirect chain.
 - Publish the generic provider-pack beta with DeepSeek V4 Flash as the first
-  verified built-in pack.
+  built-in pack.
 
 ## [0.1.0-beta.1] - 2026-08-06
 
