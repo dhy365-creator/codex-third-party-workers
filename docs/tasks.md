@@ -25,7 +25,7 @@
 
 ## Provider 扩展待办
 
-- [ ] 重启 Codex Desktop，运行并人工复核一个真实 `minimax_worker` 子任务。
+- [x] 重启 Codex Desktop，运行真实 `minimax_worker` 子任务并验证桥接完成与释放。
 - [ ] 按 StepFun -> Qwen -> 火山方舟顺序逐一进行真实 API 与 Codex 子代理验证。
 - [ ] 对通过验证的 Provider 单独新增 Pack、Keychain service、目录策略、离线测试和文档。
 - [ ] 对千帆与 TokenHub 保持“网关候选”标识，不把网关通过写成模型厂商直连通过。

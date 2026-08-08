@@ -32,7 +32,7 @@ Statuses:
 | Provider / model | Access type | Current result | Next step |
 | --- | --- | --- | --- |
 | DeepSeek / `deepseek-v4-flash` | Official Responses | **Only built-in pack; public-installer runtime verification pending** | Keep regression coverage; V4 Pro remains excluded |
-| MiniMax / `MiniMax-M3` | Official Responses and an official Codex Desktop guide | **Built-in; live API and Codex CLI verified, Desktop subagent pending restart** | Restart and review a real `minimax_worker` task |
+| MiniMax / `MiniMax-M3` | Official Responses and an official Codex Desktop guide | **Runtime verified: API, Codex CLI, Desktop subagent, and bridge release passed** | Keep regression coverage; verify public-installer apply separately |
 | StepFun / `step-3.7-flash` | Official `/v1/responses` | **Tier A, priority 2** | Verify streaming tool loops and Codex subagent execution |
 | Alibaba Model Studio / Qwen Responses models | Official Responses and current Codex configuration | **Tier A, priority 3** | Confirm billing plan, region, Workspace ID, and exact model ID |
 | Volcano Ark / Doubao Responses models | Official `/api/v3/responses` | **Tier A, priority 4** | Use an account-enabled model or Endpoint ID |

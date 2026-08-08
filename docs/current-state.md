@@ -27,12 +27,14 @@
 - single-slot bridge 权限与归档、follow-up 识别通过。
 - MiniMax-M3 已通过真实 Responses API 普通文本、SSE 流式、Function Calling 两轮闭环，
   并通过 Codex CLI + command-backed Keychain 运行；未记录或输出 API key。
+- MiniMax-M3 已在 Codex Desktop 以 `minimax_worker` 完成真实子代理冒烟任务，返回预期
+  结果，任务桥状态为 `completed`，`active/` 已释放。
 
 ## 尚未完成或未声称
 
 - 未在真实用户 `~/.codex` 上安装。
-- 未在真实 Codex Desktop 中运行 provider 子任务验证；`runtimeVerified` 仍为 false。
+- 尚未用公开安装器在真实用户 `~/.codex` 执行 `--apply`/`verify`；验证器仍不会自动
+  把一次任务写成 `runtimeVerified: true`。
 - 未由用户进行人工验收。
 - 尚未在真实用户环境安装或发布 npm package；本项目仅通过 GitHub 源码分发。
-- MiniMax Desktop 子代理仍需重启 App 后验证；StepFun、阿里云百炼、火山方舟、
-  百度千帆和腾讯云 TokenHub 尚未加入内置 Pack。
+- StepFun、阿里云百炼、火山方舟、百度千帆和腾讯云 TokenHub 尚未加入内置 Pack。

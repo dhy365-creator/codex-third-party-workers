@@ -180,7 +180,8 @@ implementations. They do not access real API keys, Keychain, Codex quota,
 
 This release provides an extensible provider-pack core, not a claim that every
 third-party model already works. DeepSeek V4 Flash and MiniMax-M3 are built-in,
-isolated-tested packs; public-installer runtime verification is tracked separately.
+isolated-tested packs. MiniMax-M3 has also passed a real Codex Desktop subagent
+smoke test; public-installer apply/verify status is tracked separately.
 New providers are added as reviewed code in `src/provider-packs.mjs` with tests;
 the installer does not load arbitrary remote pack manifests.
 

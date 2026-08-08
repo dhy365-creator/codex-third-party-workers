@@ -164,7 +164,8 @@ npm test
 Keychain、Codex 额度、`~/.codex` 或外部网络。
 
 本项目提供的是可扩展 Provider Pack 核心，并不代表所有第三方模型已经可以直接使用。
-DeepSeek V4 Flash 与 MiniMax-M3 均已内置并通过隔离测试；公开安装器的真实运行验证单独记录。
+DeepSeek V4 Flash 与 MiniMax-M3 均已内置并通过隔离测试；MiniMax-M3 还通过了真实
+Codex Desktop 子代理冒烟测试，公开安装器的 apply/verify 状态单独记录。
 新增 Provider 需要以经过代码审查的方式修改
 `src/provider-packs.mjs` 并补充测试；安装器不会加载任意远程 Pack manifest。
 

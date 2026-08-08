@@ -30,7 +30,7 @@
 | Provider / 模型 | 接入类型 | 当前结论 | 下一步 |
 | --- | --- | --- | --- |
 | DeepSeek / `deepseek-v4-flash` | 官方 Responses | **内置 Pack；公开安装器运行时验证待完成** | 保持回归测试；当前不扩展 V4 Pro |
-| MiniMax / `MiniMax-M3` | 官方 Responses；官方给出 Codex Desktop 配置 | **内置 Pack；真实 API 与 Codex CLI 已验证，Desktop 子代理待重启验证** | 重启后运行 `minimax_worker` 任务并复核 |
+| MiniMax / `MiniMax-M3` | 官方 Responses；官方给出 Codex Desktop 配置 | **运行时已验证 Pack：API、Codex CLI、Desktop 子代理和桥接释放均通过** | 保持回归测试；公开安装器 apply/verify 单独验收 |
 | 阶跃星辰 / `step-3.7-flash` | 官方 `/v1/responses` | **A 级候选，优先级 2** | 验证流式工具循环和 Codex 子代理运行 |
 | 阿里云百炼 / Qwen Responses 模型 | 官方 Responses；官方给出最新版 Codex 配置 | **A 级候选，优先级 3** | 需要确认计费方案、地域、Workspace ID 和准确模型 ID |
 | 火山方舟 / 豆包 Responses 模型 | 官方 `/api/v3/responses` | **A 级候选，优先级 4** | 需要账号实际可用的模型或 Endpoint ID |

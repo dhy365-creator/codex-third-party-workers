@@ -14,8 +14,8 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   case-sensitive API model ID.
 - Add provider-specific Keychain auth, a `minimax_worker` agent definition,
   isolated installer tests, and live API/Codex CLI verification records.
-- Keep Codex Desktop subagent runtime verification separate until the app is
-  restarted and a real delegated task is reviewed.
+- Verify a real Codex Desktop `minimax_worker` task through the owner-only
+  compatibility bridge, including successful bridge completion and release.
 
 ## [0.2.0-beta.1] - 2026-08-08
 
