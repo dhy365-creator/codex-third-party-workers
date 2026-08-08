@@ -17,6 +17,7 @@
 - [x] 通用 provider-pack 核心与首个 DeepSeek V4 Flash pack。
 - [x] GitHub Actions 只读测试流程与 MIT 开源文件。
 - [x] 远程 catalog 逐跳 host 校验及无网络回归测试。
+- [x] GitHub 仓库入口提供中英文双语说明与完整下载、配置、验证步骤。
 
 ## 用户环境待办
 
