@@ -19,6 +19,11 @@ const minimaxFixture = path.join(
   'fixtures',
   'minimax-codex.md',
 );
+const qwenFixture = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  'fixtures',
+  'qwen-model-doc.html',
+);
 
 async function setup(t) {
   const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-dsw-home-'));
@@ -140,6 +145,33 @@ test('installs and verifies the MiniMax worker without changing the main Codex c
   assert.match(agent, /codex-minimax-api-key/);
   const catalog = JSON.parse(await fs.readFile(applied.environment.catalogPath, 'utf8'));
   assert.deepEqual(catalog.models.map((model) => model.slug), ['MiniMax-M3']);
+  assert.deepEqual(catalog.models[0].input_modalities, ['text']);
+  const checked = await verify({
+    ...options,
+    checkKeychain: true,
+    keychainReadyImpl: async () => true,
+  });
+  assert.equal(checked.configured, true);
+  assert.equal(checked.runtimeVerified, false);
+});
+
+test('installs and verifies the Qwen worker without changing the main Codex config', async (t) => {
+  const fixture = await setup(t);
+  const options = {
+    ...fixture.options,
+    provider: 'qwen',
+    catalogSource: qwenFixture,
+  };
+  const applied = await install({ ...options, apply: true });
+  assert.equal(await fs.readFile(fixture.configToml, 'utf8'), fixture.sentinel);
+  const agent = await fs.readFile(applied.environment.agentPath, 'utf8');
+  assert.match(agent, /name = "qwen_worker"/);
+  assert.match(agent, /model = "qwen3\.7-max"/);
+  assert.match(agent, /model_provider = "qwen"/);
+  assert.match(agent, /model_context_window = 1000000/);
+  assert.match(agent, /codex-qwen-api-key/);
+  const catalog = JSON.parse(await fs.readFile(applied.environment.catalogPath, 'utf8'));
+  assert.deepEqual(catalog.models.map((model) => model.slug), ['qwen3.7-max']);
   assert.deepEqual(catalog.models[0].input_modalities, ['text']);
   const checked = await verify({
     ...options,

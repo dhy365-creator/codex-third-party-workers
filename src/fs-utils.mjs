@@ -3,7 +3,7 @@ import { constants as fsConstants } from 'node:fs';
 import path from 'node:path';
 import crypto from 'node:crypto';
 
-export const INSTALL_VERSION = '0.3.0-beta.1';
+export const INSTALL_VERSION = '0.4.0-beta.1';
 
 export async function pathExists(filePath) {
   try {

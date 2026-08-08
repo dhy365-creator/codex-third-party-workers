@@ -2,12 +2,12 @@
 
 [English](README.md) | **简体中文**
 
-> 公开测试版 `0.3.0-beta.1`。这是非官方、仅支持 macOS 的项目，未经
-> OpenAI、DeepSeek 或 MiniMax 官方背书。
+> 公开测试版 `0.4.0-beta.1`。这是非官方、仅支持 macOS 的项目，未经
+> OpenAI、DeepSeek、MiniMax 或阿里云官方背书。
 
 本项目让 Codex Desktop 通过可配置的 Provider Pack 使用第三方模型子代理，
 同时保持主线程的 OpenAI 模型、Provider 和认证不变。当前内置 Pack 为
-**DeepSeek V4 Flash** 与 **MiniMax-M3**，DeepSeek 仍是默认选择。
+**DeepSeek V4 Flash**、**MiniMax-M3** 与 **Qwen3.7-Max**，DeepSeek 仍是默认选择。
 
 ## 使用前必读
 
@@ -16,10 +16,28 @@
 - 仅适合文本、代码、研究整理和本地验证。图片、音频、视频、浏览器控制、桌面控制、
   MCP 和 Computer Use 不在支持范围内。
 - DeepSeek Pack 只支持 `deepseek-v4-flash` 并明确拒绝 V4 Pro；MiniMax Pack
-  只支持 `MiniMax-M3`。
+  只支持 `MiniMax-M3`；Qwen Pack 只支持阿里云百炼按量计费的纯文本
+  `qwen3.7-max`。
 - 路由需要 Luna 时，用户必须已经配置好可用的 `luna_worker`；本仓库不会安装或修改 Luna。
 - Codex Desktop 不保证原生拦截所有子代理调用。安装的预检脚本属于需要主代理主动执行的
   策略护栏，并不是系统级安全边界。
+
+## 兼容性速览
+
+| 厂商直连路径 | 本仓库当前状态 |
+| --- | --- |
+| DeepSeek V4 Flash | 内置 Pack |
+| MiniMax-M3 | 内置 Pack，Desktop 运行时已验证 |
+| 阿里云百炼 Qwen3.7-Max | 内置 Pack，Desktop 运行时已验证 |
+| 阶跃星辰 Responses 模型 | 候选，尚未运行时验证 |
+| 火山方舟 Responses 模型 | 候选，需要账号可用模型或 Endpoint ID |
+| Kimi K3 直连 | 暂不兼容，官方 Codex 路径需要协议转换 |
+| 智谱 GLM 直连 | 暂不兼容，官方直连指南当前使用 Chat Completions |
+| 腾讯混元传统接口 | 暂不兼容，当前直连兼容方式以 Chat Completions 为主 |
+| SiliconFlow 直连 | 暂不兼容，当前文本接口为 Chat Completions |
+
+百度千帆和腾讯云 TokenHub 仍属于网关候选，不能代表模型厂商直连兼容。完整证据、限制和
+后续复核入口见[国产模型 Provider 兼容性矩阵](docs/provider-compatibility.zh-CN.md)。
 
 ## 路由策略
 
@@ -70,6 +88,9 @@ cd codex-third-party-workers
 
 # MiniMax
 /usr/bin/security add-generic-password -a "$(id -un)" -s codex-minimax-api-key -U -w
+
+# Qwen / 阿里云百炼
+/usr/bin/security add-generic-password -a "$(id -un)" -s codex-qwen-api-key -U -w
 ```
 
 安装器只检查该 Keychain 项是否存在，不接受 `--api-key` 参数，也不会把密钥写入文件。
@@ -105,7 +126,8 @@ node scripts/install.mjs \
   --consent-data
 ```
 
-MiniMax 使用相同路由参数，只需把命令中的 Provider 改成 `--provider minimax`。
+MiniMax 与 Qwen 使用相同路由参数，只需把 Provider 改成 `--provider minimax`
+或 `--provider qwen`。
 安装器一次管理一个当前路由的 Provider fallback；切换 Pack 不会改变主线程 OpenAI
 模型、Provider 或认证。
 
@@ -164,8 +186,9 @@ npm test
 Keychain、Codex 额度、`~/.codex` 或外部网络。
 
 本项目提供的是可扩展 Provider Pack 核心，并不代表所有第三方模型已经可以直接使用。
-DeepSeek V4 Flash 与 MiniMax-M3 均已内置并通过隔离测试；MiniMax-M3 还通过了真实
-Codex Desktop 子代理冒烟测试，公开安装器的 apply/verify 状态单独记录。
+DeepSeek V4 Flash、MiniMax-M3 与 Qwen3.7-Max 均已内置并通过隔离测试；
+MiniMax-M3 与 Qwen3.7-Max 还通过了真实 Codex Desktop 子代理冒烟测试，公开安装器的
+apply/verify 状态单独记录。
 新增 Provider 需要以经过代码审查的方式修改
 `src/provider-packs.mjs` 并补充测试；安装器不会加载任意远程 Pack manifest。
 
@@ -190,6 +213,8 @@ Codex Desktop 子代理冒烟测试，公开安装器的 apply/verify 状态单�
 - [DeepSeek：Responses API 兼容说明](https://api-docs.deepseek.com/zh-cn/guides/responses_api/)
 - [MiniMax：在 Codex 中使用 M3](https://platform.minimaxi.com/docs/token-plan/codex)
 - [MiniMax：Responses API](https://platform.minimaxi.com/docs/api-reference/responses-create)
+- [阿里云百炼：Codex](https://help.aliyun.com/zh/model-studio/codex)
+- [阿里云百炼：Qwen3.7-Max](https://help.aliyun.com/zh/model-studio/qwen3-7-max)
 
 ## 开源协议
 

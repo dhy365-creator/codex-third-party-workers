@@ -2,12 +2,13 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-> Public beta `0.3.0-beta.1`. Unofficial, macOS-only, and not endorsed by
-> OpenAI, DeepSeek, or MiniMax.
+> Public beta `0.4.0-beta.1`. Unofficial, macOS-only, and not endorsed by
+> OpenAI, DeepSeek, MiniMax, or Alibaba Cloud.
 
 Run configurable provider-pack fallback workers for Codex Desktop without
 replacing the primary OpenAI model/provider/auth stack. Built-in packs are
-**DeepSeek V4 Flash** and **MiniMax-M3**; DeepSeek remains the default.
+**DeepSeek V4 Flash**, **MiniMax-M3**, and **Qwen3.7-Max**; DeepSeek remains
+the default.
 
 ## Read this first
 
@@ -18,12 +19,31 @@ replacing the primary OpenAI model/provider/auth stack. Built-in packs are
   Images, files-as-multimodal-input, audio, video, browser control, desktop
   control, MCP, and computer use are out of scope.
 - The DeepSeek pack supports `deepseek-v4-flash` only and rejects V4 Pro. The
-  MiniMax pack supports `MiniMax-M3` only.
+  MiniMax pack supports `MiniMax-M3` only. The Qwen pack supports the
+  text-only `qwen3.7-max` model on Alibaba Model Studio pay-as-you-go.
 - A configured `luna_worker` is expected when Luna is selected as the OpenAI
   fallback. This repository does not install or alter Luna.
 - Codex Desktop does not guarantee native interception of every collaboration call.
   The installed preflight script is a policy-assisted guardrail that the main
   agent must execute before each `spawn_agent` / `followup_task`.
+
+## Compatibility at a glance
+
+| Direct provider path | Status in this repository |
+| --- | --- |
+| DeepSeek V4 Flash | Built-in pack |
+| MiniMax-M3 | Built-in, Desktop runtime verified |
+| Alibaba Model Studio Qwen3.7-Max | Built-in, Desktop runtime verified |
+| StepFun Responses models | Candidate; not yet runtime tested |
+| Volcano Ark Responses models | Candidate; account model/Endpoint ID required |
+| Direct Kimi K3 | Not currently compatible; official Codex path requires protocol translation |
+| Direct Zhipu GLM | Not currently compatible; official direct guide uses Chat Completions |
+| Legacy Tencent Hunyuan | Not currently compatible; current direct compatibility is Chat Completions-centered |
+| Direct SiliconFlow | Not currently compatible; current text endpoint is Chat Completions |
+
+Qianfan and Tencent TokenHub remain gateway candidates, not proof of direct
+model-vendor compatibility. See the full evidence and boundaries in the
+[Chinese-provider compatibility matrix](docs/provider-compatibility.md).
 
 ## Routing policy
 
@@ -77,6 +97,9 @@ Choose the service matching the pack you will install:
 
 # MiniMax
 /usr/bin/security add-generic-password -a "$(id -un)" -s codex-minimax-api-key -U -w
+
+# Qwen / Alibaba Model Studio
+/usr/bin/security add-generic-password -a "$(id -un)" -s codex-qwen-api-key -U -w
 ```
 
 The installer only verifies that this Keychain item exists. It never accepts
@@ -114,7 +137,8 @@ node scripts/install.mjs \
   --consent-data
 ```
 
-MiniMax uses the same routing options with `--provider minimax`. The installer
+MiniMax and Qwen use the same routing options with `--provider minimax` or
+`--provider qwen`. The installer
 manages one selected provider fallback at a time; changing `--provider` changes
 the actively routed provider pack without changing the main OpenAI thread.
 
@@ -179,9 +203,10 @@ implementations. They do not access real API keys, Keychain, Codex quota,
 ### Adding another provider pack
 
 This release provides an extensible provider-pack core, not a claim that every
-third-party model already works. DeepSeek V4 Flash and MiniMax-M3 are built-in,
-isolated-tested packs. MiniMax-M3 has also passed a real Codex Desktop subagent
-smoke test; public-installer apply/verify status is tracked separately.
+third-party model already works. DeepSeek V4 Flash, MiniMax-M3, and Qwen3.7-Max
+are built-in, isolated-tested packs. MiniMax-M3 and Qwen3.7-Max have also passed
+real Codex Desktop subagent smoke tests; public-installer apply/verify status is
+tracked separately.
 New providers are added as reviewed code in `src/provider-packs.mjs` with tests;
 the installer does not load arbitrary remote pack manifests.
 
@@ -204,6 +229,8 @@ See [configuration-zh](docs/configuration-zh.md),
 - [DeepSeek: Responses API compatibility](https://api-docs.deepseek.com/zh-cn/guides/responses_api/)
 - [MiniMax: M3 in Codex](https://platform.minimaxi.com/docs/token-plan/codex)
 - [MiniMax: Responses API](https://platform.minimaxi.com/docs/api-reference/responses-create)
+- [Alibaba Model Studio: Codex](https://help.aliyun.com/zh/model-studio/codex)
+- [Alibaba Model Studio: Qwen3.7-Max](https://help.aliyun.com/zh/model-studio/qwen3-7-max)
 
 ## License
 

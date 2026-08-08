@@ -6,6 +6,16 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.1] - 2026-08-08
+
+- Add Qwen3.7-Max as the third reviewed built-in provider pack.
+- Verify Alibaba Model Studio Responses, SSE streaming, automatic function
+  calls, Codex CLI, Codex Desktop subagent execution, and bridge release.
+- Keep the Qwen capability boundary text-only and document that thinking mode
+  rejects `tool_choice = "required"` while automatic tool choice works.
+- Include `provider-packs.mjs` in the installed runtime so generic preflight can
+  resolve the selected provider pack.
+
 ## [0.3.0-beta.1] - 2026-08-08
 
 - Add MiniMax-M3 as the second reviewed built-in provider pack.

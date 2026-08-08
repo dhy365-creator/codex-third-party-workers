@@ -32,7 +32,7 @@
 | DeepSeek / `deepseek-v4-flash` | 官方 Responses | **内置 Pack；公开安装器运行时验证待完成** | 保持回归测试；当前不扩展 V4 Pro |
 | MiniMax / `MiniMax-M3` | 官方 Responses；官方给出 Codex Desktop 配置 | **运行时已验证 Pack：API、Codex CLI、Desktop 子代理和桥接释放均通过** | 保持回归测试；公开安装器 apply/verify 单独验收 |
 | 阶跃星辰 / `step-3.7-flash` | 官方 `/v1/responses` | **A 级候选，优先级 2** | 验证流式工具循环和 Codex 子代理运行 |
-| 阿里云百炼 / Qwen Responses 模型 | 官方 Responses；官方给出最新版 Codex 配置 | **A 级候选，优先级 3** | 需要确认计费方案、地域、Workspace ID 和准确模型 ID |
+| 阿里云百炼 / `qwen3.7-max` | 官方 Responses；官方给出最新版 Codex 配置 | **运行时已验证：API、SSE、自动 Function Calling、Codex CLI、Desktop 子代理和桥接释放均通过** | 保持纯文本边界；思考模式不接受 `tool_choice: required` |
 | 火山方舟 / 豆包 Responses 模型 | 官方 `/api/v3/responses` | **A 级候选，优先级 4** | 需要账号实际可用的模型或 Endpoint ID |
 | 百度千帆 Responses 网关 | 官方 `/v2/responses` | **B 级网关候选** | 先选官方列表中的具体模型，再验证工具循环 |
 | 腾讯云 TokenHub | 官方 `/v1/responses` 兼容层 | **B 级网关候选** | 可测试 GLM、Kimi、DeepSeek；需接受兼容层限制 |
@@ -42,7 +42,7 @@
 | SiliconFlow 直连 | 官方文本接口当前公开 `/chat/completions` | **暂不兼容** | 等待官方 Responses 文档，不用 API key 盲测 |
 
 这里的 “A 级” 仍然只是**值得提供 API key 测试**，不是已经完美支持。DeepSeek V4
-Flash 与 MiniMax-M3 已内置，但公开安装器版本仍保留真实用户环境验证待办；按上述严格
+Flash、MiniMax-M3 与 Qwen3.7-Max 已内置，但公开安装器版本仍保留真实用户环境验证待办；按上述严格
 口径，目前没有任何 Provider 可以直接标成“完美支持”。
 
 ## 推荐测试顺序
@@ -50,9 +50,8 @@ Flash 与 MiniMax-M3 已内置，但公开安装器版本仍保留真实用户�
 1. **MiniMax-M3**：官方直接给出了 Codex Desktop、`wire_api = "responses"`、
    Base URL 和模型目录示例，文档证据最完整。
 2. **step-3.7-flash**：固定 Base URL，Responses、流式输出和函数调用均有官方说明。
-3. **Qwen**：官方有 Codex 指南，但不同计费方案、地域和 Workspace URL 需要先确定。
-4. **火山方舟**：协议符合要求，但模型或 Endpoint ID 与账户开通情况相关。
-5. **千帆 / TokenHub**：适合补齐多模型覆盖；它们属于网关验证，不代表模型厂商直连。
+3. **火山方舟**：协议符合要求，但模型或 Endpoint ID 与账户开通情况相关。
+4. **千帆 / TokenHub**：适合补齐多模型覆盖；它们属于网关验证，不代表模型厂商直连。
 
 每次只验证一个 Provider。API key 不发送到聊天、不写进配置文件、不提交 GitHub；
 应单独存入 macOS Keychain。测试依次覆盖非流式文本、流式文本、自定义函数调用闭环、

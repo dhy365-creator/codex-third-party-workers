@@ -27,6 +27,7 @@ function toSet(values) {
 
 export const DEEPSEEK_V4_FLASH_ID = 'deepseek-v4-flash';
 export const MINIMAX_M3_ID = 'MiniMax-M3';
+export const QWEN_3_7_MAX_ID = 'qwen3.7-max';
 
 const deepseekPack = {
   id: 'deepseek',
@@ -140,7 +141,64 @@ const minimaxPack = {
   },
 };
 
-const BUILTIN_PACKS = Object.freeze([deepseekPack, minimaxPack]);
+const qwenPack = {
+  id: 'qwen',
+  displayName: 'Qwen',
+  role: 'qwen_worker',
+  model: QWEN_3_7_MAX_ID,
+  modelProvider: 'qwen',
+  modelProviderName: 'Alibaba Cloud Model Studio',
+  modelContextWindow: 1000000,
+  apiBase: 'https://dashscope.aliyuncs.com/compatible-mode/v1',
+  wireApi: 'responses',
+  keychainService: 'codex-qwen-api-key',
+  catalogSourceHint: 'https://help.aliyun.com/zh/model-studio/qwen3-7-max',
+  catalogSourceHost: /(^|\.)aliyun\.com$/i,
+  catalog: {
+    file: 'qwen3.7-max.json',
+    modelId: QWEN_3_7_MAX_ID,
+    requiredModalities: toSet(['text']),
+    outputModalities: toSet(['text']),
+    sourceFormat: 'aliyun-qwen-model-doc',
+    extraMaxBytes: DEFAULT_MAX_CATALOG_BYTES,
+  },
+  capabilities: {
+    supported: toSet([
+      PROVIDER_CAPABILITIES.TEXT,
+      PROVIDER_CAPABILITIES.CODE,
+      PROVIDER_CAPABILITIES.RESEARCH,
+      PROVIDER_CAPABILITIES.VALIDATION,
+    ]),
+    unsuitable: toSet([
+      'images',
+      'image',
+      'audio',
+      'video',
+      'browser',
+      'desktop',
+      'mcp',
+      'computer use',
+    ]),
+  },
+  agentFile: 'qwen_worker.toml',
+  files: {
+    preflightFile: 'subagent-preflight.mjs',
+    bridgeFile: 'codex-third-party-worker-bridge.mjs',
+    runtimeDir: 'codex-third-party-workers',
+    configFile: 'codex-third-party-workers.json',
+    manifestFile: 'codex-third-party-workers-install.json',
+    backupDir: 'codex-third-party-workers-backups',
+  },
+  prompt: {
+    roleLine: 'Fallback worker for bounded text, code, research synthesis, and local validation with Qwen.',
+  },
+  thresholds: {
+    plus: 50,
+    pro: 10,
+  },
+};
+
+const BUILTIN_PACKS = Object.freeze([deepseekPack, minimaxPack, qwenPack]);
 
 export function listProviderPackIds() {
   return BUILTIN_PACKS.map((pack) => pack.id);
@@ -154,4 +212,4 @@ export function resolveProviderPack(value = DEFAULT_PROVIDER_ID) {
   return found;
 }
 
-export { deepseekPack as BUILTIN_PROVIDER_PACK, BUILTIN_PACKS, minimaxPack };
+export { deepseekPack as BUILTIN_PROVIDER_PACK, BUILTIN_PACKS, minimaxPack, qwenPack };

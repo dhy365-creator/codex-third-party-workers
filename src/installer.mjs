@@ -38,7 +38,7 @@ import {
   workerConfig,
 } from './templates.mjs';
 
-const INSTALL_VERSION = '0.3.0-beta.1';
+const INSTALL_VERSION = '0.4.0-beta.1';
 const SOURCE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RUNTIME_FILES = [
   'bridge.mjs',
@@ -48,6 +48,7 @@ const RUNTIME_FILES = [
   'fs-utils.mjs',
   'keychain.mjs',
   'preflight-runtime.mjs',
+  'provider-packs.mjs',
   'routing.mjs',
 ];
 
@@ -176,6 +177,7 @@ export async function install(options = {}) {
     maxBytes: normalized.maxCatalogBytes ?? providerPack.catalog?.extraMaxBytes ?? DEFAULT_MAX_CATALOG_BYTES,
     extract: (text) => extractCatalogDocument(text, {
       sourceFormat: providerPack.catalog?.sourceFormat ?? 'auto',
+      modelId: providerPack.catalog?.modelId,
     }),
     validateHost: (candidate) => {
       const url = new URL(candidate);

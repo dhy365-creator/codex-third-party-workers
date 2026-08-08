@@ -10,6 +10,8 @@
 1. 先完整阅读仓库 `AGENTS.md`、`README.md`、
    `docs/configuration-zh.md` 和 `docs/current-state.md`，并检查当前 worktree。
 2. 在修改任何配置前，先向我确认：
+   - 我要安装 `deepseek`、`minimax` 还是 `qwen` Provider Pack；只允许选择仓库
+     README 标为内置的 Pack，不要把兼容性矩阵中的候选或暂不兼容模型当成已支持；
    - 我的套餐是 Plus 还是 Pro；
    - 是否真实具备 Spark worker；
    - 是否已经有可调用的 `luna_worker`；
