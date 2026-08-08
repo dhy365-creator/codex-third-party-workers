@@ -34,7 +34,7 @@ Statuses:
 | DeepSeek / `deepseek-v4-flash` | Official Responses | **Only built-in pack; public-installer runtime verification pending** | Keep regression coverage; V4 Pro remains excluded |
 | MiniMax / `MiniMax-M3` | Official Responses and an official Codex Desktop guide | **Runtime verified: API, Codex CLI, Desktop subagent, and bridge release passed** | Keep regression coverage; verify public-installer apply separately |
 | StepFun / `step-3.7-flash` | Official `/v1/responses` | **Tier A, priority 2** | Verify streaming tool loops and Codex subagent execution |
-| Alibaba Model Studio / Qwen Responses models | Official Responses and current Codex configuration | **Tier A, priority 3** | Confirm billing plan, region, Workspace ID, and exact model ID |
+| Alibaba Model Studio / `qwen3.7-max` | Official Responses and current Codex configuration | **Runtime verified: API, SSE, automatic function call, Codex CLI, Desktop subagent, and bridge release passed** | Keep text-only boundary; thinking mode does not accept `tool_choice: required` |
 | Volcano Ark / Doubao Responses models | Official `/api/v3/responses` | **Tier A, priority 4** | Use an account-enabled model or Endpoint ID |
 | Baidu Qianfan Responses gateway | Official `/v2/responses` gateway | **Tier B gateway** | Select one listed model and verify the tool loop |
 | Tencent Cloud TokenHub | Official `/v1/responses` compatibility gateway | **Tier B gateway** | GLM, Kimi, or DeepSeek can be tested subject to gateway limits |
@@ -44,7 +44,7 @@ Statuses:
 | Direct SiliconFlow | Current official text endpoint is `/chat/completions` | **Not currently compatible** | Wait for official Responses documentation |
 
 Tier A means “worth testing with an API key,” not “perfectly supported.” DeepSeek
-V4 Flash and MiniMax-M3 are built-in packs, but the public installer still has a pending
+V4 Flash, MiniMax-M3, and Qwen3.7-Max are built-in packs, but the public installer still has a pending
 live user-environment check. Under the strict gate above, no provider is currently
 labeled “perfectly supported.”
 
@@ -53,9 +53,8 @@ labeled “perfectly supported.”
 1. **MiniMax-M3**: the vendor documents Codex Desktop, `wire_api = "responses"`,
    the base URL, and a Codex model catalog.
 2. **step-3.7-flash**: fixed base URL with documented Responses, streaming, and functions.
-3. **Qwen**: documented Codex path, but plan, region, and Workspace URL must be selected first.
-4. **Volcano Ark**: the protocol fits, while model or Endpoint IDs depend on the account.
-5. **Qianfan / TokenHub**: useful for wider model coverage, but these validate a gateway rather than direct vendor access.
+3. **Volcano Ark**: the protocol fits, while model or Endpoint IDs depend on the account.
+4. **Qianfan / TokenHub**: useful for wider model coverage, but these validate a gateway rather than direct vendor access.
 
 Test one provider at a time. Never send an API key in chat, write it to the
 configuration, or commit it to GitHub; store it under a provider-specific macOS

@@ -4,12 +4,13 @@
 
 ## 已写入本地仓库
 
-- 版本：`0.3.0-beta.1`，MIT，Node.js `>=20`，macOS-only。
+- 版本：`0.4.0-beta.1`，MIT，Node.js `>=20`，macOS-only。
 - 公开仓库：`https://github.com/dhy365-creator/codex-third-party-workers`。
 - 仓库入口提供英文 `README.md` 与简体中文 `README.zh-CN.md`，顶部可相互切换。
 - 已发布中英文国产模型 Provider 兼容性矩阵；矩阵中的候选状态仅代表官方文档筛选，
   不等于本仓库已经支持。
-- 架构为通用 provider-pack 形态，当前内置 Pack 为 DeepSeek V4 Flash 与 MiniMax-M3。
+- 架构为通用 provider-pack 形态，当前内置 Pack 为 DeepSeek V4 Flash、MiniMax-M3
+  与 Qwen3.7-Max。
 - 安装器、预检、桥接、验证器和卸载器全部支持 provider pack 的路径、文件名和
   配置。
 - 默认通道：Spark -> Luna -> provider fallback；provider 仅在额度低于阈值且任务
@@ -29,12 +30,16 @@
   并通过 Codex CLI + command-backed Keychain 运行；未记录或输出 API key。
 - MiniMax-M3 已在 Codex Desktop 以 `minimax_worker` 完成真实子代理冒烟任务，返回预期
   结果，任务桥状态为 `completed`，`active/` 已释放。
+- Qwen3.7-Max 已通过按量计费 Responses 普通文本、SSE 流式、自动 Function Calling、
+  Codex CLI 与 Codex Desktop `qwen_worker` 冒烟任务；桥状态为 `completed`，`active/`
+  已释放。思考模式不支持 `tool_choice = "required"`，但 `auto` 已验证可用。测试后本机
+  Qwen Keychain 凭据已按用户要求删除；本次 Desktop 验证是显式调用，不代表旧版全局
+  DeepSeek 专用预检已经自动路由到 Qwen。
 
 ## 尚未完成或未声称
 
-- 未在真实用户 `~/.codex` 上安装。
-- 尚未用公开安装器在真实用户 `~/.codex` 执行 `--apply`/`verify`；验证器仍不会自动
+- 尚未用本版本公开安装器在真实用户 `~/.codex` 执行 `--apply`/`verify`；验证器仍不会自动
   把一次任务写成 `runtimeVerified: true`。
 - 未由用户进行人工验收。
 - 尚未在真实用户环境安装或发布 npm package；本项目仅通过 GitHub 源码分发。
-- StepFun、阿里云百炼、火山方舟、百度千帆和腾讯云 TokenHub 尚未加入内置 Pack。
+- StepFun、火山方舟、百度千帆和腾讯云 TokenHub 尚未加入内置 Pack。

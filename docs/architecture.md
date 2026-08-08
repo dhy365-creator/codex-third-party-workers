@@ -3,7 +3,8 @@
 ## Boundaries
 
 - Main Codex model/provider/auth are never changed.
-- DeepSeek is the default provider pack. MiniMax-M3 is the second built-in pack.
+- DeepSeek is the default provider pack. MiniMax-M3 and Qwen3.7-Max are the
+  second and third built-in packs.
   Additional providers are added as reviewed built-in definitions with tests;
   arbitrary remote pack manifests are intentionally not loaded.
 - macOS Keychain is the only credential source.

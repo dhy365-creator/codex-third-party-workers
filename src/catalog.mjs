@@ -53,6 +53,42 @@ function extractOfficialMarkdownCatalog(text) {
   return null;
 }
 
+function extractAliyunQwenModelDocument(text, options = {}) {
+  const model = String(options.modelId ?? '').trim();
+  if (model !== 'qwen3.7-max') throw new Error('unsupported Alibaba model document target');
+  const identifiesModel = text.includes(`<h1>${model}</h1>`)
+    || text.includes(`\"docTitle\":\"${model}\"`)
+    || text.includes(`content=\"${model},${model}\"`);
+  if (!identifiesModel || !text.includes('纯文本模型能力')) {
+    throw new Error('official Alibaba model document does not identify the expected text model');
+  }
+  if (!text.includes('Function Calling') || !text.includes('1000000')) {
+    throw new Error('official Alibaba model document is missing required capability metadata');
+  }
+  return {
+    models: [{
+      slug: model,
+      display_name: 'Qwen3.7-Max',
+      description: 'Alibaba Cloud Model Studio Qwen3.7-Max text model',
+      default_reasoning_level: 'high',
+      supported_reasoning_levels: [{ effort: 'high', description: 'Thinking' }],
+      context_window: 1000000,
+      effective_context_window_percent: 95,
+      supports_parallel_tool_calls: false,
+      input_modalities: ['text'],
+      shell_type: 'default',
+      visibility: 'list',
+      supported_in_api: true,
+      priority: 0,
+      base_instructions: '',
+      support_verbosity: false,
+      supports_reasoning_summaries: false,
+      experimental_supported_tools: [],
+      truncation_policy: { mode: 'bytes', limit: 10000 },
+    }],
+  };
+}
+
 function assertWithinSize(text, maxBytes) {
   if (!Number.isInteger(maxBytes) || maxBytes <= 0) {
     throw new Error('catalog size limit must be positive');
@@ -110,11 +146,14 @@ export function reduceCatalogForProvider(document, options = {}) {
 
 export function extractCatalogDocument(sourceText, options = {}) {
   const sourceFormat = String(options.sourceFormat ?? 'auto').toLowerCase();
-  if (!['auto', 'heredoc', 'markdown-json'].includes(sourceFormat)) {
+  if (!['auto', 'heredoc', 'markdown-json', 'aliyun-qwen-model-doc'].includes(sourceFormat)) {
     throw new Error(`unsupported catalog source format: ${sourceFormat}`);
   }
   const text = typeof sourceText === 'string' ? sourceText : String(sourceText ?? '');
   assertWithinSize(text, DEFAULT_MAX_CATALOG_BYTES);
+  if (sourceFormat === 'aliyun-qwen-model-doc') {
+    return extractAliyunQwenModelDocument(text, options);
+  }
   const direct = parseDocument(text.trim());
   if (direct) return direct;
   if (sourceFormat !== 'markdown-json') {
@@ -216,4 +255,4 @@ export function catalogIsSafe(catalog, options) {
   }
 }
 
-export { parseDocument, modelEntries, modelId };
+export { extractAliyunQwenModelDocument, parseDocument, modelEntries, modelId };

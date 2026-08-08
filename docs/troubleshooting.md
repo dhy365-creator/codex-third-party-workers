@@ -10,6 +10,9 @@
 
 # MiniMax
 /usr/bin/security add-generic-password -a "$(id -un)" -s codex-minimax-api-key -U -w
+
+# Qwen / 阿里云百炼
+/usr/bin/security add-generic-password -a "$(id -un)" -s codex-qwen-api-key -U -w
 ```
 
 然后重新运行安装。`-w` 位于末尾时由 macOS 安全提示输入。
@@ -24,6 +27,12 @@ node scripts/install.mjs ... --catalog-source /absolute/local/path
 
 本项目不会执行下载的脚本。官方 heredoc、Markdown 目录或模型结构变化会失败关闭，而不是
 猜测内容。
+
+## Qwen 思考模式拒绝 `tool_choice = "required"`
+
+Qwen3.7-Max 的思考模式可能对 `required` 或对象形式的 `tool_choice` 返回 400。
+本项目的真实验证表明 `tool_choice = "auto"` 可正常返回 Responses
+`function_call`；不要把 `required` 的失败误判为所有工具调用均不可用。
 
 ## 一直选择 Spark / Luna
 

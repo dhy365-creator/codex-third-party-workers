@@ -14,6 +14,7 @@ const RUNTIME_FILES = [
   'fs-utils.mjs',
   'keychain.mjs',
   'preflight-runtime.mjs',
+  'provider-packs.mjs',
   'routing.mjs',
 ];
 

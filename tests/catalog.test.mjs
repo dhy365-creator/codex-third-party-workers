@@ -20,6 +20,12 @@ const minimaxFixture = path.join(
   'minimax-codex.md',
 );
 const minimaxPack = resolveProviderPack('minimax');
+const qwenFixture = path.join(
+  path.dirname(fileURLToPath(import.meta.url)),
+  'fixtures',
+  'qwen-model-doc.html',
+);
+const qwenPack = resolveProviderPack('qwen');
 
 test('reduces a local catalog to DeepSeek V4 Flash', async () => {
   const result = await acquireCatalog({
@@ -54,6 +60,29 @@ test('extracts and bounds the MiniMax catalog from official-document-shaped mark
   assert.equal(reduced.models[0].slug, 'MiniMax-M3');
   assert.deepEqual(reduced.models[0].input_modalities, ['text']);
   assert.equal(catalogIsSafe(reduced, minimaxPack.catalog), true);
+});
+
+test('derives a text-only Qwen catalog from the official-model-document shape', async () => {
+  const document = await fs.readFile(qwenFixture, 'utf8');
+  const parsed = extractCatalogDocument(document, {
+    sourceFormat: qwenPack.catalog.sourceFormat,
+    modelId: qwenPack.catalog.modelId,
+  });
+  const reduced = reduceCatalogForProvider(parsed, qwenPack.catalog);
+  assert.equal(reduced.models[0].slug, 'qwen3.7-max');
+  assert.equal(reduced.models[0].context_window, 1000000);
+  assert.deepEqual(reduced.models[0].input_modalities, ['text']);
+  assert.equal(catalogIsSafe(reduced, qwenPack.catalog), true);
+});
+
+test('rejects a Qwen model document without required official capability markers', () => {
+  assert.throws(
+    () => extractCatalogDocument('<h1>qwen3.7-max</h1>', {
+      sourceFormat: qwenPack.catalog.sourceFormat,
+      modelId: qwenPack.catalog.modelId,
+    }),
+    /does not identify|required capability metadata/,
+  );
 });
 
 test('rejects a Pro-only catalog when reduced by provider policy', () => {
