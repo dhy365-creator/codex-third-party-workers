@@ -18,6 +18,15 @@
 - [x] GitHub Actions 只读测试流程与 MIT 开源文件。
 - [x] 远程 catalog 逐跳 host 校验及无网络回归测试。
 - [x] GitHub 仓库入口提供中英文双语说明与完整下载、配置、验证步骤。
+- [x] 基于官方资料发布中英文国产模型 Provider 兼容性矩阵，区分直连、网关、候选与
+  运行时验证状态。
+
+## Provider 扩展待办
+
+- [ ] 按 MiniMax -> StepFun -> Qwen -> 火山方舟顺序逐一进行真实 API 与 Codex 子代理验证。
+- [ ] 对通过验证的 Provider 单独新增 Pack、Keychain service、目录策略、离线测试和文档。
+- [ ] 对千帆与 TokenHub 保持“网关候选”标识，不把网关通过写成模型厂商直连通过。
+- [ ] 官方新增 Responses 支持后，重新核对 Kimi、智谱、混元传统接口和 SiliconFlow。
 
 ## 用户环境待办
 
