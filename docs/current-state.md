@@ -14,6 +14,8 @@
 - `docs/github-promotion.md` 与 `docs/promotion/` 已准备 owned-repo 推广状态、OpenAI
   Codex Show and tell 草稿、Awesome List 候选包和 beta release notes；所有第三方发布
   仍需用户单独确认，当前未发布。
+- GitHub 推广资产通过 PR #5 合并到 `main`，CI 通过；仓库 Description 与 Topics 已按
+  当前真实定位更新。Homepage 保持为空，因为尚无独立官方站点。
 - 已发布中英文国产模型 Provider 兼容性矩阵；矩阵中的候选状态仅代表官方文档筛选，
   不等于本仓库已经支持。
 - 架构为通用 provider-pack 形态，当前内置 Pack 为 DeepSeek V4 Flash、MiniMax-M3

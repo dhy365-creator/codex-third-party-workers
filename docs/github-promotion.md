@@ -2,10 +2,11 @@
 
 ```yaml
 mode: prepare
-current_stage: owned-repo
+current_stage: discussions
 repository: dhy365-creator/codex-third-party-workers
-approved_source: 0262e8efb42c9e20e758f46b3bffeb0c6e0a62d7
-working_branch: agent/github-promotion-assets
+approved_source: baa93af713cb3258f2ca90bf02909b42014b3281
+owned_repository_pr: https://github.com/dhy365-creator/codex-third-party-workers/pull/5
+owned_repository_state: merged
 last_updated: 2026-08-11
 external_publication: waiting_for_explicit_user_confirmation
 utm_convention: not_applicable_for_github_to_github_links
@@ -31,8 +32,8 @@ layer, or a promise of a fixed cost reduction.
 | Public repository | DONE | Public GitHub repository with MIT license |
 | README positioning | DONE | English and Chinese first screens productized with value, quick start, demo, compatibility, architecture, validation, and security |
 | Visual assets | DONE | Reproducible SVG and rendered PNG assets in `assets/` |
-| Description | PREPARED | Proposed text recorded below; apply to owned repository after merge |
-| Topics | PREPARED | Truthful topic set recorded below; apply to owned repository after merge |
+| Description | DONE | Updated after PR #5 merged; current text recorded below |
+| Topics | DONE | Expanded after PR #5 merged; current set recorded below |
 | Homepage | NOT APPLICABLE | No canonical project website; keep empty instead of pointing to an unrelated page |
 | Social Preview | NEEDS USER ACTION | `assets/hero-social-preview.png` is ready; GitHub Settings upload must be performed and visually verified in the UI |
 | GitHub Actions | DONE | Public workflow passed on baseline commit `0262e8e`; branch CI must pass before merge |
@@ -47,11 +48,11 @@ Previous description:
 
 > Run compatible third-party models as bounded Codex subagents without replacing the main OpenAI model.
 
-Prepared description:
+Current description:
 
 > Use third-party and Chinese model APIs as bounded Codex subagents while keeping Codex as the main agent.
 
-Prepared topics:
+Current topics:
 
 ```text
 codex
