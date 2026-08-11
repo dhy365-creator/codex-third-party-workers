@@ -1,0 +1,51 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">Validation and security proof</title>
+  <desc id="desc">Local tests, GitHub Actions, runtime validation, and secret-safety boundaries.</desc>
+  <defs><linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#15113a"/></linearGradient></defs>
+  <rect width="1440" height="900" fill="url(#bg)"/>
+  <g font-family="Inter, SF Pro Display, -apple-system, sans-serif">
+    <text x="90" y="92" fill="#f5f8ff" font-size="44" font-weight="760">Validation you can inspect</text>
+    <text x="90" y="132" fill="#8fa4c5" font-size="22">Tests, runtime evidence, and explicit security boundaries</text>
+
+    <g transform="translate(90 190)">
+      <rect width="600" height="220" rx="26" fill="#0e2530" stroke="#44ddb7" stroke-opacity="0.72"/>
+      <text x="38" y="74" fill="#76f0ce" font-size="68" font-weight="800">37 / 37</text>
+      <text x="38" y="120" fill="#eefaf7" font-size="28" font-weight="700">local tests passed</text>
+      <text x="38" y="171" fill="#93bdb1" font-size="19">fake homes · no real keys · no network</text>
+    </g>
+    <g transform="translate(750 190)">
+      <rect width="600" height="220" rx="26" fill="#17213c" stroke="#6e9dff" stroke-opacity="0.74"/>
+      <text x="38" y="74" fill="#8db3ff" font-size="35" font-weight="800">GitHub Actions: PASSED</text>
+      <text x="38" y="120" fill="#eef4ff" font-size="27" font-weight="700">commit 0262e8e</text>
+      <text x="38" y="171" fill="#9caed1" font-size="19">public workflow · reproducible npm test</text>
+    </g>
+
+    <g transform="translate(90 458)">
+      <rect width="390" height="300" rx="24" fill="#121d34" stroke="#4dd9f4" stroke-opacity="0.55"/>
+      <text x="32" y="58" fill="#6ee6ff" font-size="23" font-weight="750">PROTOCOL</text>
+      <text x="32" y="116" fill="#edfaff" font-size="27" font-weight="700">Responses API</text>
+      <text x="32" y="162" fill="#edfaff" font-size="27" font-weight="700">SSE streaming</text>
+      <text x="32" y="208" fill="#edfaff" font-size="27" font-weight="700">Function calling</text>
+      <text x="32" y="260" fill="#8da8bc" font-size="17">Provider-specific live evidence:</text>
+      <text x="32" y="285" fill="#8da8bc" font-size="17">MiniMax + Qwen</text>
+    </g>
+    <g transform="translate(525 458)">
+      <rect width="390" height="300" rx="24" fill="#201b3d" stroke="#9b82ff" stroke-opacity="0.62"/>
+      <text x="32" y="58" fill="#baa6ff" font-size="23" font-weight="750">CODEX RUNTIME</text>
+      <text x="32" y="116" fill="#f3efff" font-size="27" font-weight="700">CLI</text>
+      <text x="32" y="162" fill="#f3efff" font-size="27" font-weight="700">Desktop subagent</text>
+      <text x="32" y="208" fill="#f3efff" font-size="27" font-weight="700">Bridge release</text>
+      <text x="32" y="260" fill="#aa9fc6" font-size="17">Main thread reviews output</text>
+      <text x="32" y="285" fill="#aa9fc6" font-size="17">before acceptance</text>
+    </g>
+    <g transform="translate(960 458)">
+      <rect width="390" height="300" rx="24" fill="#29221c" stroke="#ffb45e" stroke-opacity="0.68"/>
+      <text x="32" y="58" fill="#ffd08d" font-size="23" font-weight="750">SECRET SAFETY</text>
+      <text x="32" y="116" fill="#fff5e8" font-size="27" font-weight="700">Keychain-only auth</text>
+      <text x="32" y="162" fill="#fff5e8" font-size="27" font-weight="700">Owner-only bridge</text>
+      <text x="32" y="208" fill="#fff5e8" font-size="27" font-weight="700">Redacted archives</text>
+      <text x="32" y="260" fill="#baa990" font-size="17">No --api-key argument</text>
+      <text x="32" y="285" fill="#baa990" font-size="17">No main config.toml rewrite</text>
+    </g>
+  </g>
+</svg>

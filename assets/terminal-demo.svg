@@ -1,0 +1,31 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">Verified Codex Desktop provider worker transcript</title>
+  <desc id="desc">Sanitized transcript of a verified Qwen3.7-Max subagent run on August 8, 2026.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1"><stop stop-color="#07111f"/><stop offset="1" stop-color="#15113a"/></linearGradient>
+    <filter id="shadow"><feDropShadow dx="0" dy="22" stdDeviation="30" flood-color="#000" flood-opacity="0.4"/></filter>
+  </defs>
+  <rect width="1440" height="900" fill="url(#bg)"/>
+  <g filter="url(#shadow)">
+    <rect x="90" y="76" width="1260" height="748" rx="26" fill="#0c1220" stroke="#31405b"/>
+    <rect x="90" y="76" width="1260" height="68" rx="26" fill="#151d2d"/>
+    <rect x="90" y="118" width="1260" height="26" fill="#151d2d"/>
+  </g>
+  <circle cx="134" cy="110" r="9" fill="#ff6b68"/><circle cx="164" cy="110" r="9" fill="#f5bf4f"/><circle cx="194" cy="110" r="9" fill="#62c554"/>
+  <text x="720" y="118" text-anchor="middle" fill="#8fa1bb" font-family="Inter, -apple-system, sans-serif" font-size="18">Codex Desktop · provider worker smoke test</text>
+
+  <g font-family="SFMono-Regular, Menlo, Monaco, Consolas, monospace" font-size="25">
+    <text x="142" y="208" fill="#7186a7"># Sanitized verified transcript — 2026-08-08</text>
+    <text x="142" y="270" fill="#55dcff">[Codex main]</text><text x="352" y="270" fill="#dce6f6">dispatch → qwen_worker</text>
+    <text x="142" y="332" fill="#ad91ff">[qwen_worker / qwen3.7-max]</text><text x="575" y="332" fill="#dce6f6">bridge validated</text>
+    <text x="142" y="394" fill="#ad91ff">[qwen_worker]</text><text x="352" y="394" fill="#74e89a">QWEN_WORKER_OK</text>
+    <text x="142" y="456" fill="#55dcff">[Codex main]</text><text x="352" y="456" fill="#dce6f6">bridge archive → completed</text>
+    <text x="142" y="518" fill="#55dcff">[Codex main]</text><text x="352" y="518" fill="#dce6f6">active slot → released</text>
+    <text x="142" y="620" fill="#7186a7"># Main OpenAI thread preserved. No API key shown.</text>
+    <text x="142" y="682" fill="#7186a7"># Result reviewed by Codex before acceptance.</text>
+  </g>
+  <rect x="140" y="730" width="1160" height="1" fill="#293750"/>
+  <g font-family="Inter, -apple-system, sans-serif">
+    <text x="142" y="778" fill="#8fa1bb" font-size="19">Evidence scope: real Codex Desktop subagent run · Qwen3.7-Max · bridge completion and release</text>
+  </g>
+</svg>

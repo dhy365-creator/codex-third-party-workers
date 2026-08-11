@@ -81,14 +81,17 @@ block. Any conflict stops the whole uninstall plan.
 
 ## Data flow
 
-```text
-Main OpenAI thread
-  -> live preflight (Spark quota, general quota, suitability, readiness)
-  -> Spark / Luna, or owner-only provider bridge
-  -> provider child reads one bounded task
-  -> local text/code/research validation work
-  -> redacted archive
-  -> main thread review
+```mermaid
+flowchart LR
+    U["User task"] --> C["Codex main agent\nOpenAI remains primary"]
+    C --> P["Live preflight\nquota · suitability · readiness"]
+    P -->|"OpenAI path"| O["Spark or Luna worker"]
+    P -->|"provider path"| B["Owner-only single-slot task bridge"]
+    B --> W["Selected provider worker"]
+    W --> R["External Responses API / model"]
+    R --> A["Redacted completed/failed archive"]
+    O --> S["Codex review and synthesis"]
+    A --> S
 ```
 
 ## Verification levels

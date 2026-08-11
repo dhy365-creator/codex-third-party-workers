@@ -2,7 +2,7 @@
 
 ## Supported versions
 
-Only the current `0.2.0-beta.1` release line is supported. Pre-release versions
+Only the current `0.4.0-beta.1` release line is supported. Pre-release versions
 are experimental; report issues promptly.
 
 ## Reporting a vulnerability
@@ -23,6 +23,9 @@ task body or credentials in any report.
 
 - API keys are never stored in this repository. Credentials live in the macOS
   Keychain and are read at runtime only.
+- Users must review each provider's privacy, pricing, data-retention, and
+  regional policies. Provider behavior and compatibility may change without a
+  release from this repository.
 - The task bridge allows exactly one active provider task at a time. The active
   slot and its task file are owner-only (`0700` / `0600`), reject symlinks, and
   are atomically archived to `completed-*` or `failed-*` when the task ends.

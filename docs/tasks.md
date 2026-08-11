@@ -24,6 +24,12 @@
   Keychain 验证。
 - [x] 新增 Qwen3.7-Max Pack，并完成真实 API、流式、自动 Function Calling、Codex
   CLI、Desktop 子代理、桥接释放和 Keychain 删除验证。
+- [x] 产品化中英文 README 第一屏，并准备 Hero、真实终端记录、兼容性摘要和测试/CI
+  四组可复现 SVG/PNG 推广素材。
+- [x] 准备 OpenAI Codex Show and tell、Awesome Agent Harness 候选条目和 beta release
+  notes 草稿；未执行任何第三方发布。
+- [ ] 在 GitHub Settings 手工上传 `assets/hero-social-preview.png` 并目视确认。
+- [ ] 用户单独确认后，再决定是否发布 OpenAI Codex Discussion 或提交 Awesome List PR。
 
 ## Provider 扩展待办
 

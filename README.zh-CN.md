@@ -1,43 +1,131 @@
-# codex-third-party-workers
+# Codex Third-Party Workers
+
+[![CI](https://github.com/dhy365-creator/codex-third-party-workers/actions/workflows/test.yml/badge.svg)](https://github.com/dhy365-creator/codex-third-party-workers/actions/workflows/test.yml)
+[![License: MIT](https://img.shields.io/badge/License-MIT-8a7dff.svg)](LICENSE)
+[![macOS](https://img.shields.io/badge/platform-macOS-45dfff.svg)](#环境要求)
 
 [English](README.md) | **简体中文**
 
-> 公开测试版 `0.4.0-beta.1`。这是非官方、仅支持 macOS 的项目，未经
-> OpenAI、DeepSeek、MiniMax 或阿里云官方背书。
+把第三方和国产模型 API 作为**有边界的 Codex 子代理**使用，同时让主线程继续使用
+OpenAI 模型。
 
-本项目让 Codex Desktop 通过可配置的 Provider Pack 使用第三方模型子代理，
-同时保持主线程的 OpenAI 模型、Provider 和认证不变。当前内置 Pack 为
-**DeepSeek V4 Flash**、**MiniMax-M3** 与 **Qwen3.7-Max**，DeepSeek 仍是默认选择。
+![Codex Third-Party Workers 架构主视觉](assets/hero-social-preview.png)
 
-## 使用前必读
+> 公开测试版 `0.4.0-beta.1`。非官方、仅支持 macOS，未经 OpenAI、DeepSeek、
+> MiniMax 或阿里云官方背书。
 
-- 第三方 Provider 的 API 费用独立于 Codex 会员订阅。
-- 被委派的任务正文会发送给所选 Provider。不得委派凭据、隐私内容或无权外发的资料。
-- 仅适合文本、代码、研究整理和本地验证。图片、音频、视频、浏览器控制、桌面控制、
-  MCP 和 Computer Use 不在支持范围内。
-- DeepSeek Pack 只支持 `deepseek-v4-flash` 并明确拒绝 V4 Pro；MiniMax Pack
-  只支持 `MiniMax-M3`；Qwen Pack 只支持阿里云百炼按量计费的纯文本
-  `qwen3.7-max`。
-- 路由需要 Luna 时，用户必须已经配置好可用的 `luna_worker`；本仓库不会安装或修改 Luna。
-- Codex Desktop 不保证原生拦截所有子代理调用。安装的预检脚本属于需要主代理主动执行的
-  策略护栏，并不是系统级安全边界。
+## Codex 始终是主代理
+
+- 本项目只增加经过审查的 Provider Worker，不替换主线程的 OpenAI 模型、Provider、
+  认证或 `~/.codex/config.toml`。
+- 预检路由每次只把一个适合且边界明确的任务发送给一个 Provider Worker。
+- Codex 接收子代理结果后，仍负责复核、整合和最终验收。
+
+### 为什么使用它？
+
+- 把适合的任务委派给成本更低的 Provider，而不是迁移整个 Codex 会话。
+- 在不同地区使用更容易访问的 Provider API。
+- 在同一个由 Codex 主导的工作流中组合不同模型的优势。
+
+### 它不是什么
+
+它不是 OpenAI 官方产品，不是 Codex 替代品，不代表所有模型都兼容，也不证明更便宜的
+模型一定能给出更好的结果。
+
+## 快速开始
+
+克隆仓库，把一个 Provider API key 安全写入 macOS Keychain，然后先查看默认 dry-run。
+下面使用 DeepSeek；另外两个内置 Pack 可改为 `minimax` 或 `qwen`。
+
+```sh
+git clone https://github.com/dhy365-creator/codex-third-party-workers.git
+cd codex-third-party-workers
+
+/usr/bin/security add-generic-password \
+  -a "$(id -un)" -s codex-deepseek-api-key -U -w
+
+node scripts/install.mjs \
+  --provider deepseek \
+  --plan plus \
+  --spark-available false \
+  --luna-available true \
+  --threshold 50 \
+  --confirm-main-preserved \
+  --consent-data
+```
+
+检查计划无误后才追加 `--apply`，重启 Codex Desktop，再运行
+`node scripts/verify.mjs`。应用配置前请继续阅读[完整安装步骤](#环境要求)。
+
+## 已验证的 Codex Desktop 运行记录
+
+下图是 2026-08-08 真实 Qwen3.7-Max Desktop 子代理冒烟测试的脱敏记录，展示了任务
+派发、预期返回、桥接完成和释放；不包含 API key 或私密任务正文。
+
+![真实 Codex Desktop Provider Worker 脱敏运行记录](assets/terminal-demo.png)
+
+MiniMax-M3 和 Qwen3.7-Max 已通过真实 API、CLI 与 Codex Desktop 检查。
+DeepSeek V4 Flash 已内置并通过隔离测试，但公开安装器的运行时验证仍待完成。
 
 ## 兼容性速览
 
-| 厂商直连路径 | 本仓库当前状态 |
+![Provider 兼容性摘要](assets/provider-compatibility.png)
+
+| 厂商直连路径 | 当前证据 |
 | --- | --- |
-| DeepSeek V4 Flash | 内置 Pack |
-| MiniMax-M3 | 内置 Pack，Desktop 运行时已验证 |
-| 阿里云百炼 Qwen3.7-Max | 内置 Pack，Desktop 运行时已验证 |
+| DeepSeek V4 Flash | 已内置并通过隔离测试；公开安装器运行时待验证 |
+| MiniMax-M3 | 已内置，Desktop 运行时已验证 |
+| 阿里云百炼 Qwen3.7-Max | 已内置，Desktop 运行时已验证 |
 | 阶跃星辰 Responses 模型 | 候选，尚未运行时验证 |
 | 火山方舟 Responses 模型 | 候选，需要账号可用模型或 Endpoint ID |
-| Kimi K3 直连 | 暂不兼容，官方 Codex 路径需要协议转换 |
-| 智谱 GLM 直连 | 暂不兼容，官方直连指南当前使用 Chat Completions |
-| 腾讯混元传统接口 | 暂不兼容，当前直连兼容方式以 Chat Completions 为主 |
-| SiliconFlow 直连 | 暂不兼容，当前文本接口为 Chat Completions |
+| 百度千帆 / 腾讯云 TokenHub | 网关候选，不代表模型厂商直连兼容 |
+| Kimi K3 / 智谱 GLM / 传统混元 / SiliconFlow 直连 | 当前不符合本仓库的直接 Responses 契约 |
 
-百度千帆和腾讯云 TokenHub 仍属于网关候选，不能代表模型厂商直连兼容。完整证据、限制和
-后续复核入口见[国产模型 Provider 兼容性矩阵](docs/provider-compatibility.zh-CN.md)。
+完整证据、来源链接和限制见[国产模型 Provider 兼容性矩阵](docs/provider-compatibility.zh-CN.md)。
+
+## 工作原理
+
+```mermaid
+flowchart LR
+    U["用户任务"] --> C["Codex 主代理\nOpenAI 模型保持主线程"]
+    C --> P["预检路由\n额度 · 适配性 · 可用状态"]
+    P -->|"OpenAI 路径"| O["Spark 或 Luna Worker"]
+    P -->|"Provider 路径"| B["仅所有者可读的单任务桥接"]
+    B --> W["所选 Provider Worker"]
+    W --> R["Provider Responses API"]
+    R --> A["脱敏 completed/failed 归档"]
+    O --> S["Codex 复核与整合"]
+    A --> S
+```
+
+Provider 桥接一次只允许一个仅所有者可读的任务，拒绝不安全的文件状态，并在归档前
+脱敏任务内容。最终决定仍由主线程完成。
+
+## 验证与安全
+
+![验证与安全证据](assets/validation-proof.png)
+
+- 产品化基线的 `37/37` 项隔离测试通过。
+- 基线提交 `0262e8e` 的公开 GitHub Actions 已通过。
+- API key 只从 macOS Keychain 读取，不接受 `--api-key`。
+- 桥接采用仅所有者权限和原子脱敏归档。
+- dry-run 是默认行为，写入文件必须显式使用 `--apply`。
+
+完整边界见[安全策略](SECURITY.md)与[架构说明](docs/architecture.md)。
+
+## 使用边界
+
+- 第三方 Provider 的 API 费用独立于 Codex 会员订阅。
+- 请自行核对各 Provider 的隐私、价格、数据保留与地区政策；Provider 行为和兼容性可能
+  独立于本项目发生变化。
+- 被委派的任务正文会发送给所选 Provider。不得委派凭据、隐私内容或无权外发的资料。
+- 仅适合文本、代码、研究整理和本地验证。图片、音频、视频、浏览器控制、桌面控制、
+  MCP 和 Computer Use 不在支持范围内。
+- DeepSeek 只支持 `deepseek-v4-flash` 并拒绝 V4 Pro；MiniMax 只支持
+  `MiniMax-M3`；Qwen 只支持阿里云百炼按量计费的纯文本 `qwen3.7-max`。
+- 路由需要 Luna 时，用户必须已经配置可用的 `luna_worker`；本仓库不会安装或修改 Luna。
+- Codex Desktop 不保证原生拦截所有子代理调用。预检脚本是主代理必须在每次新派发或
+  follow-up 前执行的策略护栏，并不是系统级安全边界。
 
 ## 路由策略
 
