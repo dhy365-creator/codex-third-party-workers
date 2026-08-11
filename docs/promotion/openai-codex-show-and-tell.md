@@ -104,7 +104,7 @@ and does not promise a fixed cost-saving percentage.
 - [x] Title and body are approved by the user.
 - [x] `How it works` uses one correctly closed fenced code block.
 - [x] Terminal Demo uses the immutable `v0.4.0-beta.1` public URL.
-- [x] No local `/Users/...` path appears in the Discussion body.
+- [x] No local absolute macOS home path appears in the Discussion body.
 - [ ] Approximately 48 hours have elapsed since Discussion #37852.
 - [ ] User sends the exact publication trigger `publish`.
 - [ ] Live rules, duplicates, repository, Release, evidence, and image are
