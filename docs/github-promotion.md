@@ -1,14 +1,19 @@
 # GitHub Promotion Status
 
 ```yaml
-mode: prepare
+mode: resume
 current_stage: discussions
+status: WAITING USER
 repository: dhy365-creator/codex-third-party-workers
-approved_source: baa93af713cb3258f2ca90bf02909b42014b3281
+source_commit: 5e5707dc607f9b5934bb5b98cec302296e0e5174
+release_tag: v0.4.0-beta.1
+release_url: https://github.com/dhy365-creator/codex-third-party-workers/releases/tag/v0.4.0-beta.1
 owned_repository_pr: https://github.com/dhy365-creator/codex-third-party-workers/pull/5
 owned_repository_state: merged
 last_updated: 2026-08-11
-external_publication: waiting_for_explicit_user_confirmation
+checked_at: 2026-08-11T14:43:47+08:00
+external_publication: approved_not_published
+waiting_for: exact user message publish after approximately 48 hours spacing
 utm_convention: not_applicable_for_github_to_github_links
 ```
 
@@ -36,11 +41,11 @@ layer, or a promise of a fixed cost reduction.
 | Topics | DONE | Expanded after PR #5 merged; current set recorded below |
 | Homepage | NOT APPLICABLE | No canonical project website; keep empty instead of pointing to an unrelated page |
 | Social Preview | NEEDS USER ACTION | `assets/hero-social-preview.png` is ready; GitHub Settings upload must be performed and visually verified in the UI |
-| GitHub Actions | DONE | Public workflow passed on baseline commit `0262e8e`; branch CI must pass before merge |
-| Release | NEEDS WORK | Version exists but no tag/release; a draft is prepared in `docs/promotion/release-notes-v0.4.0-beta.1.md` |
+| GitHub Actions | DONE | Public workflow passed on release source `5e5707d` and the release-tag run passed |
+| Release | DONE | `v0.4.0-beta.1` is a public pre-release targeting `5e5707d` |
 | Profile pin | DONE | Repository is already pinned on the owner's profile |
 | Repository Discussions | NOT APPLICABLE | Repository Discussions are disabled and are not required for this promotion pass |
-| External promotion | NEEDS USER ACTION | Drafts only; no Discussion, fork, push, comment, or external PR has been created |
+| External promotion | NEEDS USER ACTION | Show and tell title/body approved but not published; wait for exact `publish` trigger and repeat live checks |
 
 ## Owned metadata
 
@@ -93,3 +98,18 @@ utm_content=<asset-or-post>
 
 Every external action remains **USER ACTION REQUIRED** until the user explicitly
 authorizes that specific publication.
+
+## Show and tell checkpoint
+
+- Target: `openai/codex` → `Show and tell`
+- Draft: `docs/promotion/openai-codex-show-and-tell.md`
+- State: approved, not published
+- Previous account post: Discussion #37852 at approximately
+  `2026-08-11 01:30 Asia/Shanghai`
+- Recommended earliest publication: approximately
+  `2026-08-13 01:30 Asia/Shanghai`
+- Required trigger: exact user message `publish`
+- Pre-publication checks: category rules, same-account duplicates, near-duplicate
+  recent posts, public repository/Release, README/Demo/compatibility/CI evidence,
+  balanced Markdown fences, immutable public Demo URL
+- Explicit exclusions: no Awesome List PR, no comments, no other promotion
