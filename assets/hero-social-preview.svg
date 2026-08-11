@@ -1,0 +1,66 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1280" height="640" viewBox="0 0 1280 640" role="img" aria-labelledby="title desc">
+  <title id="title">Codex Third-Party Workers</title>
+  <desc id="desc">Use third-party and Chinese model APIs as bounded Codex subagents while Codex stays in control.</desc>
+  <defs>
+    <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
+      <stop offset="0" stop-color="#07111f"/>
+      <stop offset="0.55" stop-color="#0b1630"/>
+      <stop offset="1" stop-color="#15113a"/>
+    </linearGradient>
+    <linearGradient id="accent" x1="0" y1="0" x2="1" y2="0">
+      <stop offset="0" stop-color="#45e0ff"/>
+      <stop offset="0.55" stop-color="#8d7dff"/>
+      <stop offset="1" stop-color="#ffb25c"/>
+    </linearGradient>
+    <filter id="glow" x="-50%" y="-50%" width="200%" height="200%">
+      <feGaussianBlur stdDeviation="18"/>
+    </filter>
+  </defs>
+  <rect width="1280" height="640" rx="34" fill="url(#bg)"/>
+  <circle cx="1100" cy="86" r="165" fill="#5d4cff" opacity="0.17" filter="url(#glow)"/>
+  <circle cx="120" cy="590" r="190" fill="#29d9ff" opacity="0.11" filter="url(#glow)"/>
+  <rect x="58" y="52" width="1164" height="536" rx="28" fill="none" stroke="#93a9cf" stroke-opacity="0.22"/>
+
+  <g font-family="Inter, SF Pro Display, -apple-system, BlinkMacSystemFont, Segoe UI, sans-serif">
+    <text x="92" y="116" fill="#61e5ff" font-size="22" font-weight="700" letter-spacing="3">OPEN SOURCE · macOS · PUBLIC BETA</text>
+    <text x="92" y="185" fill="#f5f8ff" font-size="54" font-weight="760">Codex Third-Party Workers</text>
+    <text x="92" y="235" fill="#b9c6de" font-size="28" font-weight="500">Use third-party &amp; Chinese model APIs as Codex subagents</text>
+    <rect x="92" y="265" width="750" height="5" rx="2.5" fill="url(#accent)"/>
+
+    <g transform="translate(92 318)">
+      <rect width="230" height="92" rx="18" fill="#101f38" stroke="#45e0ff" stroke-opacity="0.72"/>
+      <text x="115" y="42" fill="#f4f8ff" font-size="22" font-weight="700" text-anchor="middle">Codex main agent</text>
+      <text x="115" y="68" fill="#8fa4c6" font-size="16" text-anchor="middle">OpenAI stays primary</text>
+
+      <path d="M240 46 H292" stroke="#6be6ff" stroke-width="3" stroke-linecap="round"/>
+      <path d="M282 38 L294 46 L282 54" fill="none" stroke="#6be6ff" stroke-width="3"/>
+
+      <rect x="305" width="250" height="92" rx="18" fill="#151d40" stroke="#8d7dff" stroke-opacity="0.78"/>
+      <text x="430" y="42" fill="#f4f8ff" font-size="21" font-weight="700" text-anchor="middle">Bounded subagent layer</text>
+      <text x="430" y="68" fill="#a8a2df" font-size="16" text-anchor="middle">preflight · bridge · review</text>
+
+      <path d="M565 46 H617" stroke="#9a8cff" stroke-width="3" stroke-linecap="round"/>
+      <path d="M607 38 L619 46 L607 54" fill="none" stroke="#9a8cff" stroke-width="3"/>
+
+      <g transform="translate(632 0)">
+        <rect width="142" height="92" rx="18" fill="#121d34" stroke="#4bd7f3" stroke-opacity="0.58"/>
+        <text x="71" y="56" fill="#ecf8ff" font-size="22" font-weight="700" text-anchor="middle">DeepSeek</text>
+      </g>
+      <g transform="translate(788 0)">
+        <rect width="142" height="92" rx="18" fill="#211b42" stroke="#9c83ff" stroke-opacity="0.65"/>
+        <text x="71" y="56" fill="#f2edff" font-size="22" font-weight="700" text-anchor="middle">MiniMax</text>
+      </g>
+      <g transform="translate(944 0)">
+        <rect width="142" height="92" rx="18" fill="#2b2031" stroke="#ffb25c" stroke-opacity="0.72"/>
+        <text x="71" y="56" fill="#fff2df" font-size="22" font-weight="700" text-anchor="middle">Qwen</text>
+      </g>
+    </g>
+
+    <text x="92" y="492" fill="#d9e4f5" font-size="23" font-weight="650">Bounded delegation</text>
+    <circle cx="320" cy="485" r="4" fill="#5ee4ff"/>
+    <text x="342" y="492" fill="#d9e4f5" font-size="23" font-weight="650">More provider choices</text>
+    <circle cx="610" cy="485" r="4" fill="#9e8eff"/>
+    <text x="632" y="492" fill="#d9e4f5" font-size="23" font-weight="650">Codex stays in control</text>
+    <text x="92" y="548" fill="#7588aa" font-size="18">github.com/dhy365-creator/codex-third-party-workers</text>
+  </g>
+</svg>

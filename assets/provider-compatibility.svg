@@ -1,0 +1,57 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1440" height="900" viewBox="0 0 1440 900" role="img" aria-labelledby="title desc">
+  <title id="title">Provider compatibility summary</title>
+  <desc id="desc">Current built-in, candidate, gateway, and incompatible provider states.</desc>
+  <rect width="1440" height="900" fill="#081221"/>
+  <g font-family="Inter, SF Pro Display, -apple-system, sans-serif">
+    <text x="90" y="92" fill="#f5f8ff" font-size="44" font-weight="760">Provider compatibility — evidence, not hype</text>
+    <text x="90" y="132" fill="#8fa4c5" font-size="22">Public beta 0.4.0-beta.1 · macOS · direct Responses paths only</text>
+
+    <g transform="translate(90 184)">
+      <rect width="610" height="244" rx="24" fill="#0e2530" stroke="#43ddb7" stroke-opacity="0.7"/>
+      <circle cx="44" cy="44" r="13" fill="#43ddb7"/>
+      <text x="72" y="52" fill="#7ff0cf" font-size="24" font-weight="750">RUNTIME VERIFIED</text>
+      <text x="36" y="112" fill="#f0fbf8" font-size="30" font-weight="700">MiniMax-M3</text>
+      <text x="36" y="158" fill="#f0fbf8" font-size="30" font-weight="700">Qwen3.7-Max</text>
+      <text x="36" y="208" fill="#8fb7ad" font-size="18">API · SSE · function calling · CLI · Desktop bridge</text>
+    </g>
+
+    <g transform="translate(740 184)">
+      <rect width="610" height="244" rx="24" fill="#17203a" stroke="#6d9dff" stroke-opacity="0.75"/>
+      <circle cx="44" cy="44" r="13" fill="#6d9dff"/>
+      <text x="72" y="52" fill="#91b5ff" font-size="24" font-weight="750">BUILT-IN PACK</text>
+      <text x="36" y="122" fill="#f2f6ff" font-size="30" font-weight="700">DeepSeek V4 Flash</text>
+      <text x="36" y="172" fill="#a4b5d6" font-size="19">Isolated tests passed</text>
+      <text x="36" y="207" fill="#a4b5d6" font-size="19">Public-installer runtime verification pending</text>
+    </g>
+
+    <g transform="translate(90 468)">
+      <rect width="400" height="284" rx="24" fill="#211d31" stroke="#b18cff" stroke-opacity="0.7"/>
+      <text x="34" y="52" fill="#cbb6ff" font-size="23" font-weight="750">CANDIDATES</text>
+      <text x="34" y="112" fill="#f4efff" font-size="27" font-weight="700">StepFun</text>
+      <text x="34" y="158" fill="#f4efff" font-size="27" font-weight="700">Volcano Ark</text>
+      <text x="34" y="218" fill="#a99bbf" font-size="18">Official docs screened</text>
+      <text x="34" y="250" fill="#a99bbf" font-size="18">No runtime claim yet</text>
+    </g>
+
+    <g transform="translate(520 468)">
+      <rect width="400" height="284" rx="24" fill="#28231b" stroke="#f1b85b" stroke-opacity="0.72"/>
+      <text x="34" y="52" fill="#ffd189" font-size="23" font-weight="750">GATEWAY / PARTIAL</text>
+      <text x="34" y="112" fill="#fff5e2" font-size="27" font-weight="700">Qianfan</text>
+      <text x="34" y="158" fill="#fff5e2" font-size="27" font-weight="700">TokenHub</text>
+      <text x="34" y="218" fill="#bba98a" font-size="18">Not proof of direct</text>
+      <text x="34" y="250" fill="#bba98a" font-size="18">model-vendor compatibility</text>
+    </g>
+
+    <g transform="translate(950 468)">
+      <rect width="400" height="284" rx="24" fill="#2a1921" stroke="#ff6b82" stroke-opacity="0.72"/>
+      <text x="34" y="52" fill="#ff9aaa" font-size="23" font-weight="750">DIRECT PATH UNSUPPORTED</text>
+      <text x="34" y="105" fill="#fff0f2" font-size="23" font-weight="700">Kimi K3 · Zhipu GLM</text>
+      <text x="34" y="148" fill="#fff0f2" font-size="23" font-weight="700">Legacy Hunyuan</text>
+      <text x="34" y="191" fill="#fff0f2" font-size="23" font-weight="700">SiliconFlow</text>
+      <text x="34" y="245" fill="#bd959d" font-size="17">Current documented paths do not meet</text>
+      <text x="34" y="273" fill="#bd959d" font-size="17">this repository's direct Responses contract</text>
+    </g>
+
+    <text x="90" y="827" fill="#768aa9" font-size="19">Full evidence matrix: docs/provider-compatibility.md</text>
+  </g>
+</svg>
