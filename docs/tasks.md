@@ -11,6 +11,8 @@
 - [x] verify 与冲突时全停的安全 uninstall。
 - [x] fake home 离线测试、敏感信息扫描、官方 catalog 抓取兼容。
 - [x] 提供可直接发送给 Codex 的中文安装提示词。
+- [x] 安装与完整本地验证成功后提供一次性、可选、需明确同意的 GitHub Star 提示；
+  installer 不执行 GitHub 写操作，拒绝、未认证或 Star 失败均不影响使用。
 
 ## 公开仓库
 

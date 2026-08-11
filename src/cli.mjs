@@ -120,6 +120,20 @@ function summarizeInstall(result) {
   };
 }
 
+export function summarizeVerify(result) {
+  const summary = {
+    configured: result.configured,
+    runtimeVerified: result.runtimeVerified,
+    credentialReady: result.credentialReady,
+    issues: result.issues,
+    warnings: result.warnings,
+  };
+  if (result.configured === true && result.credentialReady === true) {
+    summary.POST_INSTALL_STATUS = 'SUCCESS';
+  }
+  return summary;
+}
+
 async function run(main) {
   try {
     await main();
@@ -143,13 +157,7 @@ export function verifyCli(argv = process.argv.slice(2)) {
     const parsed = parseArgs(argv);
     if (parsed.help) return process.stdout.write('Usage: node scripts/verify.mjs [--skip-keychain-check]\n');
     const result = await verify({ checkKeychain: parsed['skip-keychain-check'] !== true, provider: parsed.provider });
-    process.stdout.write(`${JSON.stringify({
-      configured: result.configured,
-      runtimeVerified: result.runtimeVerified,
-      credentialReady: result.credentialReady,
-      issues: result.issues,
-      warnings: result.warnings,
-    }, null, 2)}\n`);
+    process.stdout.write(`${JSON.stringify(summarizeVerify(result), null, 2)}\n`);
     if (!result.configured) process.exitCode = 1;
   });
 }

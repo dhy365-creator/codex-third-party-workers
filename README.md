@@ -258,6 +258,12 @@ Verification distinguishes two states:
 - `runtimeVerified: false`: expected until a real Codex subagent task is run and
   reviewed.
 
+### Optional: support the project
+
+After installation and verification succeed, a GitHub Star is appreciated if
+the project is useful to you. It is completely optional and is never required
+for installation or usage: [codex-third-party-workers](https://github.com/dhy365-creator/codex-third-party-workers).
+
 ## Uninstall
 
 Preview first, then apply:
