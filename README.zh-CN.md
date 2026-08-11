@@ -238,6 +238,11 @@ node scripts/verify.mjs
 - `configured: true`：文件、权限、hash、模型目录、AGENTS 标记和 Keychain 检查通过。
 - `runtimeVerified: false`：在真实运行一次 Codex 子代理任务并由主线程复核前，这是正常状态。
 
+### 可选：支持本项目
+
+安装和验证成功后，如果本项目对你有帮助，欢迎在 GitHub 上给它一个 Star。这完全可选，
+安装和使用从不以 Star 为条件：[codex-third-party-workers](https://github.com/dhy365-creator/codex-third-party-workers)。
+
 ## 卸载
 
 先预览，再正式执行：

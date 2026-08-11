@@ -27,10 +27,14 @@
 - Keychain 使用独立服务名读取，不接收明文 `--api-key`。
 - 主线程 `config.toml`、model、provider、auth 不在写入范围内。
 - 安装/验证时使用 owner-only 目录与文件（`0700` / `0600`），并保持配置哈希。
+- `verify` 仅在配置、托管文件与 Keychain 检查全部通过时输出
+  `POST_INSTALL_STATUS: "SUCCESS"`；可复制的 Codex 安装提示词随后只允许询问一次
+  可选 Star，绝不由 installer 自动执行，也不影响安装或使用状态。
 
 ## 已在隔离环境验证
 
-- `npm test`：2026-08-11 本地通过 `37/37` 项测试。
+- `npm test`：2026-08-11 本地通过 `39/39` 项测试；新增可选 Star 流程覆盖成功信号、失败不触发、
+  一次性询问、明确同意、无认证/写入失败不阻塞及核心 installer 无 GitHub 写路径。
 - fake home 的 dry-run、apply、重复安装、verify、dry-run uninstall、正式 uninstall 与
   冲突停止通过。
 - 官方 catalog 文本提取、本地约束（V4 限制、文本模型）及逐跳 host 校验通过。

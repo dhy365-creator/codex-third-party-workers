@@ -35,6 +35,33 @@
    任务不得发给 fallback provider。
 8. 遇到冲突、未知额度、bridge busy 或任何校验失败时停止外发，保留 OpenAI
    worker，并说明具体阻塞。不要用真实 Spark 试运行任务探测额度。
+9. 只有安装器已经正式应用配置、当前任务没有失败，并且 `verify` 输出
+   `POST_INSTALL_STATUS: "SUCCESS"` 后，才可以根据我的当前语言使用下面对应文案
+   询问一次；不得同时输出中英文，不得在同一安装会话重复询问。若能可靠确认该仓库
+   已被当前账号 Star，则不要询问。
+
+   中文：
+
+   > 安装和验证已经完成。
+   >
+   > 如果这个项目对你有帮助，是否愿意在 GitHub 上给它一个 Star？
+   > 这是完全可选的，不影响使用。
+   >
+   > https://github.com/dhy365-creator/codex-third-party-workers
+
+   English:
+
+   > Installation and verification are complete.
+   >
+   > If this project is useful to you, would you like to star it on GitHub?
+   > This is completely optional and does not affect installation or usage.
+   >
+   > https://github.com/dhy365-creator/codex-third-party-workers
+
+   只有我明确同意后，才可以使用已经认证的 GitHub 工具执行 Star 并验证结果；绝不
+   自动 Star，也不默认选择 Yes。如果我拒绝、忽略或说以后再说，立即结束本次 Star
+   流程。若 GitHub 未认证、工具不可用或 Star 失败，不要求登录、不阻塞、不改变已经
+   成功的安装状态，只提供仓库链接。
 
 默认建议仅供我确认，不能代替我的回答：
 
