@@ -3,17 +3,22 @@
 ```yaml
 mode: resume
 current_stage: discussions
-status: WAITING USER
+status: PUBLISHED
 repository: dhy365-creator/codex-third-party-workers
 source_commit: 5e5707dc607f9b5934bb5b98cec302296e0e5174
 release_tag: v0.4.0-beta.1
 release_url: https://github.com/dhy365-creator/codex-third-party-workers/releases/tag/v0.4.0-beta.1
 owned_repository_pr: https://github.com/dhy365-creator/codex-third-party-workers/pull/5
 owned_repository_state: merged
-last_updated: 2026-08-11
-checked_at: 2026-08-11T14:43:47+08:00
-external_publication: approved_not_published
-waiting_for: exact user message publish after approximately 48 hours spacing
+last_updated: 2026-08-12
+checked_at: 2026-08-12T12:48:20+08:00
+external_publication: published
+waiting_for: none
+discussion_url: https://github.com/openai/codex/discussions/38119
+discussion_title: "Codex Third-Party Workers: bounded third-party model subagents while Codex stays in control"
+discussion_published_at: 2026-08-12T12:48:20+08:00
+discussion_status: published
+discussion_moderation: none_observed_open_unlocked
 utm_convention: not_applicable_for_github_to_github_links
 ```
 
@@ -103,13 +108,12 @@ authorizes that specific publication.
 
 - Target: `openai/codex` → `Show and tell`
 - Draft: `docs/promotion/openai-codex-show-and-tell.md`
-- State: approved, not published
+- State: published at `2026-08-12T12:48:20+08:00`
+- Discussion: `https://github.com/openai/codex/discussions/38119`
+- Moderation: no warning observed; open and unlocked at verification
 - Previous account post: Discussion #37852 at approximately
   `2026-08-11 01:30 Asia/Shanghai`
-- Recommended earliest publication: approximately
-  `2026-08-13 01:30 Asia/Shanghai`
-- Required trigger: exact user message `publish`
-- Pre-publication checks: category rules, same-account duplicates, near-duplicate
+- Publication checks passed: category rules, same-account duplicates, near-duplicate
   recent posts, public repository/Release, README/Demo/compatibility/CI evidence,
   balanced Markdown fences, immutable public Demo URL
 - Explicit exclusions: no Awesome List PR, no comments, no other promotion
