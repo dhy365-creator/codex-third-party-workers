@@ -11,9 +11,8 @@ Delegate suitable Codex subagent tasks to lower-cost provider APIs while
 
 ![Codex Third-Party Workers architecture](assets/hero-social-preview.png)
 
-> Beta candidate source `0.4.0-beta.2`; latest published release
-> `v0.4.0-beta.1`. Unofficial, macOS-only, and not endorsed by OpenAI,
-> DeepSeek, MiniMax, or Alibaba Cloud.
+> Version line `0.4.0-beta.2`. Unofficial, macOS-only, and not endorsed by
+> OpenAI, DeepSeek, MiniMax, or Alibaba Cloud.
 
 ## Codex stays the main agent
 
@@ -126,9 +125,9 @@ final decision.
 
 ![Validation and security proof](assets/validation-proof.png)
 
-- `50/50` isolated local tests pass on the `0.4.0-beta.2` source candidate.
-- The latest public `main` CI passed on commit `5125734`; CI for this candidate
-  remains pending until a branch is pushed.
+- `50/50` isolated local tests pass on the `0.4.0-beta.2` source.
+- GitHub Actions runs the same suite on macOS with Node.js 20 for pushes and
+  pull requests.
 - API keys are read from macOS Keychain, never accepted through `--api-key`.
 - The bridge uses owner-only permissions and redacted atomic archives.
 - Dry-run is the default; file changes require explicit `--apply`.

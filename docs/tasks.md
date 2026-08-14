@@ -38,12 +38,12 @@
 - [ ] 在 GitHub Settings 手工上传 `assets/hero-social-preview.png` 并目视确认。
 - [ ] 用户单独确认后，再决定是否提交 Awesome List PR。
 
-## `0.4.0-beta.2` 发布候选
+## `0.4.0-beta.2` 发布控制
 
-- [ ] push 功能分支并创建维护 PR。
-- [ ] 等待 PR CI；通过后再决定 merge。
-- [ ] merge 后复核 `package.json`、tag 与 Release notes，再决定是否创建
-  `v0.4.0-beta.2` 预发布。
+- [x] 明确 PR、CI、merge、tag 与 Release 状态以 GitHub 公开控制面为准，不以本地 PASS
+  替代 GitHub Actions 结果。
+- [x] 明确只有在 PR CI、公开页面、最终 diff 与安全检查通过后才能 merge。
+- [x] 明确 merge 后先复核 `main` 并运行关键回归，再创建 prerelease。
 
 ## Provider 扩展待办
 

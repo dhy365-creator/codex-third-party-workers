@@ -11,8 +11,8 @@
 
 ![Codex Third-Party Workers 架构主视觉](assets/hero-social-preview.png)
 
-> Beta 候选源码 `0.4.0-beta.2`；最新公开 Release 仍为 `v0.4.0-beta.1`。本项目非官方、
-> 仅支持 macOS，未经 OpenAI、DeepSeek、MiniMax 或阿里云官方背书。
+> 当前版本线为 `0.4.0-beta.2`。本项目非官方、仅支持 macOS，未经 OpenAI、DeepSeek、
+> MiniMax 或阿里云官方背书。
 
 ## Codex 始终是主代理
 
@@ -113,8 +113,8 @@ Provider 桥接一次只允许一个仅所有者可读的任务，拒绝不安�
 
 ![验证与安全证据](assets/validation-proof.png)
 
-- `0.4.0-beta.2` 源码候选的 `50/50` 项隔离测试已通过。
-- 最新公开 `main` 的提交 `5125734` 已通过 CI；本候选尚未 push，因此对应 CI 仍待运行。
+- `0.4.0-beta.2` 源码的 `50/50` 项隔离测试已通过。
+- GitHub Actions 会在 macOS + Node.js 20 上对 push 与 pull request 运行同一套测试。
 - API key 只从 macOS Keychain 读取，不接受 `--api-key`。
 - 桥接采用仅所有者权限和原子脱敏归档。
 - dry-run 是默认行为，写入文件必须显式使用 `--apply`。

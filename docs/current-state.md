@@ -4,8 +4,8 @@
 
 ## 已写入本地仓库
 
-- 当前分支已准备 `0.4.0-beta.2` 源码候选，MIT，Node.js `>=20`，macOS-only；最新公开
-  Release 仍为 `v0.4.0-beta.1`，本次尚未创建 tag 或 Release。
+- 当前源码版本线为 `0.4.0-beta.2`，MIT，Node.js `>=20`，macOS-only；PR、CI、tag 与
+  Release 的实时状态以 GitHub 公开控制面为准。
 - 公开仓库：`https://github.com/dhy365-creator/codex-third-party-workers`。
 - 仓库入口提供英文 `README.md` 与简体中文 `README.zh-CN.md`，顶部可相互切换。
 - 中英文 README 首屏已按产品化顺序补充定位、Quick Start、真实运行记录、兼容性摘要、
@@ -61,7 +61,6 @@
 - 尚未用本版本公开安装器在真实用户 `~/.codex` 执行 `--apply`/`verify`；验证器仍不会自动
   把一次任务写成 `runtimeVerified: true`。
 - GitHub Social Preview 图片已准备，但仍需在 GitHub Settings 手工上传并目视确认。
-- 本次 `0.4.0-beta.2` 候选尚未 push、创建 PR、运行对应 CI、合并、打 tag 或发布 Release。
 - 尚未提交 Awesome List 外部 PR 或任何新增第三方评论。
 - 未由用户进行人工验收。
 - 尚未在真实用户环境安装或发布 npm package；本项目仅通过 GitHub 源码分发。
