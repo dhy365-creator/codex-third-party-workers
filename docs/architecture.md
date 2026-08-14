@@ -11,6 +11,19 @@
 - Dry-run is the default; file mutation requires `--apply`.
 - Official provider metadata is acquired at install time, never vendored here.
 
+### Read-only Doctor
+
+`npm run doctor -- --provider <provider>` inspects the local prerequisites
+before installation. It checks the platform, Node.js, recognizable Codex state,
+owner-only permissions, the reviewed provider/model pairing, Keychain item
+presence, OpenAI fallback hints, installed-manifest state, and prerequisites for
+the existing verifier.
+
+Doctor performs no writes, never asks Keychain to return a credential value,
+does not print private paths, and makes no network or paid provider API call.
+An uninstalled worker is reported separately from a blocker such as an invalid
+provider, unsupported model, missing credential, or incompatible platform.
+
 ## Installed components
 
 ### Agent definition

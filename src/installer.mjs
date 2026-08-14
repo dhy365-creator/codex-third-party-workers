@@ -38,7 +38,7 @@ import {
   workerConfig,
 } from './templates.mjs';
 
-const INSTALL_VERSION = '0.4.0-beta.1';
+const INSTALL_VERSION = '0.4.0-beta.2';
 const SOURCE_DIR = path.dirname(fileURLToPath(import.meta.url));
 const RUNTIME_FILES = [
   'bridge.mjs',

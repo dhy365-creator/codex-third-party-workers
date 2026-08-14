@@ -6,39 +6,43 @@
 
 **English** | [简体中文](README.zh-CN.md)
 
-Use third-party and Chinese model APIs as **bounded Codex subagents** while
-keeping the main Codex thread on OpenAI.
+Delegate suitable Codex subagent tasks to lower-cost provider APIs while
+**Codex stays the main agent**.
 
 ![Codex Third-Party Workers architecture](assets/hero-social-preview.png)
 
-> Public beta `0.4.0-beta.1`. Unofficial and macOS-only. Not endorsed by
-> OpenAI, DeepSeek, MiniMax, or Alibaba Cloud.
+> Beta candidate source `0.4.0-beta.2`; latest published release
+> `v0.4.0-beta.1`. Unofficial, macOS-only, and not endorsed by OpenAI,
+> DeepSeek, MiniMax, or Alibaba Cloud.
 
 ## Codex stays the main agent
 
-- The repository adds reviewed provider workers; it does not replace the main
-  OpenAI model, provider, authentication, or `~/.codex/config.toml`.
-- Preflight routing sends only a bounded, suitable task to one provider worker.
-- Codex receives the worker result and remains responsible for review,
-  synthesis, and final acceptance.
+- Reviewed provider workers handle only one bounded, suitable text/code task at
+  a time; they do not replace the main OpenAI model, authentication, or
+  `~/.codex/config.toml`.
+- Preflight checks quota, task suitability, credential readiness, and the
+  owner-only single-slot bridge before delegation.
+- Codex reviews the worker result and remains responsible for synthesis and
+  final acceptance. Provider failure safely returns routing to an available
+  OpenAI worker.
 
-### Why use it?
+## Current provider status
 
-- Delegate suitable work to a lower-cost provider without moving the whole
-  Codex session.
-- Use provider APIs that are easier to access in your region.
-- Mix model strengths while keeping one Codex-led workflow.
+| Built-in provider pack | Current evidence |
+| --- | --- |
+| DeepSeek V4 Flash | Isolated-tested; public-installer runtime pending |
+| MiniMax-M3 | API, CLI, and Codex Desktop runtime verified |
+| Alibaba Model Studio Qwen3.7-Max | API, CLI, and Codex Desktop runtime verified |
 
-### What it is not
-
-This is not an OpenAI product, a Codex replacement, a compatibility claim for
-every model, or proof that a cheaper model will produce a better result.
+Only reviewed built-in packs are supported. A compatibility request or
+candidate listing is not proof of support; see the
+[evidence matrix](docs/provider-compatibility.md).
 
 ## Quick start
 
-Clone the repository, store one provider key in macOS Keychain, then inspect the
-default dry-run. The example below uses DeepSeek; use `minimax` or `qwen` for the
-other built-in packs.
+The example uses DeepSeek; replace `deepseek` with `minimax` or `qwen` for
+another built-in pack. Doctor is read-only: it does not install files, change
+Codex configuration, print credentials, or call a paid provider API.
 
 ```sh
 git clone https://github.com/dhy365-creator/codex-third-party-workers.git
@@ -46,6 +50,8 @@ cd codex-third-party-workers
 
 /usr/bin/security add-generic-password \
   -a "$(id -un)" -s codex-deepseek-api-key -U -w
+
+npm run doctor -- --provider deepseek
 
 node scripts/install.mjs \
   --provider deepseek \
@@ -57,9 +63,15 @@ node scripts/install.mjs \
   --consent-data
 ```
 
-Review the plan before repeating it with `--apply`. Restart Codex Desktop, then
-run `node scripts/verify.mjs`. See the [complete install guide](#requirements)
-before applying changes.
+The installer remains a dry-run unless you explicitly add `--apply`. Review its
+plan first, then see the [complete install guide](#requirements), restart Codex
+Desktop after applying, and run `npm run verify -- --provider deepseek`.
+
+Do not put API keys, credentials, private task text, private filesystem paths,
+or sensitive data in issues, logs, or screenshots.
+
+This is not an OpenAI product, a Codex replacement, a universal compatibility
+layer, or evidence that a lower-cost model will produce a better result.
 
 ## Verified Codex Desktop run
 
@@ -114,8 +126,9 @@ final decision.
 
 ![Validation and security proof](assets/validation-proof.png)
 
-- `37/37` isolated local tests pass on the productized baseline.
-- Public GitHub Actions passed on baseline commit `0262e8e`.
+- `50/50` isolated local tests pass on the `0.4.0-beta.2` source candidate.
+- The latest public `main` CI passed on commit `5125734`; CI for this candidate
+  remains pending until a branch is pushed.
 - API keys are read from macOS Keychain, never accepted through `--api-key`.
 - The bridge uses owner-only permissions and redacted atomic archives.
 - Dry-run is the default; file changes require explicit `--apply`.
@@ -323,6 +336,16 @@ See [configuration-zh](docs/configuration-zh.md),
 [Chinese-provider compatibility matrix](docs/provider-compatibility.md),
 [copyable Codex install prompt](docs/CODEX_INSTALL_PROMPT.zh-CN.md), and
 [security policy](SECURITY.md).
+
+## Feedback and security
+
+- [Report a bug](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=bug_report.yml)
+- [Request provider compatibility](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=provider-compatibility.yml)
+- [Propose a feature](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=feature_request.yml)
+- [Report a security issue privately](SECURITY.md)
+
+Never include credentials, private task text, private filesystem paths, or
+sensitive vulnerability details in a public issue.
 
 ## Official references
 
