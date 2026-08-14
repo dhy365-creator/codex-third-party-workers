@@ -25,6 +25,17 @@ macOS-only beta; keep changes minimal and aligned with the project's scope.
    facts change.
 5. Never commit secrets, `.env` files, Keychain contents, or task payloads.
 
+## Filing issues
+
+Use the matching Issue Form:
+
+- [Report a bug](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=bug_report.yml)
+- [Request a provider](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=provider-compatibility.yml)
+- [Propose a feature](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=feature_request.yml)
+
+To [report a security issue](SECURITY.md), do not open a public issue. Use the
+private reporting channel described in the security policy.
+
 ## Commit conventions
 
 - One logical change per commit, with a short imperative summary.

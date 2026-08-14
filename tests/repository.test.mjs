@@ -86,3 +86,47 @@ test('optional Star policy is agent-only, consent-based, and non-blocking', asyn
   assert.doesNotMatch(source, /user\/starred|gh\s+(?:api|repo)\b[^\n]*\bstar\b/i);
   assert.doesNotMatch(await fs.readFile(path.join(root, 'src', 'installer.mjs'), 'utf8'), /star/i);
 });
+
+test('Doctor is wired as a read-only command and version metadata is aligned', async () => {
+  const packageMetadata = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
+  assert.equal(packageMetadata.scripts.doctor, 'node scripts/doctor.mjs');
+  assert.equal(packageMetadata.version, '0.4.0-beta.2');
+
+  const doctor = await fs.readFile(path.join(root, 'src', 'doctor.mjs'), 'utf8');
+  assert.doesNotMatch(doctor, /\b(?:writeFile|appendFile|mkdir|chmod|rename|unlink|rm)\s*\(/);
+  assert.doesNotMatch(doctor, /\b(?:fetch|https?\.request)\s*\(/);
+
+  for (const file of ['src/installer.mjs', 'src/fs-utils.mjs', 'src/preflight-runtime.mjs']) {
+    assert.match(await fs.readFile(path.join(root, file), 'utf8'), /0\.4\.0-beta\.2/);
+  }
+});
+
+test('Issue Forms collect required evidence and keep sensitive reports private', async () => {
+  const issueDir = path.join(root, '.github', 'ISSUE_TEMPLATE');
+  const bug = await fs.readFile(path.join(issueDir, 'bug_report.yml'), 'utf8');
+  for (const id of [
+    'codex_version', 'macos_version', 'node_version', 'provider', 'model',
+    'installation_method', 'run_mode', 'reproduction', 'expected', 'actual',
+    'verify_output', 'logs',
+  ]) assert.match(bug, new RegExp(`id: ${id}\\b`));
+
+  const compatibility = await fs.readFile(path.join(issueDir, 'provider-compatibility.yml'), 'utf8');
+  for (const id of [
+    'provider', 'model', 'official_docs', 'responses_api', 'streaming',
+    'function_calling', 'usefulness', 'testing_help',
+  ]) assert.match(compatibility, new RegExp(`id: ${id}\\b`));
+  assert.match(compatibility, /request does not (?:mean|imply)[\s\S]*support/i);
+
+  const feature = await fs.readFile(path.join(issueDir, 'feature_request.yml'), 'utf8');
+  for (const id of ['problem', 'workflow', 'use_case', 'benefit', 'alternatives', 'security']) {
+    assert.match(feature, new RegExp(`id: ${id}\\b`));
+  }
+
+  const combined = `${bug}\n${compatibility}\n${feature}`;
+  assert.match(combined, /private filesystem paths/);
+  assert.match(combined, /API keys/);
+  const config = await fs.readFile(path.join(issueDir, 'config.yml'), 'utf8');
+  assert.match(config, /blank_issues_enabled: false/);
+  assert.match(config, /SECURITY\.md/);
+  assert.match(config, /privately/);
+});

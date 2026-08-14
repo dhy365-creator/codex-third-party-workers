@@ -2,6 +2,11 @@
 
 ## 已完成（local / verified）
 
+- [x] `0.4.0-beta.2` 候选新增只读 Doctor，并覆盖环境、Provider/Model、Keychain 存在性、
+  fallback、安装态、权限、verify 前置条件、无 mutation 与无私有路径输出测试。
+- [x] 新增 Bug、Provider 兼容性、Feature 三组 GitHub Issue Forms 与安全问题私下入口。
+- [x] 收紧中英文 README 首屏定位和 Quick Start，并加入 Doctor 入口与当前 Provider 证据。
+- [x] 2026-08-14 本地 `npm test` 通过 `50/50`，Issue Form YAML 解析通过。
 - [x] README、SECURITY、CHANGELOG、AGENTS、`.github` 流程与文档更新。
 - [x] macOS Keychain-only 凭据边界，拒绝 CLI 明文 API key。
 - [x] 官方 setup 脚本文本解析、size/host/结构校验和 provider-pack 约束。
@@ -28,10 +33,17 @@
   CLI、Desktop 子代理、桥接释放和 Keychain 删除验证。
 - [x] 产品化中英文 README 第一屏，并准备 Hero、真实终端记录、兼容性摘要和测试/CI
   四组可复现 SVG/PNG 推广素材。
-- [x] 准备 OpenAI Codex Show and tell、Awesome Agent Harness 候选条目和 beta release
-  notes 草稿；未执行任何第三方发布。
+- [x] 准备并发布 OpenAI Codex Show and tell Discussion #38119；Awesome Agent Harness
+  候选条目和 beta release notes 仍为本地准备材料。
 - [ ] 在 GitHub Settings 手工上传 `assets/hero-social-preview.png` 并目视确认。
-- [ ] 用户单独确认后，再决定是否发布 OpenAI Codex Discussion 或提交 Awesome List PR。
+- [ ] 用户单独确认后，再决定是否提交 Awesome List PR。
+
+## `0.4.0-beta.2` 发布控制
+
+- [x] 明确 PR、CI、merge、tag 与 Release 状态以 GitHub 公开控制面为准，不以本地 PASS
+  替代 GitHub Actions 结果。
+- [x] 明确只有在 PR CI、公开页面、最终 diff 与安全检查通过后才能 merge。
+- [x] 明确 merge 后先复核 `main` 并运行关键回归，再创建 prerelease。
 
 ## Provider 扩展待办
 

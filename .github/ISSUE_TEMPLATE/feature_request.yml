@@ -1,0 +1,61 @@
+name: Feature request
+description: Propose a scoped improvement to the supported project workflow.
+title: "feat: "
+labels:
+  - enhancement
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Keep requests within the macOS-only, bounded text/code worker scope.
+
+        **Do not paste API keys, credentials, private task text, private filesystem paths, or sensitive data.**
+  - type: textarea
+    id: problem
+    attributes:
+      label: Problem
+      description: What is difficult today, and for whom?
+    validations:
+      required: true
+  - type: textarea
+    id: workflow
+    attributes:
+      label: Proposed workflow
+      description: Describe the smallest end-to-end behavior that would solve the problem.
+    validations:
+      required: true
+  - type: textarea
+    id: use_case
+    attributes:
+      label: Use case
+      description: Give a concrete, non-sensitive example.
+    validations:
+      required: true
+  - type: textarea
+    id: benefit
+    attributes:
+      label: Expected benefit
+      description: Explain the user or maintainer outcome without unsupported savings or adoption claims.
+    validations:
+      required: true
+  - type: textarea
+    id: alternatives
+    attributes:
+      label: Alternatives considered
+      description: What can users do today, and why is it insufficient?
+    validations:
+      required: true
+  - type: textarea
+    id: security
+    attributes:
+      label: Security implications
+      description: Consider delegated data, credentials, Keychain, permissions, task bridge, and provider billing/network calls.
+    validations:
+      required: true
+  - type: checkboxes
+    id: safety_confirmation
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed API keys, credentials, private task text, private filesystem paths, and sensitive data.
+          required: true

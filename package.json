@@ -1,6 +1,6 @@
 {
   "name": "codex-third-party-workers",
-  "version": "0.4.0-beta.1",
+  "version": "0.4.0-beta.2",
   "description": "Unofficial macOS-only beta provider-pack architecture for Codex Desktop that routes bounded text and code tasks to fallback providers.",
   "private": true,
   "license": "MIT",
@@ -27,6 +27,7 @@
   "scripts": {
     "test": "node --test",
     "install:dry": "node scripts/install.mjs",
+    "doctor": "node scripts/doctor.mjs",
     "verify": "node scripts/verify.mjs",
     "uninstall:dry": "node scripts/uninstall.mjs"
   },

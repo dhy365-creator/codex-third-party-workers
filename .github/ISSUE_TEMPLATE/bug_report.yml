@@ -1,0 +1,117 @@
+name: Bug report
+description: Report a reproducible installation, routing, verification, or runtime problem.
+title: "bug: "
+labels:
+  - bug
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for helping improve the beta.
+
+        **Do not paste API keys, credentials, private task text, private filesystem paths, or sensitive data.** Redact logs and screenshots before attaching them.
+  - type: input
+    id: codex_version
+    attributes:
+      label: Codex Desktop version
+      placeholder: e.g. 2026.812.11052
+    validations:
+      required: true
+  - type: input
+    id: macos_version
+    attributes:
+      label: macOS version
+      placeholder: e.g. macOS 15.6
+    validations:
+      required: true
+  - type: input
+    id: node_version
+    attributes:
+      label: Node.js version
+      description: Paste the output of `node --version`.
+      placeholder: e.g. v20.19.0
+    validations:
+      required: true
+  - type: dropdown
+    id: provider
+    attributes:
+      label: Provider
+      options:
+        - DeepSeek
+        - MiniMax
+        - Qwen / Alibaba Model Studio
+        - Other / unknown
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Selected model
+      placeholder: e.g. deepseek-v4-flash
+    validations:
+      required: true
+  - type: dropdown
+    id: installation_method
+    attributes:
+      label: Installation method
+      options:
+        - Git clone
+        - GitHub source archive / ZIP
+        - Other
+    validations:
+      required: true
+  - type: dropdown
+    id: run_mode
+    attributes:
+      label: Dry-run / apply state
+      options:
+        - Dry-run only
+        - Applied with --apply
+        - Both dry-run and apply
+        - Not sure
+    validations:
+      required: true
+  - type: textarea
+    id: reproduction
+    attributes:
+      label: Reproduction steps
+      description: Use sanitized commands and the smallest reproducible sequence.
+      placeholder: |
+        1. Run ...
+        2. Select ...
+        3. Observe ...
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: Expected behavior
+    validations:
+      required: true
+  - type: textarea
+    id: actual
+    attributes:
+      label: Actual behavior
+    validations:
+      required: true
+  - type: textarea
+    id: verify_output
+    attributes:
+      label: Sanitized verify output
+      description: Paste redacted `npm run verify -- --provider <provider>` output, or explain why it is unavailable.
+      render: shell
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Sanitized logs
+      description: Remove credentials, task text, usernames, and private filesystem paths.
+      render: shell
+  - type: checkboxes
+    id: safety_confirmation
+    attributes:
+      label: Safety confirmation
+      options:
+        - label: I removed API keys, credentials, private task text, private filesystem paths, and sensitive data.
+          required: true

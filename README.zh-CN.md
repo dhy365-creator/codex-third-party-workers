@@ -6,36 +6,36 @@
 
 [English](README.md) | **简体中文**
 
-把第三方和国产模型 API 作为**有边界的 Codex 子代理**使用，同时让主线程继续使用
-OpenAI 模型。
+把适合的 Codex 子代理任务委派给成本较低的 Provider API，同时让 **Codex 始终保持
+主代理**。
 
 ![Codex Third-Party Workers 架构主视觉](assets/hero-social-preview.png)
 
-> 公开测试版 `0.4.0-beta.1`。非官方、仅支持 macOS，未经 OpenAI、DeepSeek、
+> 当前版本线为 `0.4.0-beta.2`。本项目非官方、仅支持 macOS，未经 OpenAI、DeepSeek、
 > MiniMax 或阿里云官方背书。
 
 ## Codex 始终是主代理
 
-- 本项目只增加经过审查的 Provider Worker，不替换主线程的 OpenAI 模型、Provider、
-  认证或 `~/.codex/config.toml`。
-- 预检路由每次只把一个适合且边界明确的任务发送给一个 Provider Worker。
-- Codex 接收子代理结果后，仍负责复核、整合和最终验收。
+- 经过审查的 Provider Worker 每次只处理一个适配且边界明确的文本/代码任务，不替换
+  主线程 OpenAI 模型、认证或 `~/.codex/config.toml`。
+- 预检会先检查额度、任务适配性、凭据状态和仅所有者可访问的单任务桥接。
+- Codex 仍负责复核、整合和最终验收；Provider 不可用时安全回到可用的 OpenAI Worker。
 
-### 为什么使用它？
+## 当前 Provider 状态
 
-- 把适合的任务委派给成本更低的 Provider，而不是迁移整个 Codex 会话。
-- 在不同地区使用更容易访问的 Provider API。
-- 在同一个由 Codex 主导的工作流中组合不同模型的优势。
+| 内置 Provider Pack | 当前证据 |
+| --- | --- |
+| DeepSeek V4 Flash | 已通过隔离测试；公开安装器运行时待验证 |
+| MiniMax-M3 | API、CLI 与 Codex Desktop 运行时已验证 |
+| 阿里云百炼 Qwen3.7-Max | API、CLI 与 Codex Desktop 运行时已验证 |
 
-### 它不是什么
-
-它不是 OpenAI 官方产品，不是 Codex 替代品，不代表所有模型都兼容，也不证明更便宜的
-模型一定能给出更好的结果。
+只有经过审查的内置 Pack 才算受支持。兼容性申请或“候选”标记不等于已经支持；详细证据
+见[兼容性矩阵](docs/provider-compatibility.zh-CN.md)。
 
 ## 快速开始
 
-克隆仓库，把一个 Provider API key 安全写入 macOS Keychain，然后先查看默认 dry-run。
-下面使用 DeepSeek；另外两个内置 Pack 可改为 `minimax` 或 `qwen`。
+下面使用 DeepSeek；使用其他内置 Pack 时可改为 `minimax` 或 `qwen`。Doctor 完全只读：
+不会安装文件、修改 Codex 配置、输出凭据或调用付费 Provider API。
 
 ```sh
 git clone https://github.com/dhy365-creator/codex-third-party-workers.git
@@ -43,6 +43,8 @@ cd codex-third-party-workers
 
 /usr/bin/security add-generic-password \
   -a "$(id -un)" -s codex-deepseek-api-key -U -w
+
+npm run doctor -- --provider deepseek
 
 node scripts/install.mjs \
   --provider deepseek \
@@ -54,8 +56,14 @@ node scripts/install.mjs \
   --consent-data
 ```
 
-检查计划无误后才追加 `--apply`，重启 Codex Desktop，再运行
-`node scripts/verify.mjs`。应用配置前请继续阅读[完整安装步骤](#环境要求)。
+安装器默认仍是 dry-run，只有显式追加 `--apply` 才会写入。先检查计划，再阅读
+[完整安装步骤](#环境要求)；应用后重启 Codex Desktop，并运行
+`npm run verify -- --provider deepseek`。
+
+不要在 issue、日志或截图中放入 API key、凭据、私密任务正文、私有文件路径或敏感数据。
+
+本项目不是 OpenAI 官方产品，不是 Codex 替代品，不代表所有模型都兼容，也不证明成本
+较低的模型一定能给出更好的结果。
 
 ## 已验证的 Codex Desktop 运行记录
 
@@ -105,8 +113,8 @@ Provider 桥接一次只允许一个仅所有者可读的任务，拒绝不安�
 
 ![验证与安全证据](assets/validation-proof.png)
 
-- 产品化基线的 `37/37` 项隔离测试通过。
-- 基线提交 `0262e8e` 的公开 GitHub Actions 已通过。
+- `0.4.0-beta.2` 源码的 `50/50` 项隔离测试已通过。
+- GitHub Actions 会在 macOS + Node.js 20 上对 push 与 pull request 运行同一套测试。
 - API key 只从 macOS Keychain 读取，不接受 `--api-key`。
 - 桥接采用仅所有者权限和原子脱敏归档。
 - dry-run 是默认行为，写入文件必须显式使用 `--apply`。
@@ -297,6 +305,15 @@ apply/verify 状态单独记录。
 - [国产模型 Provider 兼容性矩阵](docs/provider-compatibility.zh-CN.md)
 - [可直接发送给 Codex 的安装提示词](docs/CODEX_INSTALL_PROMPT.zh-CN.md)
 - [安全策略](SECURITY.md)
+
+## 反馈与安全问题
+
+- [报告 Bug](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=bug_report.yml)
+- [申请 Provider 兼容性评估](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=provider-compatibility.yml)
+- [提出功能建议](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=feature_request.yml)
+- [私下报告安全问题](SECURITY.md)
+
+公开 Issue 中不得包含凭据、私密任务正文、私有文件路径或敏感漏洞细节。
 
 ## 官方参考资料
 

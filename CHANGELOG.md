@@ -6,6 +6,21 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+## [0.4.0-beta.2] - 2026-08-14
+
+- Add a read-only `npm run doctor` command for macOS, Node.js, Codex,
+  provider/model, Keychain-presence, fallback, installation, permissions, and
+  local verification prerequisites. It does not mutate configuration, reveal
+  credentials or private paths, use the network, or call a paid provider API.
+- Add structured GitHub Issue Forms for bugs, provider compatibility requests,
+  and feature requests, with explicit sensitive-data and private security
+  reporting boundaries.
+- Tighten the English and Chinese first-screen onboarding around Codex as the
+  main agent, bounded lower-cost delegation, current provider evidence, Doctor,
+  and the default dry-run workflow.
+- Preserve all existing provider runtime evidence levels; this release does not
+  claim new live provider or public-installer verification.
+
 ## [0.4.0-beta.1] - 2026-08-08
 
 - Add Qwen3.7-Max as the third reviewed built-in provider pack.

@@ -1,0 +1,92 @@
+name: Provider compatibility request
+description: Request evaluation of a provider and model under this repository's compatibility process.
+title: "compatibility: "
+labels:
+  - compatibility
+body:
+  - type: markdown
+    attributes:
+      value: |
+        ### Request does not mean Supported
+
+        A request is an evaluation candidate. A provider or model is marked supported or verified only after the repository's documented compatibility checks pass.
+
+        **Do not paste API keys, credentials, private task text, private filesystem paths, or sensitive data.**
+  - type: input
+    id: provider
+    attributes:
+      label: Provider name
+      placeholder: e.g. StepFun
+    validations:
+      required: true
+  - type: input
+    id: model
+    attributes:
+      label: Model name
+      placeholder: Use the provider's exact API model identifier.
+    validations:
+      required: true
+  - type: input
+    id: official_docs
+    attributes:
+      label: Official API documentation
+      description: Link directly to provider-owned API documentation.
+      placeholder: https://...
+    validations:
+      required: true
+  - type: dropdown
+    id: responses_api
+    attributes:
+      label: Responses API support
+      options:
+        - Documented by the provider
+        - Not documented
+        - Unknown
+    validations:
+      required: true
+  - type: dropdown
+    id: streaming
+    attributes:
+      label: Streaming support
+      options:
+        - Documented by the provider
+        - Not documented
+        - Unknown
+    validations:
+      required: true
+  - type: dropdown
+    id: function_calling
+    attributes:
+      label: Function Calling support
+      options:
+        - Documented by the provider
+        - Not documented
+        - Unknown
+    validations:
+      required: true
+  - type: textarea
+    id: usefulness
+    attributes:
+      label: Why this provider is useful
+      description: Describe the bounded task types, access needs, or maintainability benefit.
+    validations:
+      required: true
+  - type: dropdown
+    id: testing_help
+    attributes:
+      label: Can you help test?
+      options:
+        - Yes, with sanitized non-sensitive tasks
+        - Maybe, with maintainer guidance
+        - No
+    validations:
+      required: true
+  - type: checkboxes
+    id: boundary_confirmation
+    attributes:
+      label: Compatibility boundary
+      options:
+        - label: I understand that this request does not imply current or future support.
+          required: true
+        - label: I removed API keys, credentials, private task text, private filesystem paths, and sensitive data.
+          required: true
