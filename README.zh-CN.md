@@ -32,6 +32,18 @@
 只有经过审查的内置 Pack 才算受支持。兼容性申请或“候选”标记不等于已经支持；详细证据
 见[兼容性矩阵](docs/provider-compatibility.zh-CN.md)。
 
+## 文档与社区导航
+
+- [快速开始](#快速开始)
+- [Doctor](#doctor)
+- [架构说明](docs/architecture.md)
+- [兼容性矩阵](docs/provider-compatibility.zh-CN.md)
+- [演示（Demos）](docs/demos/README.md)
+- [FAQ](docs/faq.zh-CN.md)
+- [安全策略](SECURITY.md)
+- [参与开发](CONTRIBUTING.md)
+- [路线图](ROADMAP.md)
+
 ## 快速开始
 
 下面使用 DeepSeek；使用其他内置 Pack 时可改为 `minimax` 或 `qwen`。Doctor 完全只读：
@@ -64,6 +76,14 @@ node scripts/install.mjs \
 
 本项目不是 OpenAI 官方产品，不是 Codex 替代品，不代表所有模型都兼容，也不证明成本
 较低的模型一定能给出更好的结果。
+
+## Doctor
+
+`npm run doctor` 是新用户的第一步。
+
+- 只读，不会变更文件。
+- 不调用付费 API，不输出凭据。
+- 在开始真实委派前检查环境、Provider/Model、凭据、fallback 提示和安装前置条件。
 
 ## 已验证的 Codex Desktop 运行记录
 

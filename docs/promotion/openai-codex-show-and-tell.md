@@ -1,17 +1,26 @@
 # OpenAI Codex Show and tell — approved publication checkpoint
 
-Status: **NEEDS USER ACTION — approved, not published**
+Status: **PUBLISHED — historical checkpoint**
 
 Target: `openai/codex` → Discussions → `Show and tell`
 
 Approval date: `2026-08-11`
+
+Published: `2026-08-12T12:48:20+08:00` at
+<https://github.com/openai/codex/discussions/38119>. Live status was rechecked on
+2026-08-15: the Discussion remained open and unlocked.
+
+The approved body below is preserved as the historical publication record. Its
+beta.1 links and `37/37` test count describe the evidence available when it was
+published; current project status is documented in the repository README and
+latest Release.
 
 Spacing checkpoint:
 
 - Previous account post: `2026-08-11 01:30 Asia/Shanghai`
 - Recommended interval: approximately 48 hours
 - Recommended earliest publication: `2026-08-13 01:30 Asia/Shanghai`
-- Publication trigger: the user sends the exact message `publish`
+- Publication trigger: completed on 2026-08-12
 
 Before publication, recheck the live category rules, current-account duplicates,
 near-duplicate recent Discussions, repository/Release availability, evidence
@@ -105,7 +114,8 @@ and does not promise a fixed cost-saving percentage.
 - [x] `How it works` uses one correctly closed fenced code block.
 - [x] Terminal Demo uses the immutable `v0.4.0-beta.1` public URL.
 - [x] No local absolute macOS home path appears in the Discussion body.
-- [ ] Approximately 48 hours have elapsed since Discussion #37852.
-- [ ] User sends the exact publication trigger `publish`.
-- [ ] Live rules, duplicates, repository, Release, evidence, and image are
+- [ ] The recommended approximately 48-hour spacing did not fully elapse;
+  publication instead proceeded with the user's explicit authorization.
+- [x] User sent the exact publication trigger `publish`.
+- [x] Live rules, duplicates, repository, Release, evidence, and image were
   rechecked immediately before publication.

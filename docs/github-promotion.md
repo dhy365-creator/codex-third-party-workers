@@ -5,13 +5,13 @@ mode: resume
 current_stage: discussions
 status: PUBLISHED
 repository: dhy365-creator/codex-third-party-workers
-source_commit: 5e5707dc607f9b5934bb5b98cec302296e0e5174
-release_tag: v0.4.0-beta.1
-release_url: https://github.com/dhy365-creator/codex-third-party-workers/releases/tag/v0.4.0-beta.1
+source_commit: 59100b08aeedfa299398d1330c25f863bf4aa8af
+release_tag: v0.4.0-beta.2
+release_url: https://github.com/dhy365-creator/codex-third-party-workers/releases/tag/v0.4.0-beta.2
 owned_repository_pr: https://github.com/dhy365-creator/codex-third-party-workers/pull/5
 owned_repository_state: merged
-last_updated: 2026-08-12
-checked_at: 2026-08-12T12:48:20+08:00
+last_updated: 2026-08-15
+checked_at: 2026-08-15T10:37:16+08:00
 external_publication: published
 waiting_for: none
 discussion_url: https://github.com/openai/codex/discussions/38119
@@ -38,7 +38,7 @@ layer, or a promise of a fixed cost reduction.
 
 | Item | Status | Evidence / next action |
 | --- | --- | --- |
-| Baseline | DONE | `main`, `origin/main`, and approved source matched at `0262e8e`; clean single worktree before preparation |
+| Baseline | DONE | `origin/main` and the clean audit worktree matched at `59100b0`; unrelated catalog safety changes remain isolated in the canonical checkout |
 | Public repository | DONE | Public GitHub repository with MIT license |
 | README positioning | DONE | English and Chinese first screens productized with value, quick start, demo, compatibility, architecture, validation, and security |
 | Visual assets | DONE | Reproducible SVG and rendered PNG assets in `assets/` |
@@ -46,11 +46,11 @@ layer, or a promise of a fixed cost reduction.
 | Topics | DONE | Expanded after PR #5 merged; current set recorded below |
 | Homepage | NOT APPLICABLE | No canonical project website; keep empty instead of pointing to an unrelated page |
 | Social Preview | NEEDS USER ACTION | `assets/hero-social-preview.png` is ready; GitHub Settings upload must be performed and visually verified in the UI |
-| GitHub Actions | DONE | Public workflow passed on release source `5e5707d` and the release-tag run passed |
-| Release | DONE | `v0.4.0-beta.1` is a public pre-release targeting `5e5707d` |
+| GitHub Actions | DONE | Public `main` and tag workflows passed on release source `59100b0` |
+| Release | DONE | `v0.4.0-beta.2` is a public pre-release targeting `59100b0` |
 | Profile pin | DONE | Repository is already pinned on the owner's profile |
 | Repository Discussions | NOT APPLICABLE | Repository Discussions are disabled and are not required for this promotion pass |
-| External promotion | NEEDS USER ACTION | Show and tell title/body approved but not published; wait for exact `publish` trigger and repeat live checks |
+| External promotion | DONE | Show and tell Discussion #38119 is published; it was live-checked open and unlocked on 2026-08-15 |
 
 ## Owned metadata
 
@@ -94,7 +94,7 @@ utm_content=<asset-or-post>
 
 ## Prepared external assets
 
-- OpenAI Codex `Show and tell` draft:
+- OpenAI Codex `Show and tell` published record:
   `docs/promotion/openai-codex-show-and-tell.md`
 - Awesome List fit audit and proposed data entry:
   `docs/promotion/awesome-list-candidates.md`

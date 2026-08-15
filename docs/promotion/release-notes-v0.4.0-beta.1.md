@@ -1,6 +1,8 @@
 # v0.4.0-beta.1 — prepared release notes
 
-Status: **draft only — no tag or GitHub Release created**
+Status: **historical prepared notes** — `v0.4.0-beta.1` was subsequently
+published as a GitHub prerelease. Current release notes are available from the
+[Releases page](https://github.com/dhy365-creator/codex-third-party-workers/releases).
 
 ## Codex Third-Party Workers public beta
 

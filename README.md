@@ -37,6 +37,18 @@ Only reviewed built-in packs are supported. A compatibility request or
 candidate listing is not proof of support; see the
 [evidence matrix](docs/provider-compatibility.md).
 
+## Documentation and community navigation
+
+- [Quick Start](#quick-start)
+- [Doctor](#doctor)
+- [Architecture](docs/architecture.md)
+- [Provider Compatibility](docs/provider-compatibility.md)
+- [Demos](docs/demos/README.md)
+- [FAQ](docs/faq.md)
+- [Security](SECURITY.md)
+- [Contributing](CONTRIBUTING.md)
+- [Roadmap](ROADMAP.md)
+
 ## Quick start
 
 The example uses DeepSeek; replace `deepseek` with `minimax` or `qwen` for
@@ -71,6 +83,14 @@ or sensitive data in issues, logs, or screenshots.
 
 This is not an OpenAI product, a Codex replacement, a universal compatibility
 layer, or evidence that a lower-cost model will produce a better result.
+
+## Doctor
+
+`npm run doctor` is the first validation step for a new setup.
+
+- Read-only.
+- No file mutations and no paid provider calls.
+- Good for triage before any provider delegation or installer action.
 
 ## Verified Codex Desktop run
 
