@@ -18,6 +18,12 @@
 - [x] 提供可直接发送给 Codex 的中文安装提示词。
 - [x] 安装与完整本地验证成功后提供一次性、可选、需明确同意的 GitHub Star 提示；
   installer 不执行 GitHub 写操作，拒绝、未认证或 Star 失败均不影响使用。
+- [x] 新增社区与文档可发现性：
+  - `docs/demos/`（Qwen、MiniMax、DeepSeek 示例）及索引；
+  - `docs/faq.md` 与 `docs/faq.zh-CN.md`；
+  - `ROADMAP.md`（Current/Next/Later 与边界分层）；
+  - README 与 CONTRIBUTING 文档导航入口。
+- [x] 在 `CHANGELOG.md` Unreleased、`docs/current-state.md`、`docs/tasks.md` 记录本轮文档交付状态。
 
 ## 公开仓库
 

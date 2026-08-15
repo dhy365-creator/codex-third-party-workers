@@ -1,6 +1,6 @@
 # 当前状态
 
-最后更新：2026-08-14
+最后更新：2026-08-15
 
 ## 已写入本地仓库
 
@@ -25,6 +25,11 @@
   当前真实定位更新。Homepage 保持为空，因为尚无独立官方站点。
 - 已发布中英文国产模型 Provider 兼容性矩阵；矩阵中的候选状态仅代表官方文档筛选，
   不等于本仓库已经支持。
+- 新增中英文 FAQ（`docs/faq.md`、`docs/faq.zh-CN.md`）用于首次用户问题边界说明。
+- 新增 `docs/demos/` 证据索引与三页展示：Qwen、MiniMax，以及明确标记
+  `Pending live runtime verification` 的 DeepSeek 页面。
+- 新增 `ROADMAP.md`，并记录 v0.4.x 当前边界、v0.5 规划评估项、Later 探索项。
+- README 与 CONTRIBUTING 增加 Documentation/community 的入口导航与链接。
 - 架构为通用 provider-pack 形态，当前内置 Pack 为 DeepSeek V4 Flash、MiniMax-M3
   与 Qwen3.7-Max。
 - 安装器、预检、桥接、验证器和卸载器全部支持 provider pack 的路径、文件名和

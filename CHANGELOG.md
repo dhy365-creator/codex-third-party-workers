@@ -6,6 +6,19 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Add community documentation index and demos to improve first-contact user onboarding.
+  Includes `docs/demos/qwen-worker-demo.md`, `docs/demos/minimax-worker-demo.md`,
+  `docs/demos/deepseek-worker-demo.md`, and `docs/demos/README.md`.
+- Add bilingual onboarding-support FAQs:
+  `docs/faq.md` and `docs/faq.zh-CN.md`.
+- Add `ROADMAP.md` with conservative v0.4.x / v0.5 / later boundaries and
+  `planned`, `under evaluation`, `runtime verification pending`, and
+  `not committed` states.
+- Add Documentation & Community navigation in English and Chinese README files and
+  FAQ/Guide links in `CONTRIBUTING.md`.
+- Record the documentation status updates in `docs/current-state.md` and
+  `docs/tasks.md` to keep project-facing state consistent.
+
 ## [0.4.0-beta.2] - 2026-08-14
 
 - Add a read-only `npm run doctor` command for macOS, Node.js, Codex,

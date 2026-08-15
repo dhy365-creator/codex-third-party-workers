@@ -36,6 +36,15 @@ Use the matching Issue Form:
 To [report a security issue](SECURITY.md), do not open a public issue. Use the
 private reporting channel described in the security policy.
 
+## Community docs
+
+- [FAQ (English)](docs/faq.md)
+- [FAQ（简体中文）](docs/faq.zh-CN.md)
+- [Demos](docs/demos/README.md)
+- [Roadmap](ROADMAP.md)
+- [Provider compatibility matrix](docs/provider-compatibility.md)
+- [Provider compatibility request form](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=provider-compatibility.yml)
+
 ## Commit conventions
 
 - One logical change per commit, with a short imperative summary.
