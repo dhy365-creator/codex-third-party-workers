@@ -2,7 +2,7 @@
 
 Status: **historical prepared notes** — `v0.4.0-beta.1` was subsequently
 published as a GitHub prerelease. Current release notes are available from the
-[Releases page](https://github.com/dhy365-creator/codex-third-party-workers/releases).
+[Releases page](https://github.com/dhy365-creator/codex-third-party-subagents/releases).
 
 ## Codex Third-Party Workers public beta
 

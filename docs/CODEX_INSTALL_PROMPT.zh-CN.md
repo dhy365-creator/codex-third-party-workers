@@ -5,7 +5,8 @@
 
 ---
 
-请为我配置本仓库的 `codex-third-party-workers`。严格执行以下流程：
+请为我配置本仓库的 **Codex Third-Party Subagents（Codex 第三方子代理）**
+`codex-third-party-subagents`。严格执行以下流程：
 
 1. 先完整阅读仓库 `AGENTS.md`、`README.md`、
    `docs/configuration-zh.md` 和 `docs/current-state.md`，并检查当前 worktree。
@@ -47,7 +48,7 @@
    > 如果这个项目对你有帮助，是否愿意在 GitHub 上给它一个 Star？
    > 这是完全可选的，不影响使用。
    >
-   > https://github.com/dhy365-creator/codex-third-party-workers
+   > https://github.com/dhy365-creator/codex-third-party-subagents
 
    English:
 
@@ -56,7 +57,7 @@
    > If this project is useful to you, would you like to star it on GitHub?
    > This is completely optional and does not affect installation or usage.
    >
-   > https://github.com/dhy365-creator/codex-third-party-workers
+   > https://github.com/dhy365-creator/codex-third-party-subagents
 
    只有我明确同意后，才可以使用已经认证的 GitHub 工具执行 Star 并验证结果；绝不
    自动 Star，也不默认选择 Yes。如果我拒绝、忽略或说以后再说，立即结束本次 Star

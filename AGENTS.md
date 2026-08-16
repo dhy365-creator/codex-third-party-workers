@@ -2,10 +2,13 @@
 
 ## Project scope
 
-- Unofficial, macOS-only public beta for `codex-third-party-workers`:
+- Unofficial, macOS-only public beta for **Codex Third-Party Subagents**
+  (`codex-third-party-subagents`):
   a provider-pack-based Codex Desktop fallback routing stack.
 - Text, code, research synthesis, and local validation only. No image, audio,
-  video, desktop, or browser handling. No V4 Pro support in the built-in pack.
+  video, desktop, or browser handling. DeepSeek V4 Pro is explicit-only: never
+  auto-route to it or broaden its controlled maintainer runtime evidence into a
+  public-installer, independent-user, or general support claim.
 - Node.js `>=20`, standard library only. No third-party runtime dependencies.
 
 ## Rules for agents working here
@@ -17,6 +20,8 @@
   catalog-source override; do not vendor official catalog or prompt files.
 - CLI changes must keep dry-run as the default; writes require an explicit
   `--apply`.
+- Custom Agent identity comes from the official TOML `name` field in
+  `~/.codex/agents`; routing policy must not be documented as Host registration.
 - The task bridge allows exactly one active provider task. Active slot and task
   file are owner-only (`0700` / `0600`), reject symlinks, and are atomically
   archived to `completed-*` or `failed-*`. Never overwrite or delete archives.

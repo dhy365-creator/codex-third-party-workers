@@ -71,7 +71,7 @@ Codex main agent
 Public-installer `--apply` and `verify` acceptance remain separate pending checks
 for a real user environment.
 
-![Sanitized verified Codex Desktop run](https://raw.githubusercontent.com/dhy365-creator/codex-third-party-workers/v0.4.0-beta.1/assets/terminal-demo.png)
+![Sanitized verified Codex Desktop run](https://raw.githubusercontent.com/dhy365-creator/codex-third-party-subagents/v0.4.0-beta.1/assets/terminal-demo.png)
 
 The current beta has **37/37 isolated tests passing**, with public GitHub Actions
 covering installer, routing, provider catalog, bridge, uninstall, and
@@ -87,13 +87,13 @@ Security and scope are intentionally narrow:
 - no browser, desktop, image, audio, video, MCP, or Computer Use delegation
 
 Repository:
-https://github.com/dhy365-creator/codex-third-party-workers
+https://github.com/dhy365-creator/codex-third-party-subagents
 
 Public beta release:
-https://github.com/dhy365-creator/codex-third-party-workers/releases/tag/v0.4.0-beta.1
+https://github.com/dhy365-creator/codex-third-party-subagents/releases/tag/v0.4.0-beta.1
 
 Provider compatibility matrix:
-https://github.com/dhy365-creator/codex-third-party-workers/blob/v0.4.0-beta.1/docs/provider-compatibility.md
+https://github.com/dhy365-creator/codex-third-party-subagents/blob/v0.4.0-beta.1/docs/provider-compatibility.md
 
 I would especially value feedback on:
 

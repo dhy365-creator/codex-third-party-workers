@@ -1,6 +1,6 @@
-# Codex Third-Party Workers
+# Codex Third-Party Subagents
 
-[![CI](https://github.com/dhy365-creator/codex-third-party-workers/actions/workflows/test.yml/badge.svg)](https://github.com/dhy365-creator/codex-third-party-workers/actions/workflows/test.yml)
+[![CI](https://github.com/dhy365-creator/codex-third-party-subagents/actions/workflows/test.yml/badge.svg)](https://github.com/dhy365-creator/codex-third-party-subagents/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-8a7dff.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/platform-macOS-45dfff.svg)](#requirements)
 
@@ -9,7 +9,7 @@
 Delegate suitable Codex subagent tasks to lower-cost provider APIs while
 **Codex stays the main agent**.
 
-![Codex Third-Party Workers architecture](assets/hero-social-preview.png)
+![Codex Third-Party Subagents architecture](assets/hero-social-preview.png)
 
 > Version line `0.4.0-beta.2`. Unofficial, macOS-only, and not endorsed by
 > OpenAI, DeepSeek, MiniMax, or Alibaba Cloud.
@@ -37,18 +37,22 @@ Only reviewed built-in packs are supported. A compatibility request or
 candidate listing is not proof of support; see the
 [evidence matrix](docs/provider-compatibility.md).
 
-DeepSeek V4 Pro is an API-verified candidate, not a built-in pack. Its
-public-installer and Codex Desktop runtime paths remain unverified; see the
-[sanitized compatibility probe](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
-and the [controlled runtime E2E record](docs/validation/deepseek-runtime-e2e-2026-08-16.md).
+DeepSeek V4 Pro is an explicit-only Custom Agent configuration profile
+(`--model pro`), not an automatic fallback. A controlled maintainer coding
+fixture E2E passed with attributable Host/provider/model metadata; public-installer
+and independent user acceptance remain unverified. See the
+[Custom Agents migration guide](docs/migration/custom-agents.md) and the
+[sanitized Custom Subagents runtime record](docs/validation/deepseek-custom-subagents-runtime-e2e-2026-08-16.md).
 
 ## Documentation and community navigation
 
 - [Quick Start](#quick-start)
 - [Doctor](#doctor)
 - [Architecture](docs/architecture.md)
+- [Custom Agents migration](docs/migration/custom-agents.md)
 - [Provider Compatibility](docs/provider-compatibility.md)
 - [DeepSeek controlled runtime E2E](docs/validation/deepseek-runtime-e2e-2026-08-16.md)
+- [DeepSeek Custom Subagents runtime E2E](docs/validation/deepseek-custom-subagents-runtime-e2e-2026-08-16.md)
 - [DeepSeek V4 Pro probe](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
 - [Demos](docs/demos/README.md)
 - [FAQ](docs/faq.md)
@@ -63,8 +67,8 @@ another built-in pack. Doctor is read-only: it does not install files, change
 Codex configuration, print credentials, or call a paid provider API.
 
 ```sh
-git clone https://github.com/dhy365-creator/codex-third-party-workers.git
-cd codex-third-party-workers
+git clone https://github.com/dhy365-creator/codex-third-party-subagents.git
+cd codex-third-party-subagents
 
 /usr/bin/security add-generic-password \
   -a "$(id -un)" -s codex-deepseek-api-key -U -w
@@ -97,6 +101,7 @@ layer, or evidence that a lower-cost model will produce a better result.
 
 - Read-only.
 - No file mutations and no paid provider calls.
+- Checks Custom Agent capability, identity, duplicates, and migration state.
 - Good for triage before any provider delegation or installer action.
 
 ## Verified Codex Desktop run
@@ -109,11 +114,13 @@ is included.
 ![Sanitized verified Codex Desktop provider worker transcript](assets/terminal-demo.png)
 
 MiniMax-M3 and Qwen3.7-Max have passed real API, CLI, and Codex Desktop checks.
-DeepSeek V4 Flash has also passed a bounded maintainer E2E: an explicitly
-selected worker completed a non-sensitive fixture diagnostic, its bridge was
-archived and released, and the main thread reviewed the result. This is Level 3
-evidence for that path, not a general public-installer or user-acceptance claim;
-the verifier deliberately continues to report `runtimeVerified: false`.
+DeepSeek V4 Flash and the explicit-only V4 Pro profile have each passed a
+bounded maintainer coding-fixture E2E in a new Host session: the selected Custom
+Subagent reproduced the failing tests, identified the exact one-line fix, used
+the expected provider/model, completed and released the bridge, and was reviewed
+by the main thread. This is Level 3 evidence for those controlled paths, not a
+general public-installer or user-acceptance claim; the verifier deliberately
+continues to report `runtimeVerified: false`.
 
 ## Compatibility at a glance
 
@@ -122,7 +129,7 @@ the verifier deliberately continues to report `runtimeVerified: false`.
 | Direct provider path | Current evidence |
 | --- | --- |
 | DeepSeek V4 Flash | Built-in; controlled maintainer E2E passed (Level 3); verifier remains conservative |
-| DeepSeek V4 Pro | API-verified candidate; not a built-in pack or Desktop-runtime verified |
+| DeepSeek V4 Pro | Explicit-only Custom Agent profile; controlled maintainer E2E passed (Level 3); never auto-routed |
 | MiniMax-M3 | Built-in; Desktop runtime verified |
 | Alibaba Model Studio Qwen3.7-Max | Built-in; Desktop runtime verified |
 | StepFun Responses models | Candidate; not runtime tested |
@@ -141,7 +148,7 @@ flowchart LR
     C --> P["Preflight routing\nquota · suitability · readiness"]
     P -->|"OpenAI path"| O["Spark or Luna worker"]
     P -->|"provider path"| B["Owner-only single-slot task bridge"]
-    B --> W["Selected provider worker"]
+    B --> W["Host-discovered Custom Agent"]
     W --> R["Provider Responses API"]
     R --> A["Redacted completed/failed archive"]
     O --> S["Codex review and synthesis"]
@@ -156,8 +163,9 @@ final decision.
 
 ![Validation and security proof](assets/validation-proof.png)
 
-- `51/51` isolated local tests pass on the current branch, including a macOS
-  bridge-root default regression test.
+- `79/79` isolated local tests pass on the current branch, including Custom
+  Agent schema, duplicate, migration, rollback, and project identity-shadowing
+  coverage.
 - GitHub Actions runs the same suite on macOS with Node.js 20 for pushes and
   pull requests.
 - API keys are read from macOS Keychain, never accepted through `--api-key`.
@@ -177,10 +185,12 @@ for the full threat boundary.
 - Supported work is text, code, research synthesis, and local validation only.
   Images, files-as-multimodal-input, audio, video, browser control, desktop
   control, MCP, and computer use are out of scope.
-- The built-in DeepSeek pack currently installs `deepseek-v4-flash` only.
-  `deepseek-v4-pro` is an API-verified candidate, not a selectable pack or a
-  runtime-verified model. MiniMax supports `MiniMax-M3` only. Qwen supports the
-  text-only `qwen3.7-max` model on Alibaba Model Studio pay-as-you-go.
+- DeepSeek V4 Flash is the default fallback. `deepseek-v4-pro` is a separate
+  explicit-only Custom Agent profile and is never auto-routed or silently
+  substituted for Flash. Its controlled maintainer E2E does not establish broad
+  public-installer or user acceptance. MiniMax
+  supports `MiniMax-M3` only. Qwen supports the text-only `qwen3.7-max`
+  model on Alibaba Model Studio pay-as-you-go.
 - A configured `luna_worker` is expected when Luna is selected as the OpenAI
   fallback. This repository does not install or alter Luna.
 - Codex Desktop does not guarantee native interception of every collaboration
@@ -219,8 +229,8 @@ apply the configuration, restart Codex Desktop, and verify the installation.
 ## 0. Download the repository
 
 ```sh
-git clone https://github.com/dhy365-creator/codex-third-party-workers.git
-cd codex-third-party-workers
+git clone https://github.com/dhy365-creator/codex-third-party-subagents.git
+cd codex-third-party-subagents
 ```
 
 You can also download the GitHub ZIP and run the following commands from the
@@ -279,6 +289,11 @@ node scripts/install.mjs \
   --consent-data
 ```
 
+For the explicit-only DeepSeek V4 Pro profile, add `--model pro` to a
+reviewed dry-run. It never becomes the automatic fallback. If Doctor identifies
+a matching legacy user Custom Agent, add `--migrate-legacy` only to the
+reviewed apply command; see the [migration guide](docs/migration/custom-agents.md).
+
 MiniMax and Qwen use the same routing options with `--provider minimax` or
 `--provider qwen`. The installer
 manages one selected provider fallback at a time; changing `--provider` changes
@@ -303,12 +318,14 @@ Verification distinguishes two states:
 - `runtimeVerified: false`: the verifier does not auto-promote a controlled
   runtime observation. It stays false until this project defines and records a
   separate, independently accepted runtime-evidence policy.
+- `agentEvidence` reports timestamped local identity checks by agent/provider/model;
+  it has no Host runtime metadata and cannot verify a different model.
 
 ### Optional: support the project
 
 After installation and verification succeed, a GitHub Star is appreciated if
 the project is useful to you. It is completely optional and is never required
-for installation or usage: [codex-third-party-workers](https://github.com/dhy365-creator/codex-third-party-workers).
+for installation or usage: [codex-third-party-subagents](https://github.com/dhy365-creator/codex-third-party-subagents).
 
 ## Uninstall
 
@@ -336,6 +353,10 @@ credentials and bridge archives are intentionally retained.
 - `~/.codex/codex-third-party-workers-backups/`
 - one bounded AGENTS block in `~/.codex/AGENTS.md`
 
+The `codex-third-party-workers` path and marker names above are the legacy
+runtime namespace retained for safe upgrades and uninstall compatibility. They
+do not change the public project name or repository slug.
+
 The official catalog/prompt are acquired at install time and are not vendored in
 this repository.
 
@@ -353,10 +374,10 @@ implementations. They do not access real API keys, Keychain, Codex quota,
 
 This release provides an extensible provider-pack core, not a claim that every
 third-party model already works. DeepSeek V4 Flash, MiniMax-M3, and Qwen3.7-Max
-are built-in, isolated-tested packs. Flash has Level 3 evidence for one bounded
-maintainer E2E; MiniMax-M3 and Qwen3.7-Max have recorded real Codex Desktop
-subagent smoke tests. Generic user acceptance and public-installer claims remain
-separately tracked.
+are built-in, isolated-tested packs. Flash and the explicit-only V4 Pro profile
+have Level 3 evidence for bounded maintainer coding-fixture E2Es; MiniMax-M3 and
+Qwen3.7-Max have recorded real Codex Desktop subagent smoke tests. Generic user
+acceptance and public-installer claims remain separately tracked.
 New providers are added as reviewed code in `src/provider-packs.mjs` with tests;
 the installer does not load arbitrary remote pack manifests.
 
@@ -373,9 +394,9 @@ See [configuration-zh](docs/configuration-zh.md),
 
 ## Feedback and security
 
-- [Report a bug](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=bug_report.yml)
-- [Request provider compatibility](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=provider-compatibility.yml)
-- [Propose a feature](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=feature_request.yml)
+- [Report a bug](https://github.com/dhy365-creator/codex-third-party-subagents/issues/new?template=bug_report.yml)
+- [Request provider compatibility](https://github.com/dhy365-creator/codex-third-party-subagents/issues/new?template=provider-compatibility.yml)
+- [Propose a feature](https://github.com/dhy365-creator/codex-third-party-subagents/issues/new?template=feature_request.yml)
 - [Report a security issue privately](SECURITY.md)
 
 Never include credentials, private task text, private filesystem paths, or

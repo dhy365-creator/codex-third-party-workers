@@ -9,10 +9,17 @@ import {
   hasArchivedBridgeTask,
 } from './bridge.mjs';
 import { keychainReady } from './keychain.mjs';
-import { resolveProviderPack, DEFAULT_PROVIDER_ID } from './provider-packs.mjs';
+import {
+  DEFAULT_PROVIDER_ID,
+  PACKAGE_NAME,
+  resolveProviderPack,
+  resolveProviderPackByRole,
+} from './provider-packs.mjs';
+import { validateCustomAgentToml } from './custom-agents.mjs';
+import { inspectProjectCustomAgentLayers } from './project-agent-safety.mjs';
 import { chooseRoute, ROLES, validatePreflightInput } from './routing.mjs';
 
-const FALLBACK_AGENT = 'codex-third-party-workers';
+const FALLBACK_AGENT = PACKAGE_NAME;
 
 function codexBinary(env = process.env) {
   const candidates = [
@@ -95,15 +102,67 @@ export function quotaSnapshot(result) {
   };
 }
 
-async function installedProviderReady(config, deps = {}) {
-  const providerPack = resolveProviderPack(config.providerId ?? DEFAULT_PROVIDER_ID);
+function configuredProfiles(config) {
+  const providerId = config.providerId ?? DEFAULT_PROVIDER_ID;
+  const records = Array.isArray(config.profiles) && config.profiles.length
+    ? config.profiles
+    : [{
+      id: config.modelProfile,
+      providerRole: config.providerRole,
+      model: config.model,
+      agentPath: config.agentPath,
+      catalogPath: config.catalogPath,
+    }];
+  const profiles = records.map((record) => {
+    const role = record.providerRole ?? record.role;
+    const providerPack = role
+      ? resolveProviderPackByRole(providerId, role)
+      : resolveProviderPack(providerId, record.id ?? record.model);
+    if (record.id && record.id !== providerPack.profile) throw new Error('runtime profile id is invalid');
+    if (record.model && record.model !== providerPack.model) throw new Error('runtime profile model is invalid');
+    if (role && role !== providerPack.role) throw new Error('runtime profile role is invalid');
+    if (!record.agentPath || !record.catalogPath) throw new Error('runtime profile paths are missing');
+    return {
+      providerPack,
+      providerRole: providerPack.role,
+      agentPath: record.agentPath,
+      catalogPath: record.catalogPath,
+    };
+  });
+  if (new Set(profiles.map((profile) => profile.providerRole)).size !== profiles.length) {
+    throw new Error('runtime profiles contain a duplicate worker role');
+  }
+  return profiles;
+}
+
+function defaultProviderRole(config, profiles) {
+  const providerId = config.providerId ?? DEFAULT_PROVIDER_ID;
+  const flash = profiles.find((profile) => profile.providerPack.profile === 'flash');
+  const expected = providerId === 'deepseek' ? flash?.providerRole ?? null : profiles[0]?.providerRole ?? null;
+  if (config.defaultProviderRole !== undefined && config.defaultProviderRole !== expected) {
+    throw new Error('runtime default provider role is invalid');
+  }
+  return expected;
+}
+
+async function installedProviderReady(config, profile, deps = {}) {
+  const providerPack = profile.providerPack;
   const filesExist = deps.existsSync ?? existsSync;
-  if (![config.agentPath, config.catalogPath, config.configPath].every((file) => filesExist(file))) {
+  if (![profile.agentPath, profile.catalogPath, config.configPath].every((file) => filesExist(file))) {
     return false;
   }
   try {
-    const catalog = JSON.parse(await fs.readFile(config.catalogPath, 'utf8'));
+    const [catalogText, agentText] = await Promise.all([
+      fs.readFile(profile.catalogPath, 'utf8'),
+      fs.readFile(profile.agentPath, 'utf8'),
+    ]);
+    const catalog = JSON.parse(catalogText);
     if (!catalogIsSafe(catalog, providerPack.catalog)) return false;
+    if (!validateCustomAgentToml(agentText, {
+      name: providerPack.role,
+      model: providerPack.model,
+      modelProvider: providerPack.modelProvider,
+    }).configured) return false;
   } catch {
     return false;
   }
@@ -117,7 +176,7 @@ async function installedProviderReady(config, deps = {}) {
   });
 }
 
-async function routingState(config, deps = {}) {
+async function routingState(config, profiles, deps = {}) {
   let quota = { sparkRemaining: null, generalRemaining: null };
   try {
     const read = deps.readRateLimits ?? readRateLimitsFromAppServer;
@@ -125,22 +184,23 @@ async function routingState(config, deps = {}) {
   } catch {
     // Unknown quota must keep an OpenAI role.
   }
-  let providerReady = false;
-  try {
-    providerReady = await installedProviderReady(config, deps);
-  } catch {
-    // Provider readiness check failure means unavailable fallback provider.
-  }
+  const providerReadyByRole = Object.fromEntries(await Promise.all(profiles.map(async (profile) => {
+    try {
+      return [profile.providerRole, await installedProviderReady(config, profile, deps)];
+    } catch {
+      return [profile.providerRole, false];
+    }
+  })));
   let busy = true;
   try {
     busy = await (deps.bridgeBusyImpl ?? bridgeBusy)({ root: config.bridgePath });
   } catch {
     // Invalid bridge state fails closed.
   }
-  return { ...quota, providerReady, bridgeBusy: busy };
+  return { ...quota, providerReadyByRole, bridgeBusy: busy };
 }
 
-function outputFor(input, route, state, bridgePrepared = false) {
+function outputFor(input, route, state, profile, bridgePrepared = false) {
   if (route.decision === 'deny') {
     return { version: 1, decision: 'deny', action: 'deny', reason: route.reason };
   }
@@ -157,21 +217,35 @@ function outputFor(input, route, state, bridgePrepared = false) {
       sparkRemaining: state.sparkRemaining,
       generalRemaining: state.generalRemaining,
     },
+    worker: profile ? {
+      providerId: profile.providerPack.id,
+      providerRole: profile.providerRole,
+      model: profile.providerPack.model,
+      customAgentName: profile.providerRole,
+    } : null,
     reason: route.reason,
   };
 }
 
 export async function runPreflight(input, config, deps = {}) {
   validatePreflightInput(input);
-  const state = await routingState(config, deps);
-  const providerReady = await installedProviderReady(config, deps);
-  const providerPack = resolveProviderPack(config.providerId ?? DEFAULT_PROVIDER_ID);
+  const profiles = configuredProfiles(config);
+  const defaultRole = defaultProviderRole(config, profiles);
+  if (![ROLES.SPARK, ROLES.LUNA, ...profiles.map((profile) => profile.providerRole)].includes(input.requestedAgent)) {
+    throw new Error('unknown requested agent');
+  }
+  const state = await routingState(config, profiles, deps);
+  const requestedProfile = profiles.find((profile) => profile.providerRole === input.requestedAgent) ?? null;
+  const defaultProfile = profiles.find((profile) => profile.providerRole === defaultRole) ?? null;
+  const providerReady = state.providerReadyByRole[(requestedProfile ?? defaultProfile)?.providerRole] ?? false;
   const routeInput = {
     operation: input.operation,
     requestedAgent: input.requestedAgent,
     existingAgentType: input.existingAgentType,
     providerSuitable: input.providerSuitable ?? input.deepseekSuitable,
-    providerRole: providerPack.role,
+    providerRole: defaultRole,
+    providerRoles: profiles.map((profile) => profile.providerRole),
+    defaultProviderRole: defaultRole,
     threshold: config.threshold,
     sparkAvailable: config.sparkAvailable,
     sparkRemaining: state.sparkRemaining,
@@ -181,7 +255,25 @@ export async function runPreflight(input, config, deps = {}) {
     bridgeBusy: state.bridgeBusy,
   };
   let route = chooseRoute(routeInput);
-  if (route.chosenAgent !== providerPack.role) return outputFor(input, route, state);
+  let selectedProfile = profiles.find((profile) => profile.providerRole === route.chosenAgent) ?? null;
+  if (!selectedProfile) return outputFor(input, route, state, null);
+
+  let projectAgentsSafe = false;
+  try {
+    const inspect = deps.inspectProjectAgentLayersImpl ?? inspectProjectCustomAgentLayers;
+    projectAgentsSafe = (await inspect({ cwd: input.cwd })).safe === true;
+  } catch {
+    // An ambiguous Host identity must keep an OpenAI role.
+  }
+  if (!projectAgentsSafe) {
+    route = chooseRoute({ ...routeInput, providerReady: false });
+    route = {
+      ...route,
+      reason: 'project custom-agent layer present or unreadable; safe OpenAI fallback',
+    };
+    selectedProfile = profiles.find((profile) => profile.providerRole === route.chosenAgent) ?? null;
+    return outputFor(input, route, state, selectedProfile);
+  }
 
   let taskName = input.taskName;
   if (route.action === 'followup') {
@@ -202,8 +294,11 @@ export async function runPreflight(input, config, deps = {}) {
       taskName,
       cwd: input.cwd,
       message: input.message,
+      providerId: selectedProfile.providerPack.id,
+      providerRole: selectedProfile.providerRole,
+      model: selectedProfile.providerPack.model,
     });
-    return outputFor(input, route, state, true);
+    return outputFor(input, route, state, selectedProfile, true);
   } catch (error) {
     const busy = error instanceof BridgeBusyError || error?.code === 'BRIDGE_BUSY';
     route = chooseRoute({
@@ -217,7 +312,8 @@ export async function runPreflight(input, config, deps = {}) {
         ? 'provider bridge is busy; safe OpenAI fallback'
         : 'provider bridge preparation failed; safe OpenAI fallback',
     };
-    return outputFor(input, route, state);
+    selectedProfile = profiles.find((profile) => profile.providerRole === route.chosenAgent) ?? null;
+    return outputFor(input, route, state, selectedProfile);
   }
 }
 

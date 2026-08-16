@@ -1,5 +1,10 @@
 # DeepSeek Controlled Runtime E2E — 2026-08-16
 
+> Migration note: this record preserves the pre-migration runtime attempt. Its
+> V4 Pro configuration statements are historical. The later explicit-only
+> Custom Agent profile and attributable controlled Pro E2E are documented in
+> [the current runtime record](deepseek-custom-subagents-runtime-e2e-2026-08-16.md).
+
 ## Scope and verdict
 
 This is a sanitized, maintainer-controlled runtime record. It keeps the two
@@ -91,11 +96,10 @@ sets existing parent directories to \`0700\`; because the original \`bin\` and \
 directory modes were not captured, exact restoration of those two modes cannot
 be asserted. This is a cleanup **WARN**, not a provider-runtime success signal.
 
-## Required next action
+## Historical next action — subsequently completed
 
-Use an interactive Codex CLI session or Codex Desktop workflow with a visible
-agent picker to invoke the temporary named V4 Pro worker. Before any status
-change, independently verify the selected worker/model, fixture tool use,
-returned result, completed and released bridge, and main-thread review. Do not
-replace this action with another noninteractive \`codex exec\` prompt, and do not
-add V4 Pro selection or routing before that evidence exists.
+The explicit named Pro path, fixture tool use, result, bridge completion/release,
+and main-thread review were later verified in a fresh Host session. See the
+[current controlled runtime record](deepseek-custom-subagents-runtime-e2e-2026-08-16.md).
+This document preserves the earlier attempt and must not be read as the current
+Pro status. Automatic Flash/Pro routing remains disabled.

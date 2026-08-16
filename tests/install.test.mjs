@@ -25,6 +25,16 @@ const qwenFixture = path.join(
   'qwen-model-doc.html',
 );
 
+function customAgentHost() {
+  return {
+    supported: true,
+    version: '0.147.0',
+    multiAgent: true,
+    multiAgentV2: false,
+    reason: 'Codex reports multi_agent enabled',
+  };
+}
+
 async function setup(t) {
   const homeDir = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-dsw-home-'));
   t.after(() => fs.rm(homeDir, { recursive: true, force: true }));
@@ -53,6 +63,7 @@ async function setup(t) {
     consentData: true,
     catalogSource: fixtureCatalog,
     keychainReadyImpl: async () => true,
+    inspectCustomAgentHostImpl: async () => customAgentHost(),
   };
   return { homeDir, codexDir, configToml, sentinel, options };
 }
@@ -75,6 +86,10 @@ test('dry-run writes nothing, apply is idempotent, verify is honest, and uninsta
   assert.doesNotMatch(agent, /gpt-5\.6-sol/);
   const catalog = JSON.parse(await fs.readFile(applied.environment.catalogPath, 'utf8'));
   assert.deepEqual(catalog.models.map((model) => model.slug), ['deepseek-v4-flash']);
+  await assert.rejects(
+    fs.stat(path.join(fixture.codexDir, 'agents', 'deepseek_pro_worker.toml')),
+    /ENOENT/,
+  );
 
   const checked = await verify({
     ...fixture.options,
@@ -83,6 +98,17 @@ test('dry-run writes nothing, apply is idempotent, verify is honest, and uninsta
   });
   assert.equal(checked.configured, true);
   assert.equal(checked.runtimeVerified, false);
+  assert.deepEqual(checked.agentEvidence.map((evidence) => ({
+    providerRole: evidence.providerRole,
+    model: evidence.model,
+    runtimeVerified: evidence.runtimeVerified,
+  })), [{
+    providerRole: 'deepseek_worker',
+    model: 'deepseek-v4-flash',
+    runtimeVerified: false,
+  }]);
+  assert.equal(checked.runtimeEvidence.model, 'deepseek-v4-flash');
+  assert.equal(checked.runtimeEvidence.hostRuntimeMetadata, null);
   assert.match(checked.warnings.join('\n'), /runtime remains unverified/);
 
   await fs.appendFile(path.join(fixture.codexDir, 'AGENTS.md'), '# Later user rule\n');
@@ -104,6 +130,97 @@ test('dry-run writes nothing, apply is idempotent, verify is honest, and uninsta
   assert.doesNotMatch(finalAgents, new RegExp(AGENTS_END));
   await assert.rejects(fs.stat(applied.environment.agentPath), /ENOENT/);
   await assert.rejects(fs.stat(applied.manifestPath), /ENOENT/);
+  await assert.rejects(fs.stat(applied.environment.runtimeDir), /ENOENT/);
+});
+
+test('explicit Pro install creates only the dedicated Pro worker and verifies it separately', async (t) => {
+  const fixture = await setup(t);
+  const options = { ...fixture.options, model: 'pro' };
+  const dry = await install(options);
+  assert.equal(dry.profile.providerRole, 'deepseek_pro_worker');
+  assert.deepEqual(dry.profiles, [{
+    id: 'pro', providerRole: 'deepseek_pro_worker', model: 'deepseek-v4-pro',
+  }]);
+
+  const applied = await install({ ...options, apply: true });
+  const agent = await fs.readFile(applied.environment.agentPath, 'utf8');
+  assert.match(agent, /name = "deepseek_pro_worker"/);
+  assert.match(agent, /model = "deepseek-v4-pro"/);
+  const catalog = JSON.parse(await fs.readFile(applied.environment.catalogPath, 'utf8'));
+  assert.deepEqual(catalog.models.map((model) => model.slug), ['deepseek-v4-pro']);
+  const config = JSON.parse(await fs.readFile(applied.environment.configPath, 'utf8'));
+  assert.equal(config.defaultProviderRole, null);
+  assert.deepEqual(config.profiles.map((profile) => profile.providerRole), ['deepseek_pro_worker']);
+
+  const pro = await verify({ ...options, checkKeychain: true, keychainReadyImpl: async () => true });
+  assert.equal(pro.configured, true);
+  assert.deepEqual(pro.profile, {
+    id: 'pro', providerRole: 'deepseek_pro_worker', model: 'deepseek-v4-pro',
+  });
+  const flash = await verify({ ...fixture.options, checkKeychain: true, keychainReadyImpl: async () => true });
+  assert.equal(flash.configured, false);
+  assert.match(flash.issues.join('\n'), /selected provider model profile is not installed/);
+
+  const removed = await uninstall({ ...fixture.options, apply: true });
+  assert.equal(removed.applied, true);
+  await assert.rejects(fs.stat(applied.environment.agentPath), /ENOENT/);
+});
+
+test('adding explicit Pro preserves Flash as the default fallback and removes both on rollback', async (t) => {
+  const fixture = await setup(t);
+  await install({ ...fixture.options, apply: true });
+  const proApplied = await install({ ...fixture.options, model: 'pro', apply: true });
+  const agentsDir = path.join(fixture.codexDir, 'agents');
+  const flashAgent = await fs.readFile(path.join(agentsDir, 'deepseek_worker.toml'), 'utf8');
+  const proAgent = await fs.readFile(path.join(agentsDir, 'deepseek_pro_worker.toml'), 'utf8');
+  assert.match(flashAgent, /model = "deepseek-v4-flash"/);
+  assert.match(proAgent, /model = "deepseek-v4-pro"/);
+  const config = JSON.parse(await fs.readFile(proApplied.environment.configPath, 'utf8'));
+  assert.equal(config.defaultProviderRole, 'deepseek_worker');
+  assert.deepEqual(config.profiles.map((profile) => profile.model), [
+    'deepseek-v4-flash', 'deepseek-v4-pro',
+  ]);
+
+  const flash = await verify({ ...fixture.options, checkKeychain: true, keychainReadyImpl: async () => true });
+  const pro = await verify({ ...fixture.options, model: 'pro', checkKeychain: true, keychainReadyImpl: async () => true });
+  assert.equal(flash.configured, true);
+  assert.equal(pro.configured, true);
+
+  const removed = await uninstall({ ...fixture.options, apply: true });
+  assert.equal(removed.applied, true);
+  await assert.rejects(fs.stat(path.join(agentsDir, 'deepseek_worker.toml')), /ENOENT/);
+  await assert.rejects(fs.stat(path.join(agentsDir, 'deepseek_pro_worker.toml')), /ENOENT/);
+  await assert.rejects(fs.stat(proApplied.environment.runtimeDir), /ENOENT/);
+});
+
+test('Pro installation preserves pre-existing parent directory modes through rollback', async (t) => {
+  const fixture = await setup(t);
+  const parents = [
+    [fixture.codexDir, 0o750],
+    [path.join(fixture.codexDir, 'agents'), 0o755],
+    [path.join(fixture.codexDir, 'model-catalogs'), 0o750],
+    [path.join(fixture.codexDir, 'bin'), 0o755],
+    [path.join(fixture.codexDir, 'lib', 'codex-third-party-workers'), 0o750],
+    [path.join(fixture.codexDir, 'codex-third-party-workers-backups'), 0o755],
+  ];
+  for (const [directory, mode] of parents) {
+    await fs.mkdir(directory, { recursive: true });
+    await fs.chmod(directory, mode);
+  }
+  await install({ ...fixture.options, model: 'pro', apply: true });
+  for (const [directory, mode] of parents) {
+    assert.equal((await fs.stat(directory)).mode & 0o777, mode);
+  }
+  await uninstall({ ...fixture.options, apply: true });
+  for (const [directory, mode] of parents) {
+    assert.equal((await fs.stat(directory)).mode & 0o777, mode);
+  }
+});
+
+test('installer rejects invalid model selections and DeepSeek-only model aliases on other providers', async (t) => {
+  const fixture = await setup(t);
+  await assert.rejects(install({ ...fixture.options, model: 'unknown' }), /unsupported model/);
+  await assert.rejects(install({ ...fixture.options, provider: 'minimax', model: 'pro' }), /unsupported model/);
 });
 
 test('uninstall reports conflicts and performs no partial removal', async (t) => {
@@ -113,8 +230,65 @@ test('uninstall reports conflicts and performs no partial removal', async (t) =>
   const result = await uninstall({ ...fixture.options, apply: true });
   assert.equal(result.applied, false);
   assert.match(result.conflicts.join('\n'), /managed file was modified/);
+  assert.equal(JSON.stringify(result).includes(fixture.homeDir), false);
   await fs.stat(applied.environment.preflightPath);
   await fs.stat(applied.manifestPath);
+});
+
+test('a matching legacy Custom Agent needs explicit migration and restores from backup', async (t) => {
+  const fixture = await setup(t);
+  const agentsDir = path.join(fixture.codexDir, 'agents');
+  const agentPath = path.join(agentsDir, 'deepseek_worker.toml');
+  const legacy = [
+    'name = "deepseek_worker"',
+    'description = "legacy fixture"',
+    'model = "deepseek-v4-flash"',
+    'model_provider = "deepseek"',
+    '',
+    'developer_instructions = """',
+    'legacy fixture',
+    '"""',
+    '',
+  ].join('\n');
+  await fs.mkdir(agentsDir, { recursive: true });
+  await fs.writeFile(agentPath, legacy, { mode: 0o600 });
+
+  await assert.rejects(
+    install({ ...fixture.options, apply: true }),
+    /--migrate-legacy/,
+  );
+  assert.equal(await fs.readFile(agentPath, 'utf8'), legacy);
+
+  const applied = await install({ ...fixture.options, apply: true, migrateLegacy: true });
+  assert.deepEqual(applied.migration.candidates, ['deepseek_worker']);
+  assert.equal(applied.migration.applied, true);
+  const agentRecord = applied.managedFiles.find((record) => record.kind === 'agent');
+  assert.ok(agentRecord?.backup);
+
+  const removed = await uninstall({ ...fixture.options, apply: true });
+  assert.equal(removed.applied, true);
+  assert.equal(await fs.readFile(agentPath, 'utf8'), legacy);
+});
+
+test('a mismatched Custom Agent filename fails closed instead of being adopted', async (t) => {
+  const fixture = await setup(t);
+  const agentsDir = path.join(fixture.codexDir, 'agents');
+  await fs.mkdir(agentsDir, { recursive: true });
+  await fs.writeFile(path.join(agentsDir, 'deepseek_worker.toml'), [
+    'name = "different_worker"',
+    'description = "fixture"',
+    'model = "deepseek-v4-flash"',
+    'model_provider = "deepseek"',
+    '',
+    'developer_instructions = """',
+    'fixture',
+    '"""',
+    '',
+  ].join('\n'));
+  await assert.rejects(
+    install({ ...fixture.options, apply: true, migrateLegacy: true }),
+    /identity conflict/,
+  );
 });
 
 test('missing Keychain credential fails before any configuration write', async (t) => {
@@ -187,12 +361,32 @@ test('uninstall restores a validated pre-existing managed file', async (t) => {
   const agentsDir = path.join(fixture.codexDir, 'agents');
   await fs.mkdir(agentsDir, { recursive: true });
   const agentPath = path.join(agentsDir, 'deepseek_worker.toml');
-  const original = 'name = "user-owned-deepseek-worker"\n';
+  const original = [
+    'name = "deepseek_worker"',
+    'description = "user-owned fixture"',
+    'model = "deepseek-v4-flash"',
+    'model_provider = "deepseek"',
+    '',
+    'developer_instructions = """',
+    'user-owned fixture',
+    '"""',
+    '',
+  ].join('\n');
   await fs.writeFile(agentPath, original, { mode: 0o640 });
-  await install({ ...fixture.options, apply: true });
+  await install({ ...fixture.options, apply: true, migrateLegacy: true });
   assert.notEqual(await fs.readFile(agentPath, 'utf8'), original);
   const result = await uninstall({ ...fixture.options, apply: true });
   assert.equal(result.applied, true);
   assert.equal(await fs.readFile(agentPath, 'utf8'), original);
   assert.equal((await fs.stat(agentPath)).mode & 0o777, 0o640);
+});
+
+test('uninstall plan output does not expose user rules or managed paths', async (t) => {
+  const fixture = await setup(t);
+  await install({ ...fixture.options, apply: true });
+  const result = await uninstall(fixture.options);
+  const output = JSON.stringify(result);
+  assert.equal(output.includes(fixture.homeDir), false);
+  assert.equal(output.includes('# Existing user rules'), false);
+  assert.deepEqual(Object.keys(result.actions[0]).sort(), ['kind', 'preExisting', 'type']);
 });

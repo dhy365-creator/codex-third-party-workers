@@ -7,7 +7,7 @@ provider worker returning a result through the bridge for Codex review.
 
 ## Evidence source
 
-- [Merged PR #4](https://github.com/dhy365-creator/codex-third-party-workers/pull/4),
+- [Merged PR #4](https://github.com/dhy365-creator/codex-third-party-subagents/pull/4),
   which records the API, SSE, automatic Function Calling, CLI, Desktop worker,
   and bridge-release checks.
 - [Current state](../current-state.md) and the

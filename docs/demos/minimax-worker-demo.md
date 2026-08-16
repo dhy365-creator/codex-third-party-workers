@@ -7,7 +7,7 @@ Codex Desktop subagent smoke run.
 
 ## Evidence source
 
-- [Merged PR #3](https://github.com/dhy365-creator/codex-third-party-workers/pull/3),
+- [Merged PR #3](https://github.com/dhy365-creator/codex-third-party-subagents/pull/3),
   which records live Responses, SSE, a two-turn Function Calling round trip,
   CLI, Desktop worker, and bridge-release checks.
 - [Current state](../current-state.md) and the

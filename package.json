@@ -1,16 +1,16 @@
 {
-  "name": "codex-third-party-workers",
+  "name": "codex-third-party-subagents",
   "version": "0.4.0-beta.2",
-  "description": "Unofficial macOS-only beta provider-pack architecture for Codex Desktop that routes bounded text and code tasks to fallback providers.",
+  "description": "Unofficial macOS-only beta for bounded Codex custom subagents backed by third-party provider APIs.",
   "private": true,
   "license": "MIT",
   "repository": {
     "type": "git",
-    "url": "https://github.com/dhy365-creator/codex-third-party-workers.git"
+    "url": "https://github.com/dhy365-creator/codex-third-party-subagents.git"
   },
-  "homepage": "https://github.com/dhy365-creator/codex-third-party-workers#readme",
+  "homepage": "https://github.com/dhy365-creator/codex-third-party-subagents#readme",
   "bugs": {
-    "url": "https://github.com/dhy365-creator/codex-third-party-workers/issues"
+    "url": "https://github.com/dhy365-creator/codex-third-party-subagents/issues"
   },
   "type": "module",
   "engines": {
@@ -19,6 +19,7 @@
   "keywords": [
     "codex",
     "codex-third-party",
+    "subagents",
     "provider-pack",
     "fallback",
     "third-party",

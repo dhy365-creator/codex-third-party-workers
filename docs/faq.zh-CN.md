@@ -76,10 +76,11 @@ Codex 订阅、配额和其自身计费边界仍然成立。
 
 ### 当前支持哪些 provider？
 
-当前内置 Pack 与证据状态是：
+当前 Pack / Profile 与证据状态是：
 
 - DeepSeek V4 Flash：已内置并通过隔离测试；一次受控维护者 E2E 已达到 Level 3，但通用用户验收仍待完成。
-- DeepSeek V4 Pro：仅为 API 已验证候选；不是内置 Pack，也未完成 Desktop 运行时验证。
+- DeepSeek V4 Pro：仅显式选择的 Custom Agent 配置 Profile，已有直接 API 与受控维护者
+  Level 3 E2E 证据；公开安装器与独立真实用户验收仍待完成。
 - MiniMax-M3：已内置；已记录 API、CLI 与 Desktop Worker 运行时验证。
 - Qwen3.7-Max：已内置；已记录 API、CLI 与 Desktop Worker 运行时验证。
 
@@ -96,16 +97,22 @@ Codex 订阅、配额和其自身计费边界仍然成立。
 - 有时支持普通文本不代表工具调用闭环可用；
 - 网关路径不代表模型厂商直连兼容。
 
-### 现在可以安装 DeepSeek V4 Pro 吗？
+### 现在可以配置 DeepSeek V4 Pro 吗？
 
-不能。内置 DeepSeek Pack 仍只选择 V4 Flash。V4 Pro 已有原生 Responses API 和受控直接
-API 证据，但在显式模型选择、安装器覆盖和真实 Codex Desktop 路径分别验证前，仍只是候选。
-见[脱敏探测记录](validation/deepseek-v4-pro-probe-2026-08-16.md)。
+当 Doctor 确认 Host 与 identity 条件后，可以先检查带 `--model pro` 的
+explicit-only dry-run；它绝不成为自动 fallback。若检测到匹配的旧用户定义，正式应用还需
+显式加入 `--migrate-legacy --apply`。
+
+受控维护者运行已记录预期的 Host Provider/Model tuple、工具使用、bridge 完成/释放和
+主线程复核。这不等于自动路由、Provider dashboard 归因、其他用户环境的公开安装器成功、
+广义可靠性或独立用户验收；验证器仍为 `runtimeVerified: false`。见
+[Custom Agents 迁移说明](migration/custom-agents.md)和
+[脱敏运行记录](validation/deepseek-custom-subagents-runtime-e2e-2026-08-16.md)。
 
 ### 什么时候可以申请新 provider？
 
 按下面入口提交申请：
-[Provider compatibility request](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=provider-compatibility.yml)
+[Provider compatibility request](https://github.com/dhy365-creator/codex-third-party-subagents/issues/new?template=provider-compatibility.yml)
 
 ## 安装与验证
 

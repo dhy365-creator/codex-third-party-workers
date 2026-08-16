@@ -4,12 +4,17 @@ import { discoverEnvironment } from './environment.mjs';
 import { fs, lstatIfExists, sha256File } from './fs-utils.mjs';
 import { keychainReady } from './keychain.mjs';
 import { extractAgentsBlock } from './templates.mjs';
-import { resolveProviderPack, DEFAULT_PROVIDER_ID as PACK_DEFAULT } from './provider-packs.mjs';
+import { validateCustomAgentToml } from './custom-agents.mjs';
+import {
+  DEFAULT_PROVIDER_ID as PACK_DEFAULT,
+  resolveProviderPack,
+} from './provider-packs.mjs';
 
 const RUNTIME_FILES = [
   'bridge.mjs',
   'bridge-cli.mjs',
   'catalog.mjs',
+  'custom-agents.mjs',
   'environment.mjs',
   'fs-utils.mjs',
   'keychain.mjs',
@@ -18,16 +23,64 @@ const RUNTIME_FILES = [
   'routing.mjs',
 ];
 
-function allowedPaths(env) {
+function allowedPaths(env, profiles) {
   return new Set([
     ...RUNTIME_FILES.map((name) => path.join(env.runtimeDir, name)),
-    env.agentPath,
+    ...profiles.flatMap((profile) => [profile.agentPath, profile.catalogPath]),
     env.configPath,
-    env.catalogPath,
     env.preflightPath,
     env.bridgeCliPath,
     env.agentsMarkerPath,
   ]);
+}
+
+function profileEnvironment(env, profile) {
+  const found = env.profileEnvironments.find((candidate) => candidate.profile === profile.profile);
+  if (!found) throw new Error(`provider profile environment is missing: ${profile.profile}`);
+  return { ...profile, ...found };
+}
+
+function profilesFromManifest(manifest, providerId, env) {
+  const records = Array.isArray(manifest.options?.profiles) && manifest.options.profiles.length
+    ? manifest.options.profiles
+    : [{
+      id: manifest.options?.modelProfile,
+      model: manifest.options?.model,
+      providerRole: manifest.options?.providerRole,
+    }];
+  const profiles = records.map((record) => {
+    const selection = record.id ?? record.profile ?? record.model;
+    const pack = resolveProviderPack(providerId, selection);
+    const role = record.providerRole ?? record.role;
+    if (record.id && record.id !== pack.profile) throw new Error('manifest profile id is invalid');
+    if (record.model && record.model !== pack.model) throw new Error('manifest profile model is invalid');
+    if (role && role !== pack.role) throw new Error('manifest profile role is invalid');
+    return profileEnvironment(env, pack);
+  });
+  if (!profiles.length || new Set(profiles.map((profile) => profile.role)).size !== profiles.length) {
+    throw new Error('manifest profiles are invalid');
+  }
+  return profiles;
+}
+
+function configProfilesAreValid(config, profiles) {
+  if (!Array.isArray(config.profiles) || config.profiles.length !== profiles.length) return false;
+  return profiles.every((profile) => config.profiles.some((record) => (
+    record.id === profile.profile
+    && record.providerRole === profile.role
+    && record.model === profile.model
+    && record.agentPath === profile.agentPath
+    && record.catalogPath === profile.catalogPath
+  )));
+}
+
+function configCustomAgentsAreValid(config, profiles) {
+  if (!Array.isArray(config.customAgents) || config.customAgents.length !== profiles.length) return false;
+  return profiles.every((profile) => config.customAgents.some((agent) => (
+    agent.name === profile.role
+    && agent.model === profile.model
+    && agent.modelProvider === profile.providerPack.modelProvider
+  )));
 }
 
 async function readManifest(env) {
@@ -44,7 +97,8 @@ async function readManifest(env) {
 }
 
 export async function verify(options = {}) {
-  const env = discoverEnvironment({ provider: options.provider ?? PACK_DEFAULT, ...options, env: options.env ?? process.env });
+  const checkedAt = (options.now instanceof Date ? options.now : new Date()).toISOString();
+  let env = discoverEnvironment({ provider: options.provider ?? PACK_DEFAULT, ...options, env: options.env ?? process.env });
   const issues = [];
   const warnings = [];
   let manifest;
@@ -65,14 +119,33 @@ export async function verify(options = {}) {
   }
 
   const providerId = manifest.options?.providerId ?? env.providerPack?.id ?? PACK_DEFAULT;
+  if (options.provider && String(options.provider).trim().toLowerCase() !== providerId) {
+    issues.push('selected provider does not match the installed provider');
+  }
   let providerPack;
   try {
-    providerPack = resolveProviderPack(providerId);
+    providerPack = resolveProviderPack(providerId, options.model);
+    env = discoverEnvironment({
+      ...options,
+      provider: providerId,
+      model: providerPack.profile,
+      env: options.env ?? process.env,
+    });
   } catch {
     issues.push(`unknown provider pack in manifest: ${providerId}`);
   }
 
-  const allowed = allowedPaths(env);
+  let profiles = [];
+  try {
+    if (providerPack) profiles = profilesFromManifest(manifest, providerId, env);
+  } catch (error) {
+    issues.push(error.message);
+  }
+  if (providerPack && !profiles.some((profile) => profile.profile === providerPack.profile)) {
+    issues.push('selected provider model profile is not installed');
+  }
+
+  const allowed = allowedPaths(env, profiles);
   const recorded = new Set();
   for (const record of manifest.managedFiles ?? []) {
     if (!allowed.has(record.path)) {
@@ -109,20 +182,61 @@ export async function verify(options = {}) {
     if (!recorded.has(required)) issues.push(`manifest is missing a managed path: ${required}`);
   }
 
-  try {
-    const catalog = JSON.parse(await fs.readFile(env.catalogPath, 'utf8'));
-    if (providerPack && !catalogIsSafe(catalog, providerPack.catalog)) {
-      issues.push('runtime catalog is not safe for this provider pack');
+  const agentEvidence = [];
+  for (const profile of profiles) {
+    let agentConfigured = false;
+    try {
+      const agentText = await fs.readFile(profile.agentPath, 'utf8');
+      const agent = validateCustomAgentToml(agentText, {
+        name: profile.role,
+        model: profile.model,
+        modelProvider: profile.providerPack.modelProvider,
+      });
+      if (!agent.configured) {
+        issues.push(`custom-agent definition is invalid for ${profile.role}`);
+      } else {
+        agentConfigured = true;
+      }
+    } catch {
+      issues.push(`custom-agent definition is missing or invalid for ${profile.role}`);
     }
-  } catch {
-    issues.push('runtime catalog is missing or invalid');
+    try {
+      const catalog = JSON.parse(await fs.readFile(profile.catalogPath, 'utf8'));
+      if (!catalogIsSafe(catalog, profile.providerPack.catalog)) {
+        issues.push(`runtime catalog is not safe for ${profile.model}`);
+      }
+    } catch {
+      issues.push(`runtime catalog is missing or invalid for ${profile.model}`);
+    }
+    agentEvidence.push({
+      checkedAt,
+      providerId,
+      providerRole: profile.role,
+      model: profile.model,
+      configured: agentConfigured,
+      hostRuntimeMetadata: null,
+      runtimeVerified: false,
+    });
   }
 
   try {
     const config = JSON.parse(await fs.readFile(env.configPath, 'utf8'));
     if (config.providerId !== providerId) issues.push('runtime config provider id is invalid');
-    if (providerPack && config.model !== providerPack.model) issues.push('runtime config model is invalid');
-    if (config.providerRole && config.providerRole !== providerPack?.role) issues.push('runtime config provider role is invalid');
+    const legacyConfigMatches = profiles.length === 1
+      && config.model === profiles[0]?.model
+      && config.providerRole === profiles[0]?.role;
+    if (!configProfilesAreValid(config, profiles) && !legacyConfigMatches) {
+      issues.push('runtime config profiles are invalid');
+    }
+    if (!configCustomAgentsAreValid(config, profiles)) {
+      issues.push('runtime config custom-agent identities are invalid');
+    }
+    const expectedDefaultRole = providerId === 'deepseek'
+      ? profiles.find((profile) => profile.profile === 'flash')?.role ?? null
+      : profiles[0]?.role ?? null;
+    if (config.defaultProviderRole !== undefined && config.defaultProviderRole !== expectedDefaultRole) {
+      issues.push('runtime config default provider role is invalid');
+    }
   } catch {
     issues.push('worker config is missing or invalid');
   }
@@ -151,6 +265,9 @@ export async function verify(options = {}) {
     warnings.push('Keychain credential check was skipped');
   }
   warnings.push('No live Codex subagent task was run; runtime remains unverified');
+  const selectedAgentEvidence = agentEvidence.find((evidence) => (
+    evidence.providerRole === providerPack?.role && evidence.model === providerPack?.model
+  )) ?? null;
 
   return {
     configured: issues.length === 0,
@@ -160,5 +277,27 @@ export async function verify(options = {}) {
     warnings,
     environment: env,
     manifest,
+    profile: providerPack ? {
+      id: providerPack.profile,
+      providerRole: providerPack.role,
+      model: providerPack.model,
+    } : null,
+    profiles: profiles.map((profile) => ({
+      id: profile.profile,
+      providerRole: profile.role,
+      model: profile.model,
+    })),
+    customAgents: profiles.map((profile) => ({
+      name: profile.role,
+      providerId,
+      model: profile.model,
+      modelProvider: profile.providerPack.modelProvider,
+    })),
+    agentEvidence,
+    runtimeEvidence: selectedAgentEvidence ? {
+      ...selectedAgentEvidence,
+      evidenceSource: 'local Custom Agent configuration validation',
+      runtimeVerified: false,
+    } : null,
   };
 }

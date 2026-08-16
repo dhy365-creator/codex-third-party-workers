@@ -17,6 +17,11 @@ import {
 } from './catalog.mjs';
 import { keychainReady } from './keychain.mjs';
 import {
+  inspectCustomAgentDefinitions,
+  inspectCustomAgentHost,
+} from './custom-agents.mjs';
+import {
+  listProviderPackProfiles,
   resolveProviderPack,
   listProviderPackIds,
 } from './provider-packs.mjs';
@@ -44,6 +49,7 @@ const RUNTIME_FILES = [
   'bridge.mjs',
   'bridge-cli.mjs',
   'catalog.mjs',
+  'custom-agents.mjs',
   'environment.mjs',
   'fs-utils.mjs',
   'keychain.mjs',
@@ -60,7 +66,7 @@ function normalizeOptions(options) {
   const providerId = String(options.provider ?? DEFAULT_PROVIDER_ID).toLowerCase();
   const plan = String(options.plan ?? '').toLowerCase();
   if (!['plus', 'pro'].includes(plan)) throw new Error('plan must be plus or pro');
-  const providerPack = resolveProviderPack(providerId);
+  const providerPack = resolveProviderPack(providerId, options.model);
   const providerDefaultThreshold = plan === 'plus' ? providerPack.thresholds?.plus ?? 50 : providerPack.thresholds?.pro ?? 10;
   const threshold = parseThreshold(options.threshold ?? providerDefaultThreshold);
   const sparkAvailable = parseBoolean(
@@ -84,6 +90,115 @@ function normalizeOptions(options) {
     threshold,
     sparkAvailable,
     lunaAvailable,
+    migrateLegacy: options.migrateLegacy === true,
+  };
+}
+
+function profileFromManifest(providerId, value) {
+  const candidate = value?.id ?? value?.profile ?? value?.model ?? value;
+  try {
+    return resolveProviderPack(providerId, candidate);
+  } catch {
+    return null;
+  }
+}
+
+function activeProfiles(normalized, previousManifest) {
+  if (normalized.providerId !== 'deepseek') return [normalized.providerPack];
+  const previous = previousManifest?.options?.providerId === normalized.providerId
+    ? (previousManifest.options?.profiles ?? [previousManifest.options?.model])
+      .map((value) => profileFromManifest(normalized.providerId, value))
+      .filter(Boolean)
+    : [];
+  const requested = normalized.providerPack;
+  const requestedProfiles = new Set([...previous, requested].map((profile) => profile.profile));
+  return listProviderPackProfiles(normalized.providerId)
+    .filter((profile) => requestedProfiles.has(profile.profile));
+}
+
+function automaticProviderRole(providerId, profiles) {
+  if (providerId === 'deepseek') {
+    return profiles.find((profile) => profile.profile === 'flash')?.role ?? null;
+  }
+  return profiles[0]?.role ?? null;
+}
+
+function profileEnvironment(env, profile) {
+  const found = env.profileEnvironments.find((candidate) => candidate.profile === profile.profile);
+  if (!found) throw new Error(`provider profile environment is missing: ${profile.profile}`);
+  return found;
+}
+
+function customAgentDefinitions(profiles) {
+  return profiles.map((profile) => ({
+    name: profile.role,
+    model: profile.model,
+    modelProvider: profile.modelProvider,
+    fileName: profile.agentFile,
+  }));
+}
+
+function customAgentMigration({
+  definitions,
+  expected,
+  profileEnvironments,
+  previousManifest,
+  requested,
+} = {}) {
+  const expectedByName = new Map(expected.map((definition) => [definition.name, definition]));
+  const pathByName = new Map(profileEnvironments.map(({ profile, environment }) => [
+    profile.role,
+    environment.agentPath,
+  ]));
+  const managedPaths = new Set((previousManifest?.managedFiles ?? [])
+    .filter((record) => record.kind === 'agent')
+    .map((record) => record.path));
+  const candidates = [];
+  const conflicts = [];
+  for (const state of definitions.expectedDefinitions) {
+    if (!state.present && !state.projectPresent) continue;
+    const expectedDefinition = expectedByName.get(state.name);
+    const managed = managedPaths.has(pathByName.get(state.name));
+    const valid = state.present
+      && state.configured === true
+      && state.modelMatches === true
+      && state.providerMatches === true
+      && state.fileNameMatches !== false
+      && state.duplicate !== true
+      && state.projectPresent !== true;
+    if (!managed && valid) candidates.push(state.name);
+    if (!managed && !valid) conflicts.push(state.name);
+    if (expectedDefinition?.fileName === undefined) conflicts.push(state.name);
+  }
+  return {
+    requested: requested === true,
+    candidates: [...new Set(candidates)].sort(),
+    conflicts: [...new Set(conflicts)].sort(),
+    applied: requested === true && candidates.length > 0,
+    snapshotRequired: candidates.length > 0,
+  };
+}
+
+function customAgentSummary(host, definitions, expected, migration) {
+  return {
+    host: {
+      supported: host.supported,
+      version: host.version,
+      multiAgent: host.multiAgent,
+      multiAgentV2: host.multiAgentV2,
+      reason: host.reason,
+    },
+    expected: expected.map((definition) => ({
+      name: definition.name,
+      model: definition.model,
+      modelProvider: definition.modelProvider,
+    })),
+    duplicateNames: definitions.expectedDefinitions
+      .filter((definition) => definition.duplicate)
+      .map((definition) => definition.name),
+    projectDuplicateNames: definitions.projectDuplicateNames,
+    discoveryRequiresNewSession: true,
+    migration,
   };
 }
 
@@ -94,6 +209,24 @@ async function regularFile(filePath) {
     throw new Error(`refusing to manage non-regular file: ${filePath}`);
   }
   return info;
+}
+
+async function managedDirectory(filePath, previousDirectories = []) {
+  const info = await lstatIfExists(filePath);
+  if (info && (info.isSymbolicLink() || !info.isDirectory())) {
+    throw new Error(`refusing to manage non-directory: ${filePath}`);
+  }
+  const previous = previousDirectories.find((record) => record?.path === filePath);
+  if (previous && typeof previous.preExisting !== 'boolean') {
+    throw new Error('existing install manifest has an invalid managed directory');
+  }
+  return {
+    path: filePath,
+    // A later profile install sees the runtime directory created by the first
+    // install. Preserve its original ownership instead of treating it as user
+    // owned and leaving an empty directory behind on rollback.
+    preExisting: previous?.preExisting ?? Boolean(info),
+  };
 }
 
 async function readPreviousManifest(env) {
@@ -111,7 +244,7 @@ async function makeBackup(filePath, env) {
   const info = await regularFile(filePath);
   if (!info) return null;
   const data = await fs.readFile(filePath);
-  await ensureDir(env.backupDir, 0o700);
+  await ensureDir(env.backupDir, 0o700, { enforceMode: false });
   const name = `${path.basename(filePath)}.${stamp()}-${crypto.randomBytes(5).toString('hex')}.bak`;
   const backupPath = path.join(env.backupDir, name);
   await copyOwnerOnly(filePath, backupPath);
@@ -169,6 +302,53 @@ export async function install(options = {}) {
   const dryRun = normalized.apply !== true;
   if (!dryRun) assertSupportedPlatform(platform);
 
+  const previousManifest = await readPreviousManifest(env);
+  const managedDirectories = [await managedDirectory(
+    env.runtimeDir,
+    previousManifest?.managedDirectories ?? [],
+  )];
+  const profiles = activeProfiles(normalized, previousManifest);
+  const profileEnvironments = profiles.map((profile) => ({
+    profile,
+    environment: profileEnvironment(env, profile),
+  }));
+  const expectedCustomAgents = customAgentDefinitions(profiles);
+  const customAgentHost = await (normalized.inspectCustomAgentHostImpl ?? inspectCustomAgentHost)({
+    codexPath: normalized.codexPath,
+    commandRunner: normalized.commandRunner,
+  });
+  const customAgentDefinitionsState = await (
+    normalized.inspectCustomAgentDefinitionsImpl ?? inspectCustomAgentDefinitions
+  )({
+    homeDir: env.homeDir,
+    projectRoot: normalized.projectRoot,
+    expected: expectedCustomAgents,
+  });
+  const migration = customAgentMigration({
+    definitions: customAgentDefinitionsState,
+    expected: expectedCustomAgents,
+    profileEnvironments,
+    previousManifest,
+    requested: normalized.migrateLegacy,
+  });
+  const customAgentConflict = migration.conflicts.length > 0
+    || customAgentDefinitionsState.issues.length > 0;
+  if (!dryRun && customAgentHost.supported !== true) {
+    throw new Error('Codex Custom Agents are not confirmed available; update or enable multi-agent before --apply');
+  }
+  if (!dryRun && customAgentConflict) {
+    throw new Error('custom-agent identity conflict detected; resolve duplicates before --apply');
+  }
+  if (!dryRun && migration.candidates.length > 0 && normalized.migrateLegacy !== true) {
+    throw new Error('matching existing Custom Agent identities require --migrate-legacy before --apply');
+  }
+  const customAgents = customAgentSummary(
+    customAgentHost,
+    customAgentDefinitionsState,
+    expectedCustomAgents,
+    migration,
+  );
+  const defaultProviderRole = automaticProviderRole(providerPack.id, profiles);
   const source = normalized.catalogSource ?? 'auto';
   const setupScriptUrl = normalized.setupScriptUrl ?? providerPack.catalogSourceHint;
   const acquired = await acquireCatalog({
@@ -187,9 +367,13 @@ export async function install(options = {}) {
       }
       return candidate;
     },
-    reduce: (catalog) => reduceCatalogForProvider(catalog, providerPack.catalog),
+    reduce: (catalog) => catalog,
     fetchImpl: normalized.fetchImpl,
   });
+  const catalogs = new Map(profiles.map((profile) => [
+    profile.profile,
+    reduceCatalogForProvider(acquired.catalog, profile.catalog),
+  ]));
 
   if (!dryRun) {
     const check = normalized.keychainReadyImpl ?? keychainReady;
@@ -205,7 +389,6 @@ export async function install(options = {}) {
     }
   }
 
-  const previousManifest = await readPreviousManifest(env);
   const previous = previousByPath(previousManifest);
   const block = agentsBlock({
     nodePath: env.nodePath,
@@ -216,6 +399,8 @@ export async function install(options = {}) {
     lunaAvailable: normalized.lunaAvailable,
     providerPack,
     providerRole: providerPack.role,
+    providerProfiles: profiles,
+    defaultProviderRole,
   });
   const existingAgents = await pathExists(env.agentsMarkerPath)
     ? await fs.readFile(env.agentsMarkerPath, 'utf8')
@@ -238,25 +423,43 @@ export async function install(options = {}) {
     providerId: providerPack.id,
     providerRole: providerPack.role,
     model: providerPack.model,
+    modelProfile: providerPack.profile,
+    profiles: profileEnvironments.map(({ profile, environment }) => ({
+      id: profile.profile,
+      providerRole: profile.role,
+      model: profile.model,
+      agentPath: environment.agentPath,
+      catalogPath: environment.catalogPath,
+    })),
+    defaultProviderRole,
+    customAgents: expectedCustomAgents,
     providerCapabilities: Array.from(providerPack.capabilities.supported.values()),
   };
 
   const entries = [
     ...(await runtimeEntries(env, normalized.sourceDir ?? SOURCE_DIR)),
-    {
-      filePath: env.agentPath,
-      contents: agentToml({
-        catalogPath: env.catalogPath,
-        bridgePath: env.bridgePath,
-        bridgeCliPath: env.bridgeCliPath,
-        nodePath: env.nodePath,
-        keychainAccount: env.keychainAccount,
-        keychainService: providerPack.keychainService,
-        providerPack,
-      }),
-      mode: 0o600,
-      kind: 'agent',
-    },
+    ...profileEnvironments.flatMap(({ profile, environment }) => [
+      {
+        filePath: environment.agentPath,
+        contents: agentToml({
+          catalogPath: environment.catalogPath,
+          bridgePath: env.bridgePath,
+          bridgeCliPath: env.bridgeCliPath,
+          nodePath: env.nodePath,
+          keychainAccount: env.keychainAccount,
+          keychainService: profile.keychainService,
+          providerPack: profile,
+        }),
+        mode: 0o600,
+        kind: 'agent',
+      },
+      {
+        filePath: environment.catalogPath,
+        contents: catalogJson(catalogs.get(profile.profile)),
+        mode: 0o600,
+        kind: 'catalog',
+      },
+    ]),
     {
       filePath: env.configPath,
       contents: workerConfig(configOptions),
@@ -280,12 +483,6 @@ export async function install(options = {}) {
       contents: replaceAgentsBlock(existingAgents, block),
       mode: agentsMode,
       kind: 'agents-marker',
-    },
-    {
-      filePath: env.catalogPath,
-      contents: catalogJson(acquired.catalog),
-      mode: 0o600,
-      kind: 'catalog',
     },
   ];
 
@@ -311,6 +508,13 @@ export async function install(options = {}) {
       nodePath: env.nodePath,
       bridgePath: env.bridgePath,
       providerId: providerPack.id,
+      profiles: profiles.map((profile) => ({
+        id: profile.profile,
+        providerRole: profile.role,
+        model: profile.model,
+      })),
+      customAgents: expectedCustomAgents,
+      legacyMigration: migration.applied ? migration.candidates : [],
     },
     options: {
       providerId: providerPack.id,
@@ -319,10 +523,20 @@ export async function install(options = {}) {
       lunaAvailable: normalized.lunaAvailable,
       threshold: normalized.threshold,
       model: providerPack.model,
+      modelProfile: providerPack.profile,
+      profiles: profiles.map((profile) => ({
+        id: profile.profile,
+        providerRole: profile.role,
+        model: profile.model,
+      })),
+      defaultProviderRole,
+      customAgents: expectedCustomAgents,
+      legacyMigration: migration.applied ? migration.candidates : [],
       mainModelPreserved: true,
       delegatedDataConsent: true,
     },
     managedFiles,
+    managedDirectories,
     agentsBlock: block,
     secretStorage: {
       service: providerPack.keychainService,
@@ -345,6 +559,18 @@ export async function install(options = {}) {
     manifestPath: env.manifestPath,
     catalogAcquired: Boolean(acquired),
     keychainVerified: !dryRun,
+    customAgents,
+    migration,
+    profile: {
+      id: providerPack.profile,
+      providerRole: providerPack.role,
+      model: providerPack.model,
+    },
+    profiles: profiles.map((profile) => ({
+      id: profile.profile,
+      providerRole: profile.role,
+      model: profile.model,
+    })),
     message: dryRun ? 'dry-run: no files or keychain entries were changed' : 'installation applied',
   };
 }

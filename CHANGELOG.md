@@ -6,16 +6,39 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Rename the public project to **Codex Third-Party Subagents** / **Codex 第三方
+  子代理** and the repository/package slug to `codex-third-party-subagents`.
+  Retain the existing `codex-third-party-workers` on-disk runtime namespace for
+  upgrade and uninstall compatibility.
+- Migrate Host identity to official Codex Custom Agent TOML definitions:
+  `name` is authoritative; routing remains a separate policy guardrail.
+- Add explicit-only `deepseek_pro_worker -> deepseek-v4-pro` configuration,
+  plus migration-safe installer, read-only Doctor capability/identity checks,
+  per-agent verify evidence, duplicate conflict handling, and rollback tests.
+  V4 Pro is never automatically selected.
+- Correct the old programmatic Pro rejection classification: it was a project
+  policy result, not a Host identity registration limitation.
 - Fix the macOS default bridge-root resolution used by the bridge CLI when no
   platform override is supplied, with regression coverage.
+- Fail closed to an OpenAI worker before bridge creation when the task project
+  contains a Custom Agent layer or that layer cannot be inspected safely. This
+  prevents project-scoped definitions from shadowing the preflight-validated
+  user provider identity.
 - Record a bounded DeepSeek V4 Flash maintainer E2E: explicit worker execution,
   non-sensitive fixture diagnosis, bridge completion/release, and main-thread
-  review. The verifier remains `runtimeVerified: false`; this does not add V4
-  Pro support, automatic routing, or a general public-installer claim.
+  review. The verifier remains `runtimeVerified: false`; this does not add an
+  automatic routing or general public-installer claim.
+- Record a fresh-session, attributable `deepseek_pro_worker` maintainer E2E on
+  Codex CLI `0.147.0`: the expected DeepSeek provider/model handled the same
+  read-only coding fixture, reproduced its failures, identified the exact fix,
+  used tools, completed and released the bridge, and was main-thread reviewed.
+  This explicit-only path does not establish automatic routing, broad
+  public-installer success, independent user acceptance, or
+  `runtimeVerified: true`.
 - Record a direct DeepSeek V4 Pro programmatic-subagent audit on Codex CLI
-  `0.147.0`. The current guarded worker registry exposes only the Flash worker,
-  so the named Pro probe was rejected before a provider request; V4 Pro remains
-  an API-verified candidate with no built-in, installer, or routing claim.
+  `0.147.0`. The then-current project policy exposed only the Flash role, so
+  the named Pro probe was rejected before a provider request. This historical
+  result is not a Host identity registration conclusion.
 - Add community documentation index and demos to improve first-contact user onboarding.
   Includes `docs/demos/qwen-worker-demo.md`, `docs/demos/minimax-worker-demo.md`,
   `docs/demos/deepseek-worker-demo.md`, and `docs/demos/README.md`.
