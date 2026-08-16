@@ -2,7 +2,7 @@
 
 [English](provider-compatibility.md) | **简体中文**
 
-最后核对：2026-08-08
+最后核对：2026-08-16
 
 本文只回答一个问题：某个国产模型或平台，能否在**不替换 Codex 主线程、
 不依赖 CC Switch 或本地协议转换器**的前提下，作为本项目的子代理 Provider Pack。
@@ -22,6 +22,7 @@
 - **内置 Pack**：已写入仓库并通过隔离测试；真实用户环境验证单独记录。
 - **运行时已验证 Pack**：内置 Pack 已完成真实 Codex 子代理和人工复核。
 - **A 级候选**：官方文档满足核心协议要求，等待 API key 和真实运行验证。
+- **API 已验证候选**：官方协议证据与受控、脱敏的直接 API 探测均通过；仍不是内置 Pack、安装态或 Desktop 运行时验证。
 - **B 级网关候选**：平台提供 Responses 兼容层，但底层可能是协议转换，能力有限制。
 - **暂不兼容**：官方当前只公开 Chat Completions，或必须依赖外部转换器。
 
@@ -29,7 +30,8 @@
 
 | Provider / 模型 | 接入类型 | 当前结论 | 下一步 |
 | --- | --- | --- | --- |
-| DeepSeek / `deepseek-v4-flash` | 官方 Responses | **内置 Pack；公开安装器运行时验证待完成** | 保持回归测试；当前不扩展 V4 Pro |
+| DeepSeek / `deepseek-v4-flash` | 官方 Responses | **内置 Pack；公开安装器运行时验证待完成** | 保持回归测试；完成公开安装器 E2E |
+| DeepSeek / `deepseek-v4-pro` | 官方 Responses | **API 已验证候选**：模型目录、普通 Responses、SSE、函数调用闭环、支持的推理级别与受控失败处理均通过 | 在有显式模型选择、安装器和 Codex Desktop E2E 证据前，不加入内置 Pack |
 | MiniMax / `MiniMax-M3` | 官方 Responses；官方给出 Codex Desktop 配置 | **运行时已验证 Pack：API、Codex CLI、Desktop 子代理和桥接释放均通过** | 保持回归测试；公开安装器 apply/verify 单独验收 |
 | 阶跃星辰 / `step-3.7-flash` | 官方 `/v1/responses` | **A 级候选，优先级 2** | 验证流式工具循环和 Codex 子代理运行 |
 | 阿里云百炼 / `qwen3.7-max` | 官方 Responses；官方给出最新版 Codex 配置 | **运行时已验证：API、SSE、自动 Function Calling、Codex CLI、Desktop 子代理和桥接释放均通过** | 保持纯文本边界；思考模式不接受 `tool_choice: required` |
@@ -44,6 +46,17 @@
 这里的 “A 级” 仍然只是**值得提供 API key 测试**，不是已经完美支持。DeepSeek V4
 Flash、MiniMax-M3 与 Qwen3.7-Max 已内置，但公开安装器版本仍保留真实用户环境验证待办；按上述严格
 口径，目前没有任何 Provider 可以直接标成“完美支持”。
+
+## DeepSeek V4 Pro 探测 — 2026-08-16
+
+官方当前文档已明确 `deepseek-v4-pro` 可原生使用位于
+`https://api.deepseek.com` 的 Responses API，而不仅是 OpenAI-compatible
+Chat Completions。受控直接探测也通过了普通 Responses、语义化 SSE、无副作用函数调用
+闭环、`high` / `max` 推理请求和无效模型失败路径。脱敏记录见
+[V4 Pro 探测](validation/deepseek-v4-pro-probe-2026-08-16.md)。
+
+这只构成候选证据。仓库目前仍只安装 `deepseek-v4-flash`，未实现 Flash/Pro 自动路由，
+也没有 V4 Pro 的公开安装器 apply/verify、桥接完成/释放或 Codex Desktop 复核记录。
 
 ## 推荐测试顺序
 
@@ -70,6 +83,8 @@ Flash、MiniMax-M3 与 Qwen3.7-Max 已内置，但公开安装器版本仍保留
 
 - [OpenAI Codex 配置参考](https://developers.openai.com/codex/config-reference/)
 - [DeepSeek Responses API](https://api-docs.deepseek.com/zh-cn/guides/responses_api/)
+- [DeepSeek 模型与价格](https://api-docs.deepseek.com/quick_start/pricing/)
+- [DeepSeek 思考模式](https://api-docs.deepseek.com/guides/thinking_mode/)
 - [MiniMax：在 Codex 中使用 M3](https://platform.minimaxi.com/docs/token-plan/codex)
 - [MiniMax Responses API](https://platform.minimaxi.com/docs/api-reference/responses-create)
 - [阶跃星辰 Responses API](https://platform.stepfun.com/docs/zh/api-reference/responses/responses-create)

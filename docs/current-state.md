@@ -1,6 +1,6 @@
 # 当前状态
 
-最后更新：2026-08-15
+最后更新：2026-08-16
 
 ## 已写入本地仓库
 
@@ -25,6 +25,10 @@
   当前真实定位更新。Homepage 保持为空，因为尚无独立官方站点。
 - 已发布中英文国产模型 Provider 兼容性矩阵；矩阵中的候选状态仅代表官方文档筛选，
   不等于本仓库已经支持。
+- 已完成 DeepSeek V4 Pro 的官方资料核对与受控直接 Responses API 探测：模型目录、普通
+  请求、SSE、函数调用闭环、`high` / `max` 推理请求与受控失败处理均有脱敏证据。V4 Pro
+  当前仅为 **API 已验证候选**；内置 Pack 仍只安装 V4 Flash，不存在 V4 Pro 的安装器、
+  Desktop 运行时或自动路由声明。
 - 新增中英文 FAQ（`docs/faq.md`、`docs/faq.zh-CN.md`）用于首次用户问题边界说明。
 - 新增 `docs/demos/` 证据索引与三页展示：Qwen、MiniMax，以及明确标记
   `Pending live runtime verification` 的 DeepSeek 页面。
@@ -60,11 +64,15 @@
   已释放。思考模式不支持 `tool_choice = "required"`，但 `auto` 已验证可用。测试后本机
   Qwen Keychain 凭据已按用户要求删除；本次 Desktop 验证是显式调用，不代表旧版全局
   DeepSeek 专用预检已经自动路由到 Qwen。
+- DeepSeek V4 Pro 的直接 API 探测使用 Keychain 凭据且未记录或输出 credential value；
+  它不是 Codex Desktop 子代理、公开安装器 apply/verify、桥接完成/释放或主线程复核证据。
 
 ## 尚未完成或未声称
 
 - 尚未用本版本公开安装器在真实用户 `~/.codex` 执行 `--apply`/`verify`；验证器仍不会自动
   把一次任务写成 `runtimeVerified: true`。
+- DeepSeek V4 Pro 尚未成为可选 Pack；是否实现显式模型选择必须先完成 Flash 的公开安装器
+  live runtime E2E，并单独评审安装、回退和运行时边界。
 - GitHub Social Preview 图片已准备，但仍需在 GitHub Settings 手工上传并目视确认。
 - 尚未提交 Awesome List 外部 PR 或任何新增第三方评论。
 - 未由用户进行人工验收。

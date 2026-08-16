@@ -37,12 +37,17 @@ Only reviewed built-in packs are supported. A compatibility request or
 candidate listing is not proof of support; see the
 [evidence matrix](docs/provider-compatibility.md).
 
+DeepSeek V4 Pro is an API-verified candidate, not a built-in pack. Its
+public-installer and Codex Desktop runtime paths remain unverified; see the
+[sanitized compatibility probe](docs/validation/deepseek-v4-pro-probe-2026-08-16.md).
+
 ## Documentation and community navigation
 
 - [Quick Start](#quick-start)
 - [Doctor](#doctor)
 - [Architecture](docs/architecture.md)
 - [Provider Compatibility](docs/provider-compatibility.md)
+- [DeepSeek V4 Pro probe](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
 - [Demos](docs/demos/README.md)
 - [FAQ](docs/faq.md)
 - [Security](SECURITY.md)
@@ -112,6 +117,7 @@ verification is still pending.
 | Direct provider path | Current evidence |
 | --- | --- |
 | DeepSeek V4 Flash | Built-in and isolated-tested; public-installer runtime pending |
+| DeepSeek V4 Pro | API-verified candidate; not a built-in pack or Desktop-runtime verified |
 | MiniMax-M3 | Built-in; Desktop runtime verified |
 | Alibaba Model Studio Qwen3.7-Max | Built-in; Desktop runtime verified |
 | StepFun Responses models | Candidate; not runtime tested |
@@ -165,9 +171,10 @@ for the full threat boundary.
 - Supported work is text, code, research synthesis, and local validation only.
   Images, files-as-multimodal-input, audio, video, browser control, desktop
   control, MCP, and computer use are out of scope.
-- DeepSeek supports `deepseek-v4-flash` only and rejects V4 Pro. MiniMax supports
-  `MiniMax-M3` only. Qwen supports the text-only `qwen3.7-max` model on Alibaba
-  Model Studio pay-as-you-go.
+- The built-in DeepSeek pack currently installs `deepseek-v4-flash` only.
+  `deepseek-v4-pro` is an API-verified candidate, not a selectable pack or a
+  runtime-verified model. MiniMax supports `MiniMax-M3` only. Qwen supports the
+  text-only `qwen3.7-max` model on Alibaba Model Studio pay-as-you-go.
 - A configured `luna_worker` is expected when Luna is selected as the OpenAI
   fallback. This repository does not install or alter Luna.
 - Codex Desktop does not guarantee native interception of every collaboration

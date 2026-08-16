@@ -32,12 +32,16 @@
 只有经过审查的内置 Pack 才算受支持。兼容性申请或“候选”标记不等于已经支持；详细证据
 见[兼容性矩阵](docs/provider-compatibility.zh-CN.md)。
 
+DeepSeek V4 Pro 是“API 已验证候选”，不是内置 Pack；公开安装器和 Codex Desktop
+运行时路径仍未验证。见[脱敏兼容性探测记录](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)。
+
 ## 文档与社区导航
 
 - [快速开始](#快速开始)
 - [Doctor](#doctor)
 - [架构说明](docs/architecture.md)
 - [兼容性矩阵](docs/provider-compatibility.zh-CN.md)
+- [DeepSeek V4 Pro 探测](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
 - [演示（Demos）](docs/demos/README.md)
 - [FAQ](docs/faq.zh-CN.md)
 - [安全策略](SECURITY.md)
@@ -102,6 +106,7 @@ DeepSeek V4 Flash 已内置并通过隔离测试，但公开安装器的运行�
 | 厂商直连路径 | 当前证据 |
 | --- | --- |
 | DeepSeek V4 Flash | 已内置并通过隔离测试；公开安装器运行时待验证 |
+| DeepSeek V4 Pro | API 已验证候选；不是内置 Pack，也未完成 Desktop 运行时验证 |
 | MiniMax-M3 | 已内置，Desktop 运行时已验证 |
 | 阿里云百炼 Qwen3.7-Max | 已内置，Desktop 运行时已验证 |
 | 阶跃星辰 Responses 模型 | 候选，尚未运行时验证 |
@@ -149,8 +154,9 @@ Provider 桥接一次只允许一个仅所有者可读的任务，拒绝不安�
 - 被委派的任务正文会发送给所选 Provider。不得委派凭据、隐私内容或无权外发的资料。
 - 仅适合文本、代码、研究整理和本地验证。图片、音频、视频、浏览器控制、桌面控制、
   MCP 和 Computer Use 不在支持范围内。
-- DeepSeek 只支持 `deepseek-v4-flash` 并拒绝 V4 Pro；MiniMax 只支持
-  `MiniMax-M3`；Qwen 只支持阿里云百炼按量计费的纯文本 `qwen3.7-max`。
+- 当前内置 DeepSeek Pack 只会安装 `deepseek-v4-flash`。
+  `deepseek-v4-pro` 是 API 已验证候选，尚不是可选 Pack，也未完成运行时验证；MiniMax
+  只支持 `MiniMax-M3`；Qwen 只支持阿里云百炼按量计费的纯文本 `qwen3.7-max`。
 - 路由需要 Luna 时，用户必须已经配置可用的 `luna_worker`；本仓库不会安装或修改 Luna。
 - Codex Desktop 不保证原生拦截所有子代理调用。预检脚本是主代理必须在每次新派发或
   follow-up 前执行的策略护栏，并不是系统级安全边界。

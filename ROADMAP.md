@@ -23,6 +23,9 @@ Focus: documentation and operational maturity before adding new runtime claims.
   compatibility, demos, and release notes.
 - **runtime verification pending** — complete the DeepSeek public-installer live
   run and Codex review in an authorized real user environment.
+- **under evaluation** — DeepSeek V4 Pro is an API-verified candidate, but no
+  selectable pack or automatic Flash/Pro routing is planned before the Flash
+  public-installer E2E and a separate model-selection review.
 
 ## Next — v0.5
 

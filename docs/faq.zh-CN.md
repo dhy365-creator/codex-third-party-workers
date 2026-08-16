@@ -79,6 +79,7 @@ Codex 订阅、配额和其自身计费边界仍然成立。
 当前内置 Pack 与证据状态是：
 
 - DeepSeek V4 Flash：已内置并通过隔离测试；公开安装器 live runtime verification 待完成。
+- DeepSeek V4 Pro：仅为 API 已验证候选；不是内置 Pack，也未完成 Desktop 运行时验证。
 - MiniMax-M3：已内置；已记录 API、CLI 与 Desktop Worker 运行时验证。
 - Qwen3.7-Max：已内置；已记录 API、CLI 与 Desktop Worker 运行时验证。
 
@@ -94,6 +95,12 @@ Codex 订阅、配额和其自身计费边界仍然成立。
 - OpenAI-compatible 的兼容接口不等于完整 Codex subagent 兼容；
 - 有时支持普通文本不代表工具调用闭环可用；
 - 网关路径不代表模型厂商直连兼容。
+
+### 现在可以安装 DeepSeek V4 Pro 吗？
+
+不能。内置 DeepSeek Pack 仍只选择 V4 Flash。V4 Pro 已有原生 Responses API 和受控直接
+API 证据，但在显式模型选择、安装器覆盖和真实 Codex Desktop 路径分别验证前，仍只是候选。
+见[脱敏探测记录](validation/deepseek-v4-pro-probe-2026-08-16.md)。
 
 ### 什么时候可以申请新 provider？
 

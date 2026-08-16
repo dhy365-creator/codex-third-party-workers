@@ -41,7 +41,8 @@ chain while validating every destination against the pack host policy, and appli
 pack policy:
 
 - model identity target
-- rejected model patterns (for the built-in DeepSeek pack, V4 Pro)
+- reviewed model policy (the built-in DeepSeek pack currently selects V4 Flash;
+  V4 Pro remains a separate candidate and is not installed)
 - required source modalities and an installed text-only capability boundary
 
 The resulting catalog is written as owner-only runtime data.

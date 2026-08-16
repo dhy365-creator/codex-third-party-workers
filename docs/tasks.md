@@ -24,6 +24,8 @@
   - `ROADMAP.md`（Current/Next/Later 与边界分层）；
   - README 与 CONTRIBUTING 文档导航入口。
 - [x] 在 `CHANGELOG.md` Unreleased、`docs/current-state.md`、`docs/tasks.md` 记录本轮文档交付状态。
+- [x] 2026-08-16 完成 DeepSeek V4 Pro 官方资料核对及受控直接 Responses API 探测：模型目录、
+  普通请求、SSE、函数调用闭环、推理参数和失败处理均有脱敏记录；结论仅为 API 已验证候选。
 
 ## 公开仓库
 
@@ -54,6 +56,8 @@
 ## Provider 扩展待办
 
 - [x] 重启 Codex Desktop，运行真实 `minimax_worker` 子任务并验证桥接完成与释放。
+- [ ] 先完成 DeepSeek V4 Flash 公开安装器 live runtime E2E；其后再单独评审 V4 Pro 的显式
+  模型选择、安装器边界、离线测试与 Desktop 运行时验证，不做自动 Flash/Pro 路由。
 - [ ] 按 StepFun -> 火山方舟顺序逐一进行真实 API 与 Codex 子代理验证。
 - [ ] 对通过验证的 Provider 单独新增 Pack、Keychain service、目录策略、离线测试和文档。
 - [ ] 对千帆与 TokenHub 保持“网关候选”标识，不把网关通过写成模型厂商直连通过。

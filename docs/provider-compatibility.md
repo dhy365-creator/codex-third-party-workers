@@ -2,7 +2,7 @@
 
 **English** | [简体中文](provider-compatibility.zh-CN.md)
 
-Last reviewed: 2026-08-08
+Last reviewed: 2026-08-16
 
 This document evaluates whether a Chinese model or platform can become a
 provider-pack subagent without replacing the primary Codex model and without
@@ -24,6 +24,7 @@ Statuses:
 - **Built-in pack**: implemented and isolated-tested; live user-environment status is tracked separately.
 - **Runtime-verified pack**: a built-in pack that passed a real Codex subagent run and human review.
 - **Tier A candidate**: official documentation meets the core protocol gate; live testing is pending.
+- **API-verified candidate**: official protocol evidence and a limited, sanitized direct API probe passed; it is not installed, a built-in pack, or Desktop-runtime verified.
 - **Tier B gateway candidate**: a Responses compatibility gateway exists, but it may translate another protocol and impose limitations.
 - **Not currently compatible**: official direct access is Chat Completions-only or requires an external translator.
 
@@ -31,7 +32,8 @@ Statuses:
 
 | Provider / model | Access type | Current result | Next step |
 | --- | --- | --- | --- |
-| DeepSeek / `deepseek-v4-flash` | Official Responses | **Only built-in pack; public-installer runtime verification pending** | Keep regression coverage; V4 Pro remains excluded |
+| DeepSeek / `deepseek-v4-flash` | Official Responses | **Only built-in pack; public-installer runtime verification pending** | Keep regression coverage; complete public-installer E2E |
+| DeepSeek / `deepseek-v4-pro` | Official Responses | **API-verified candidate**: model list, basic Responses, SSE, a function-call round trip, supported reasoning levels, and controlled failure handling passed | Keep it out of the built-in pack until explicit model selection, installer, and Codex Desktop E2E evidence exist |
 | MiniMax / `MiniMax-M3` | Official Responses and an official Codex Desktop guide | **Runtime verified: API, Codex CLI, Desktop subagent, and bridge release passed** | Keep regression coverage; verify public-installer apply separately |
 | StepFun / `step-3.7-flash` | Official `/v1/responses` | **Tier A, priority 2** | Verify streaming tool loops and Codex subagent execution |
 | Alibaba Model Studio / `qwen3.7-max` | Official Responses and current Codex configuration | **Runtime verified: API, SSE, automatic function call, Codex CLI, Desktop subagent, and bridge release passed** | Keep text-only boundary; thinking mode does not accept `tool_choice: required` |
@@ -47,6 +49,20 @@ Tier A means “worth testing with an API key,” not “perfectly supported.”
 V4 Flash, MiniMax-M3, and Qwen3.7-Max are built-in packs, but the public installer still has a pending
 live user-environment check. Under the strict gate above, no provider is currently
 labeled “perfectly supported.”
+
+## DeepSeek V4 Pro probe — 2026-08-16
+
+Official current documentation identifies `deepseek-v4-pro` as a native
+Responses model at `https://api.deepseek.com`, rather than merely an
+OpenAI-compatible Chat Completions model. A limited direct probe also passed
+ordinary Responses, semantic SSE, a no-side-effect function-call round trip,
+`high` and `max` reasoning requests, and an invalid-model failure path. The
+sanitized record is in [the V4 Pro probe](validation/deepseek-v4-pro-probe-2026-08-16.md).
+
+This is evidence for a candidate only. The repository continues to install
+`deepseek-v4-flash` only. No automatic Flash/Pro routing, public-installer
+apply/verify run, bridge completion/release, or Codex Desktop review has been
+recorded for V4 Pro.
 
 ## Recommended test order
 
@@ -75,6 +91,8 @@ offline tests, and installation documentation.
 
 - [OpenAI Codex configuration reference](https://developers.openai.com/codex/config-reference/)
 - [DeepSeek Responses API](https://api-docs.deepseek.com/zh-cn/guides/responses_api/)
+- [DeepSeek models and pricing](https://api-docs.deepseek.com/quick_start/pricing/)
+- [DeepSeek thinking mode](https://api-docs.deepseek.com/guides/thinking_mode/)
 - [MiniMax: M3 in Codex](https://platform.minimaxi.com/docs/token-plan/codex)
 - [MiniMax Responses API](https://platform.minimaxi.com/docs/api-reference/responses-create)
 - [StepFun Responses API](https://platform.stepfun.com/docs/zh/api-reference/responses/responses-create)
