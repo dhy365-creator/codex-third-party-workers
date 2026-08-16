@@ -78,7 +78,7 @@ Codex 订阅、配额和其自身计费边界仍然成立。
 
 当前内置 Pack 与证据状态是：
 
-- DeepSeek V4 Flash：已内置并通过隔离测试；公开安装器 live runtime verification 待完成。
+- DeepSeek V4 Flash：已内置并通过隔离测试；一次受控维护者 E2E 已达到 Level 3，但通用用户验收仍待完成。
 - DeepSeek V4 Pro：仅为 API 已验证候选；不是内置 Pack，也未完成 Desktop 运行时验证。
 - MiniMax-M3：已内置；已记录 API、CLI 与 Desktop Worker 运行时验证。
 - Qwen3.7-Max：已内置；已记录 API、CLI 与 Desktop Worker 运行时验证。
@@ -134,6 +134,6 @@ Doctor 不会改文件，也不会调用付费 API，属于只读诊断。
 
 ### 什么是 `runtimeVerified`？
 
-`runtimeVerified: false` 表示没有真实运行时回路被记录。
+`runtimeVerified: false` 表示本项目尚未记录独立接受的运行时证据；它不会自动把一次受控维护者观察升级。
 
 `configured: true` 只表示预检与文件/权限状态满足条件；它不自动等于运行时验证完成。

@@ -29,7 +29,7 @@ Delegate suitable Codex subagent tasks to lower-cost provider APIs while
 
 | Built-in provider pack | Current evidence |
 | --- | --- |
-| DeepSeek V4 Flash | Isolated-tested; public-installer runtime pending |
+| DeepSeek V4 Flash | Built-in; controlled maintainer E2E passed (Level 3); generic user acceptance pending |
 | MiniMax-M3 | API, CLI, and Codex Desktop runtime verified |
 | Alibaba Model Studio Qwen3.7-Max | API, CLI, and Codex Desktop runtime verified |
 
@@ -39,7 +39,8 @@ candidate listing is not proof of support; see the
 
 DeepSeek V4 Pro is an API-verified candidate, not a built-in pack. Its
 public-installer and Codex Desktop runtime paths remain unverified; see the
-[sanitized compatibility probe](docs/validation/deepseek-v4-pro-probe-2026-08-16.md).
+[sanitized compatibility probe](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
+and the [controlled runtime E2E record](docs/validation/deepseek-runtime-e2e-2026-08-16.md).
 
 ## Documentation and community navigation
 
@@ -47,6 +48,7 @@ public-installer and Codex Desktop runtime paths remain unverified; see the
 - [Doctor](#doctor)
 - [Architecture](docs/architecture.md)
 - [Provider Compatibility](docs/provider-compatibility.md)
+- [DeepSeek controlled runtime E2E](docs/validation/deepseek-runtime-e2e-2026-08-16.md)
 - [DeepSeek V4 Pro probe](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
 - [Demos](docs/demos/README.md)
 - [FAQ](docs/faq.md)
@@ -107,8 +109,11 @@ is included.
 ![Sanitized verified Codex Desktop provider worker transcript](assets/terminal-demo.png)
 
 MiniMax-M3 and Qwen3.7-Max have passed real API, CLI, and Codex Desktop checks.
-DeepSeek V4 Flash is built in and isolated-tested; public-installer runtime
-verification is still pending.
+DeepSeek V4 Flash has also passed a bounded maintainer E2E: an explicitly
+selected worker completed a non-sensitive fixture diagnostic, its bridge was
+archived and released, and the main thread reviewed the result. This is Level 3
+evidence for that path, not a general public-installer or user-acceptance claim;
+the verifier deliberately continues to report `runtimeVerified: false`.
 
 ## Compatibility at a glance
 
@@ -116,7 +121,7 @@ verification is still pending.
 
 | Direct provider path | Current evidence |
 | --- | --- |
-| DeepSeek V4 Flash | Built-in and isolated-tested; public-installer runtime pending |
+| DeepSeek V4 Flash | Built-in; controlled maintainer E2E passed (Level 3); verifier remains conservative |
 | DeepSeek V4 Pro | API-verified candidate; not a built-in pack or Desktop-runtime verified |
 | MiniMax-M3 | Built-in; Desktop runtime verified |
 | Alibaba Model Studio Qwen3.7-Max | Built-in; Desktop runtime verified |
@@ -151,7 +156,8 @@ final decision.
 
 ![Validation and security proof](assets/validation-proof.png)
 
-- `50/50` isolated local tests pass on the `0.4.0-beta.2` source.
+- `51/51` isolated local tests pass on the current branch, including a macOS
+  bridge-root default regression test.
 - GitHub Actions runs the same suite on macOS with Node.js 20 for pushes and
   pull requests.
 - API keys are read from macOS Keychain, never accepted through `--api-key`.
@@ -294,8 +300,9 @@ Verification distinguishes two states:
 
 - `configured: true`: installed files, permissions, hashes, catalog bounds,
   manifest markers, and Keychain presence are valid.
-- `runtimeVerified: false`: expected until a real Codex subagent task is run and
-  reviewed.
+- `runtimeVerified: false`: the verifier does not auto-promote a controlled
+  runtime observation. It stays false until this project defines and records a
+  separate, independently accepted runtime-evidence policy.
 
 ### Optional: support the project
 
@@ -346,9 +353,10 @@ implementations. They do not access real API keys, Keychain, Codex quota,
 
 This release provides an extensible provider-pack core, not a claim that every
 third-party model already works. DeepSeek V4 Flash, MiniMax-M3, and Qwen3.7-Max
-are built-in, isolated-tested packs. MiniMax-M3 and Qwen3.7-Max have also passed
-real Codex Desktop subagent smoke tests; public-installer apply/verify status is
-tracked separately.
+are built-in, isolated-tested packs. Flash has Level 3 evidence for one bounded
+maintainer E2E; MiniMax-M3 and Qwen3.7-Max have recorded real Codex Desktop
+subagent smoke tests. Generic user acceptance and public-installer claims remain
+separately tracked.
 New providers are added as reviewed code in `src/provider-packs.mjs` with tests;
 the installer does not load arbitrary remote pack manifests.
 

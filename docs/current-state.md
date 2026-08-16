@@ -11,7 +11,8 @@
 - 中英文 README 首屏已按产品化顺序补充定位、Quick Start、真实运行记录、兼容性摘要、
   Mermaid 架构、验证与安全边界。
 - 中英文 README 首屏进一步明确 Codex 主代理、有界委派、三组内置 Pack 的当前证据、
-  只读 Doctor 与默认 dry-run 入口；没有新增 Provider 运行时声明。
+  只读 Doctor 与默认 dry-run 入口；DeepSeek V4 Flash 仅新增一条有边界的维护者 E2E 证据，
+  没有扩大 V4 Pro、自动路由或通用用户运行时声明。
 - 新增只读 `npm run doctor`：检查 macOS、Node.js、Codex 环境、Provider/Model、Keychain
   是否存在、fallback 提示、安装状态、权限与 verify 前置条件；不写配置、不读取或输出
   credential value、不输出私有路径、不联网且不调用付费 API。
@@ -29,9 +30,17 @@
   请求、SSE、函数调用闭环、`high` / `max` 推理请求与受控失败处理均有脱敏证据。V4 Pro
   当前仅为 **API 已验证候选**；内置 Pack 仍只安装 V4 Flash，不存在 V4 Pro 的安装器、
   Desktop 运行时或自动路由声明。
+- 已完成 DeepSeek V4 Flash 的受控维护者 E2E：在已授权的真实 macOS Codex profile 对既有
+  Pack 先 dry-run 再 `--apply`，显式派发 `deepseek_worker` 处理一个非敏感、故意失败的代码
+  fixture，得到预期诊断；桥接归档完成、active slot 已释放，并由主线程复核。该路径为
+  **Level 3** 证据，`verify` 仍输出 `configured: true` / `runtimeVerified: false`，不自动升级为
+  通用公开安装器成功、自动路由或用户验收。
+- E2E 首次运行发现 bridge CLI 在未显式传入 platform 时会错用临时目录；已将
+  `getBridgeRoot` 默认 platform 固定为 `process.platform`，并增加回归测试。最终 E2E 在默认
+  bridge root 下完成。
 - 新增中英文 FAQ（`docs/faq.md`、`docs/faq.zh-CN.md`）用于首次用户问题边界说明。
-- 新增 `docs/demos/` 证据索引与三页展示：Qwen、MiniMax，以及明确标记
-  `Pending live runtime verification` 的 DeepSeek 页面。
+- 新增 `docs/demos/` 证据索引与三页展示：Qwen、MiniMax，以及明确标记 Level 3 维护者 E2E
+  与通用用户验收待完成的 DeepSeek 页面。
 - 新增 `ROADMAP.md`，并记录 v0.4.x 当前边界、v0.5 规划评估项、Later 探索项。
 - README 与 CONTRIBUTING 增加 Documentation/community 的入口导航与链接。
 - 架构为通用 provider-pack 形态，当前内置 Pack 为 DeepSeek V4 Flash、MiniMax-M3
@@ -49,7 +58,8 @@
 
 ## 已在隔离环境验证
 
-- `npm test`：2026-08-14 本地通过 `50/50` 项测试；Doctor 覆盖平台、凭据、安装态、
+- `npm test`：2026-08-14 本地通过 `50/50` 项测试；2026-08-16 当前分支通过 `51/51` 项测试，
+  新增 macOS bridge-root 默认值回归；Doctor 覆盖平台、凭据、安装态、
   Provider/Model、只读性和私有路径保护，Issue Forms 覆盖必需证据字段和安全入口。
 - fake home 的 dry-run、apply、重复安装、verify、dry-run uninstall、正式 uninstall 与
   冲突停止通过。
@@ -64,15 +74,21 @@
   已释放。思考模式不支持 `tool_choice = "required"`，但 `auto` 已验证可用。测试后本机
   Qwen Keychain 凭据已按用户要求删除；本次 Desktop 验证是显式调用，不代表旧版全局
   DeepSeek 专用预检已经自动路由到 Qwen。
-- DeepSeek V4 Pro 的直接 API 探测使用 Keychain 凭据且未记录或输出 credential value；
-  它不是 Codex Desktop 子代理、公开安装器 apply/verify、桥接完成/释放或主线程复核证据。
+- DeepSeek V4 Pro 的直接 API 探测使用 Keychain 凭据且未记录或输出 credential value；两次临时、
+  非交互 custom-agent 尝试均未生成 V4 Pro 模型请求或消费 bridge task，配置已移除、失败归档保留，
+  因而它仍不是 Codex Desktop 子代理、公开安装器、桥接完成/释放或主线程复核证据。
 
 ## 尚未完成或未声称
 
-- 尚未用本版本公开安装器在真实用户 `~/.codex` 执行 `--apply`/`verify`；验证器仍不会自动
-  把一次任务写成 `runtimeVerified: true`。
-- DeepSeek V4 Pro 尚未成为可选 Pack；是否实现显式模型选择必须先完成 Flash 的公开安装器
-  live runtime E2E，并单独评审安装、回退和运行时边界。
+- 已完成一次受控维护者 Flash E2E，但尚未取得独立真实用户验收；验证器仍不会自动把一次任务
+  写成 `runtimeVerified: true`。
+- DeepSeek V4 Pro 尚未成为可选 Pack；其两个非交互尝试未达到运行时等级。下一步必须先通过
+  用户可见的交互式方式完成命名 V4 Pro worker 的实际请求、工具、bridge 释放与主线程复核，再单独
+  评审显式模型选择、安装、回退和运行时边界。
+- 本轮临时安装的托管文件和已记录的 `.codex` / `agents` 目录权限已恢复；`config.toml` 在测试
+  活动后与快照 checksum 不同，安装器源码不写该文件，因此未覆盖。安装器会将现有父目录设为
+  `0700`，而 `bin` / `lib` 的原始权限没有被快照记录；这是本机清理的 **WARN**，需单独修复和
+  覆盖后才能声称精确目录权限回滚。
 - GitHub Social Preview 图片已准备，但仍需在 GitHub Settings 手工上传并目视确认。
 - 尚未提交 Awesome List 外部 PR 或任何新增第三方评论。
 - 未由用户进行人工验收。

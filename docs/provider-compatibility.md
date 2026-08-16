@@ -32,7 +32,7 @@ Statuses:
 
 | Provider / model | Access type | Current result | Next step |
 | --- | --- | --- | --- |
-| DeepSeek / `deepseek-v4-flash` | Official Responses | **Only built-in pack; public-installer runtime verification pending** | Keep regression coverage; complete public-installer E2E |
+| DeepSeek / `deepseek-v4-flash` | Official Responses | **Built-in pack; controlled maintainer E2E passed at Level 3** | Keep regression coverage; obtain independent user acceptance before broadening claims |
 | DeepSeek / `deepseek-v4-pro` | Official Responses | **API-verified candidate**: model list, basic Responses, SSE, a function-call round trip, supported reasoning levels, and controlled failure handling passed | Keep it out of the built-in pack until explicit model selection, installer, and Codex Desktop E2E evidence exist |
 | MiniMax / `MiniMax-M3` | Official Responses and an official Codex Desktop guide | **Runtime verified: API, Codex CLI, Desktop subagent, and bridge release passed** | Keep regression coverage; verify public-installer apply separately |
 | StepFun / `step-3.7-flash` | Official `/v1/responses` | **Tier A, priority 2** | Verify streaming tool loops and Codex subagent execution |
@@ -46,9 +46,21 @@ Statuses:
 | Direct SiliconFlow | Current official text endpoint is `/chat/completions` | **Not currently compatible** | Wait for official Responses documentation |
 
 Tier A means “worth testing with an API key,” not “perfectly supported.” DeepSeek
-V4 Flash, MiniMax-M3, and Qwen3.7-Max are built-in packs, but the public installer still has a pending
-live user-environment check. Under the strict gate above, no provider is currently
-labeled “perfectly supported.”
+V4 Flash, MiniMax-M3, and Qwen3.7-Max are built-in packs. A controlled Flash
+E2E has been recorded, but independent user acceptance and broad routing claims
+remain pending. Under the strict gate above, no provider is currently labeled
+“perfectly supported.”
+
+## DeepSeek V4 Flash controlled E2E — 2026-08-16
+
+An authorized, bounded maintainer run installed the existing Flash pack into an
+actual macOS Codex profile, explicitly spawned `deepseek_worker` for a
+non-sensitive fixture diagnostic, and independently confirmed a completed,
+released bridge plus main-thread review. The classification is **Level 3** for
+that controlled path. `runtimeVerified` remains `false` because the verifier
+does not self-promote a single run, and this does not assert generic public
+installer success, automatic routing, or user acceptance. See the
+[sanitized runtime E2E record](validation/deepseek-runtime-e2e-2026-08-16.md).
 
 ## DeepSeek V4 Pro probe — 2026-08-16
 
@@ -60,9 +72,10 @@ ordinary Responses, semantic SSE, a no-side-effect function-call round trip,
 sanitized record is in [the V4 Pro probe](validation/deepseek-v4-pro-probe-2026-08-16.md).
 
 This is evidence for a candidate only. The repository continues to install
-`deepseek-v4-flash` only. No automatic Flash/Pro routing, public-installer
-apply/verify run, bridge completion/release, or Codex Desktop review has been
-recorded for V4 Pro.
+`deepseek-v4-flash` only. Two temporary, noninteractive custom-agent attempts
+did not yield a V4 Pro model request or bridge completion, so no V4 Pro runtime
+level was added. No automatic Flash/Pro routing, public installer support, or
+Codex Desktop review is recorded for V4 Pro.
 
 ## Recommended test order
 

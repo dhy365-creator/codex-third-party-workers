@@ -25,7 +25,7 @@
 
 | 内置 Provider Pack | 当前证据 |
 | --- | --- |
-| DeepSeek V4 Flash | 已通过隔离测试；公开安装器运行时待验证 |
+| DeepSeek V4 Flash | 已内置；受控维护者 E2E 已通过（Level 3）；通用用户验收仍待完成 |
 | MiniMax-M3 | API、CLI 与 Codex Desktop 运行时已验证 |
 | 阿里云百炼 Qwen3.7-Max | API、CLI 与 Codex Desktop 运行时已验证 |
 
@@ -33,7 +33,8 @@
 见[兼容性矩阵](docs/provider-compatibility.zh-CN.md)。
 
 DeepSeek V4 Pro 是“API 已验证候选”，不是内置 Pack；公开安装器和 Codex Desktop
-运行时路径仍未验证。见[脱敏兼容性探测记录](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)。
+运行时路径仍未验证。见[脱敏兼容性探测记录](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
+和[受控运行时 E2E 记录](docs/validation/deepseek-runtime-e2e-2026-08-16.md)。
 
 ## 文档与社区导航
 
@@ -41,6 +42,7 @@ DeepSeek V4 Pro 是“API 已验证候选”，不是内置 Pack；公开安装�
 - [Doctor](#doctor)
 - [架构说明](docs/architecture.md)
 - [兼容性矩阵](docs/provider-compatibility.zh-CN.md)
+- [DeepSeek 受控运行时 E2E](docs/validation/deepseek-runtime-e2e-2026-08-16.md)
 - [DeepSeek V4 Pro 探测](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
 - [演示（Demos）](docs/demos/README.md)
 - [FAQ](docs/faq.zh-CN.md)
@@ -97,7 +99,9 @@ node scripts/install.mjs \
 ![真实 Codex Desktop Provider Worker 脱敏运行记录](assets/terminal-demo.png)
 
 MiniMax-M3 和 Qwen3.7-Max 已通过真实 API、CLI 与 Codex Desktop 检查。
-DeepSeek V4 Flash 已内置并通过隔离测试，但公开安装器的运行时验证仍待完成。
+DeepSeek V4 Flash 也已完成一次有边界的维护者 E2E：显式选择的 Worker 对非敏感
+fixture 完成诊断，桥接完成归档并释放，且由主线程复核。这是该路径的 Level 3 证据，
+不是通用公开安装器或用户验收声明；验证器仍刻意输出 `runtimeVerified: false`。
 
 ## 兼容性速览
 
@@ -105,7 +109,7 @@ DeepSeek V4 Flash 已内置并通过隔离测试，但公开安装器的运行�
 
 | 厂商直连路径 | 当前证据 |
 | --- | --- |
-| DeepSeek V4 Flash | 已内置并通过隔离测试；公开安装器运行时待验证 |
+| DeepSeek V4 Flash | 已内置；受控维护者 E2E 已通过（Level 3）；验证器保持保守状态 |
 | DeepSeek V4 Pro | API 已验证候选；不是内置 Pack，也未完成 Desktop 运行时验证 |
 | MiniMax-M3 | 已内置，Desktop 运行时已验证 |
 | 阿里云百炼 Qwen3.7-Max | 已内置，Desktop 运行时已验证 |
@@ -138,7 +142,7 @@ Provider 桥接一次只允许一个仅所有者可读的任务，拒绝不安�
 
 ![验证与安全证据](assets/validation-proof.png)
 
-- `0.4.0-beta.2` 源码的 `50/50` 项隔离测试已通过。
+- 当前分支的 `51/51` 项隔离测试已通过，其中包含 macOS 桥接根目录默认值回归测试。
 - GitHub Actions 会在 macOS + Node.js 20 上对 push 与 pull request 运行同一套测试。
 - API key 只从 macOS Keychain 读取，不接受 `--api-key`。
 - 桥接采用仅所有者权限和原子脱敏归档。
@@ -270,7 +274,8 @@ node scripts/verify.mjs
 验证结果分为两个层级：
 
 - `configured: true`：文件、权限、hash、模型目录、AGENTS 标记和 Keychain 检查通过。
-- `runtimeVerified: false`：在真实运行一次 Codex 子代理任务并由主线程复核前，这是正常状态。
+- `runtimeVerified: false`：验证器不会自动把一次受控运行时观察升级为已验证状态；在本项目
+  定义并独立接受运行时证据策略前，它会保持为 `false`。
 
 ### 可选：支持本项目
 
@@ -313,9 +318,9 @@ npm test
 Keychain、Codex 额度、`~/.codex` 或外部网络。
 
 本项目提供的是可扩展 Provider Pack 核心，并不代表所有第三方模型已经可以直接使用。
-DeepSeek V4 Flash、MiniMax-M3 与 Qwen3.7-Max 均已内置并通过隔离测试；
-MiniMax-M3 与 Qwen3.7-Max 还通过了真实 Codex Desktop 子代理冒烟测试，公开安装器的
-apply/verify 状态单独记录。
+DeepSeek V4 Flash、MiniMax-M3 与 Qwen3.7-Max 均已内置并通过隔离测试；Flash 已有一条
+受控维护者 E2E 的 Level 3 证据，MiniMax-M3 与 Qwen3.7-Max 还通过了真实 Codex Desktop
+子代理冒烟测试。通用用户验收和公开安装器声明仍单独记录。
 新增 Provider 需要以经过代码审查的方式修改
 `src/provider-packs.mjs` 并补充测试；安装器不会加载任意远程 Pack manifest。
 

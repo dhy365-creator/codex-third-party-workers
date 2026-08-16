@@ -5,7 +5,7 @@ contributors and users understand what has and has not been verified:
 
 - [Qwen3.7-Max demo](qwen-worker-demo.md)
 - [MiniMax-M3 demo](minimax-worker-demo.md)
-- [DeepSeek demo (runtime verification pending)](deepseek-worker-demo.md)
+- [DeepSeek demo (controlled maintainer E2E; generic user acceptance pending)](deepseek-worker-demo.md)
 
 All pages use existing repository evidence only:
 

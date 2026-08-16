@@ -80,8 +80,8 @@ pack files, helper artifacts, manifest/backups, and one bounded AGENTS block.
 
 Current built-in packs and evidence are:
 
-- DeepSeek V4 Flash: built-in and isolated-tested; public-installer live runtime
-  verification pending.
+- DeepSeek V4 Flash: built-in and isolated-tested; a controlled maintainer E2E
+  reached Level 3, while generic user acceptance remains pending.
 - DeepSeek V4 Pro: API-verified candidate only; it is not a built-in pack or a
   Desktop-runtime verified model.
 - MiniMax-M3: built-in and runtime verified for the recorded API, CLI, and
@@ -152,7 +152,8 @@ The three values are triage states:
 
 ### What is `runtimeVerified`?
 
-`runtimeVerified` is `false` until a real live subagent task has been run and
-reviewed in a real environment.
+`runtimeVerified` remains `false` until this project records independently
+accepted runtime evidence. It does not auto-promote one controlled maintainer
+observation.
 
 Configured installers can still be healthy while `runtimeVerified` is false.

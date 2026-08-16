@@ -30,7 +30,7 @@
 
 | Provider / 模型 | 接入类型 | 当前结论 | 下一步 |
 | --- | --- | --- | --- |
-| DeepSeek / `deepseek-v4-flash` | 官方 Responses | **内置 Pack；公开安装器运行时验证待完成** | 保持回归测试；完成公开安装器 E2E |
+| DeepSeek / `deepseek-v4-flash` | 官方 Responses | **内置 Pack；受控维护者 E2E 已达到 Level 3** | 保持回归测试；在扩大声明前取得独立用户验收 |
 | DeepSeek / `deepseek-v4-pro` | 官方 Responses | **API 已验证候选**：模型目录、普通 Responses、SSE、函数调用闭环、支持的推理级别与受控失败处理均通过 | 在有显式模型选择、安装器和 Codex Desktop E2E 证据前，不加入内置 Pack |
 | MiniMax / `MiniMax-M3` | 官方 Responses；官方给出 Codex Desktop 配置 | **运行时已验证 Pack：API、Codex CLI、Desktop 子代理和桥接释放均通过** | 保持回归测试；公开安装器 apply/verify 单独验收 |
 | 阶跃星辰 / `step-3.7-flash` | 官方 `/v1/responses` | **A 级候选，优先级 2** | 验证流式工具循环和 Codex 子代理运行 |
@@ -44,8 +44,16 @@
 | SiliconFlow 直连 | 官方文本接口当前公开 `/chat/completions` | **暂不兼容** | 等待官方 Responses 文档，不用 API key 盲测 |
 
 这里的 “A 级” 仍然只是**值得提供 API key 测试**，不是已经完美支持。DeepSeek V4
-Flash、MiniMax-M3 与 Qwen3.7-Max 已内置，但公开安装器版本仍保留真实用户环境验证待办；按上述严格
-口径，目前没有任何 Provider 可以直接标成“完美支持”。
+Flash、MiniMax-M3 与 Qwen3.7-Max 已内置。Flash 已有一次受控 E2E 记录，但独立用户验收和
+广义路由声明仍待完成；按上述严格口径，目前没有任何 Provider 可以直接标成“完美支持”。
+
+## DeepSeek V4 Flash 受控 E2E — 2026-08-16
+
+一次已授权且有边界的维护者运行，把既有 Flash Pack 安装到真实 macOS Codex profile，显式
+派发 `deepseek_worker` 完成非敏感 fixture 诊断，并由主线程独立确认桥接归档完成、active slot
+释放和结果复核。该受控路径的分类是 **Level 3**。验证器仍输出 `runtimeVerified: false`，因为它
+不会自行把一次运行升级为已验证状态；这不等于通用公开安装器成功、自动路由或用户验收。见
+[脱敏运行时 E2E 记录](validation/deepseek-runtime-e2e-2026-08-16.md)。
 
 ## DeepSeek V4 Pro 探测 — 2026-08-16
 
@@ -55,8 +63,9 @@ Chat Completions。受控直接探测也通过了普通 Responses、语义化 SS
 闭环、`high` / `max` 推理请求和无效模型失败路径。脱敏记录见
 [V4 Pro 探测](validation/deepseek-v4-pro-probe-2026-08-16.md)。
 
-这只构成候选证据。仓库目前仍只安装 `deepseek-v4-flash`，未实现 Flash/Pro 自动路由，
-也没有 V4 Pro 的公开安装器 apply/verify、桥接完成/释放或 Codex Desktop 复核记录。
+这只构成候选证据。仓库目前仍只安装 `deepseek-v4-flash`，未实现 Flash/Pro 自动路由。
+两次临时、非交互 custom-agent 尝试没有形成 V4 Pro 模型请求或桥接完成，因此 V4 Pro 没有新增
+运行时等级；仍没有它的公开安装器支持或 Codex Desktop 复核记录。
 
 ## 推荐测试顺序
 

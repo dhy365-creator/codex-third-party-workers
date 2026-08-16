@@ -3,8 +3,10 @@
 ## Scope and conclusion
 
 This record evaluates whether `deepseek-v4-pro` fits the repository's existing
-native Responses transport. It does **not** add a pack, change routing, run an
-installer apply, or claim Codex Desktop runtime verification.
+native Responses transport. This V4 Pro probe does **not** add a pack, change
+routing, or claim V4 Pro Codex Desktop runtime verification. A separate
+Flash-plus-Pro runtime E2E record is available at
+[the controlled runtime record](deepseek-runtime-e2e-2026-08-16.md).
 
 **Decision: API-verified candidate.** The model is a native Responses API
 candidate for a later, explicitly reviewed model-selection design. It is not a
@@ -17,8 +19,8 @@ built-in or runtime-verified supported model.
 - Current transport: `wire_api = "responses"` at `https://api.deepseek.com/`.
 - Current V4 Pro exclusion: the DeepSeek pack is deliberately Flash-only; its
   catalog policy targets `deepseek-v4-flash` and retains a V4 Pro reject guard.
-- `runtimeVerified` is intentionally always `false` until a separate real Codex
-  subagent run and human review. The verifier does not promote API success.
+- `runtimeVerified` is intentionally conservative. The verifier does not
+  promote API success or a single controlled run automatically.
 
 ## Official findings
 
@@ -87,10 +89,11 @@ a bounded patch plan, and a static function-call round trip.
 
 | Model | Built-in / configured | `runtimeVerified` | Bridge completion and release | Codex review |
 | --- | --- | --- | --- | --- |
-| V4 Flash | Built-in; inspected user environment had not installed the worker | `false` | Not run | Not run |
-| V4 Pro | Not a selectable pack or installed configuration | `false` | Not run | Not run |
+| V4 Flash | Built-in; separate controlled maintainer E2E recorded | `false` | Completed and released in the bounded Flash run | Main-thread reviewed |
+| V4 Pro | Not a selectable pack or installed configuration | `false` | Two temporary noninteractive attempts did not consume a bridge task | Not run |
 
-The next runtime evidence must begin with the existing V4 Flash public-installer
-E2E in an authorized user environment. Only then should a separate design decide
-whether V4 Pro merits explicit selection, isolated installation coverage, and a
-real Codex Desktop run. Automatic Flash/Pro routing is out of scope.
+The next V4 Pro runtime evidence must use a user-visible interactive Codex
+workflow to invoke the temporary named worker and verify an actual model request,
+tool use, bridge completion/release, and main-thread review. Only then should a
+separate design decide whether V4 Pro merits explicit selection or isolated
+installation coverage. Automatic Flash/Pro routing is out of scope.
