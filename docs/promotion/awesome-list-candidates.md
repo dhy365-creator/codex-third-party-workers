@@ -15,14 +15,14 @@ Evaluated on 2026-08-11 against the repository's current public evidence.
 - Why it fits: this project implements a concrete Codex harness guardrail for
   quota-aware provider routing, bounded single-slot delegation, owner-only task
   transfer, redacted archival, and main-agent review.
-- Duplicate search: no `codex-third-party-workers` entry found in the current
+- Duplicate search: no `codex-third-party-subagents` entry found in the current
   catalog.
 
 Prepared `data/projects.yaml` entry:
 
 ```yaml
-- name: Codex Third-Party Workers
-  repo_url: https://github.com/dhy365-creator/codex-third-party-workers
+- name: Codex Third-Party Subagents
+  repo_url: https://github.com/dhy365-creator/codex-third-party-subagents
   category: Guardrails, Security & Governance
   summary_en: Unofficial macOS guardrail layer that lets Codex delegate bounded text and code tasks to reviewed third-party model workers while keeping the OpenAI main agent in control.
   summary_zh: 非官方 macOS 护栏层，让 Codex 在保持 OpenAI 主代理控制的同时，将有边界的文本与代码任务委派给经过审查的第三方模型 Worker。
@@ -47,13 +47,13 @@ python3 scripts/verify_catalog.py
 Suggested PR title:
 
 ```text
-Add Codex Third-Party Workers to Guardrails, Security & Governance
+Add Codex Third-Party Subagents to Guardrails, Security & Governance
 ```
 
 Suggested PR body:
 
 ```markdown
-Adds Codex Third-Party Workers, an unofficial macOS guardrail layer for bounded
+Adds Codex Third-Party Subagents, an unofficial macOS guardrail layer for bounded
 third-party model delegation inside Codex workflows.
 
 Why it belongs here:

@@ -1,12 +1,23 @@
 import os from 'node:os';
 import path from 'node:path';
-import { DEFAULT_PROVIDER_ID, resolveProviderPack, PACKAGE_NAME } from './provider-packs.mjs';
+import {
+  DEFAULT_PROVIDER_ID,
+  listProviderPackProfiles,
+  PACKAGE_NAME,
+  resolveProviderPack,
+} from './provider-packs.mjs';
 
 export const BRIDGE_PREFIX = 'codex-third-party-worker-task-bridge-';
 
 function getPack(options = {}) {
-  if (options.providerPack) return options.providerPack;
-  return resolveProviderPack(options.provider ?? DEFAULT_PROVIDER_ID);
+  if (options.providerPack?.profile) return options.providerPack;
+  if (options.providerPack) {
+    return resolveProviderPack(
+      options.providerPack.id ?? options.provider ?? DEFAULT_PROVIDER_ID,
+      options.model ?? options.providerPack.model,
+    );
+  }
+  return resolveProviderPack(options.provider ?? DEFAULT_PROVIDER_ID, options.model);
 }
 
 export function parseThreshold(value) {
@@ -55,17 +66,30 @@ export function discoverEnvironment({
   tmpDir,
   env = process.env,
   provider,
+  model,
   providerPack,
+  projectRoot = process.cwd(),
 } = {}) {
   const user = os.userInfo();
   const resolvedHome = path.resolve(homeDir ?? os.homedir());
   const resolvedUid = uid ?? (typeof process.getuid === 'function' ? process.getuid() : user.uid);
   const resolvedUsername = username ?? user.username;
   const resolvedNode = nodePath ?? process.execPath;
-  const pack = getPack({ providerPack, provider });
+  const pack = getPack({ providerPack, provider, model });
   const bridgePath = getBridgeRoot({ uid: resolvedUid, platform, tmpDir, env });
   const codexDir = path.join(resolvedHome, '.codex');
+  const agentsDir = path.join(codexDir, 'agents');
   const runtimeDir = path.join(codexDir, 'lib', pack.files.runtimeDir);
+  const profileEnvironments = listProviderPackProfiles(pack.id).map((profile) => ({
+    profile: profile.profile,
+    providerPack: profile,
+    providerRole: profile.role,
+    model: profile.model,
+    agentPath: path.join(agentsDir, profile.agentFile),
+    catalogPath: path.join(codexDir, 'model-catalogs', profile.catalog.file),
+  }));
+  const selected = profileEnvironments.find((profile) => profile.profile === pack.profile);
+  if (!selected) throw new Error(`provider profile is not available: ${pack.profile}`);
   return {
     platform,
     homeDir: resolvedHome,
@@ -75,11 +99,15 @@ export function discoverEnvironment({
     keychainAccount: resolvedUsername,
     bridgePath,
     codexDir,
+    agentsDir,
+    projectAgentsDir: path.join(path.resolve(projectRoot), '.codex', 'agents'),
     runtimeDir,
     providerPack: pack,
-    agentPath: path.join(codexDir, 'agents', pack.agentFile),
+    profileEnvironments,
+    providerRole: selected.providerRole,
+    agentPath: selected.agentPath,
     configPath: path.join(codexDir, pack.files.configFile),
-    catalogPath: path.join(codexDir, 'model-catalogs', pack.catalog.file),
+    catalogPath: selected.catalogPath,
     preflightPath: path.join(codexDir, 'bin', pack.files.preflightFile),
     bridgeCliPath: path.join(codexDir, 'bin', pack.files.bridgeFile),
     manifestPath: path.join(codexDir, pack.files.manifestFile),
@@ -90,7 +118,7 @@ export function discoverEnvironment({
 
 export function assertSupportedPlatform(platform = process.platform) {
   if (platform !== 'darwin') {
-    throw new Error('codex-third-party-workers is macOS-only (darwin)');
+    throw new Error(`${PACKAGE_NAME} is macOS-only (darwin)`);
   }
 }
 

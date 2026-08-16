@@ -30,9 +30,20 @@
   `deepseek_worker` 非敏感 fixture 诊断、默认 bridge root 完成/释放及主线程复核均有脱敏证据；
   结论仅为该路径的 Level 3，验证器仍保持 `runtimeVerified: false`。
 - [x] 修复 bridge CLI 未传 platform 时的 macOS 默认 bridge-root 解析，并补充回归测试。
-- [x] 2026-08-16 审计直接程序化 V4 Pro 子代理路径：Codex CLI `0.147.0` 的当前 guard 只注册
-  固定 V4 Flash 的 `deepseek_worker`，命名 V4 Pro probe 的 preflight 在 provider 请求前拒绝；结论
-  仍为 API 已验证候选，不更改 Router、Pack、默认模型或主代理配置。
+- [x] 2026-08-16 记录旧的直接程序化 V4 Pro 审计：当时项目 preflight policy 对未配置的
+  probe role 返回 `unknown requestedAgent`。该结果仅说明旧 policy 输入，不再被解释为
+  官方 Host identity 注册限制。
+- [x] 2026-08-16 完成 Custom Agents architecture migration：官方 TOML `name` 作为
+  Host identity；安装器/Doctor/verify 检查 capability、identity、duplicate、legacy migration
+  与 per-agent evidence；`complete`/`fail` 等非官方顶层字段不再生成。
+- [x] 2026-08-16 以当前 Host 发现的 `deepseek_worker` 做有界 Flash dispatch 检查；任务完成、
+  system bridge active slot 释放。未取得可独立归因的 provider 返回模型元数据，因此
+  `runtimeVerified` 仍为 `false`。
+- [x] 2026-08-16 在全新 Host session 完成 Flash 与显式 Pro 的只读代码 fixture E2E：
+  预期 Agent/Provider/Model tuple、工具使用、桥接完成/释放、准确诊断与主线程复核均通过；
+  Pro 仍不自动路由，验证器仍为 `runtimeVerified: false`。
+- [x] 公开名称迁移为 **Codex Third-Party Subagents / Codex 第三方子代理**，目标 GitHub 与
+  package slug 为 `codex-third-party-subagents`；保留旧磁盘 runtime namespace 以兼容升级与卸载。
 
 ## 公开仓库
 
@@ -64,9 +75,8 @@
 
 - [x] 重启 Codex Desktop，运行真实 `minimax_worker` 子任务并验证桥接完成与释放。
 - [ ] 取得 DeepSeek V4 Flash 独立真实用户验收；不要把维护者 E2E 扩写为自动路由或通用成功。
-- [ ] 先取得受支持的已注册 custom-worker 路径，或通过用户可见的交互式 Codex 工作流，完成命名
-  `deepseek_v4_pro_probe_worker` 的实际模型请求、工具、bridge 完成/释放和主线程复核；其后才单独
-  评审 V4 Pro 的显式模型选择、安装器边界、离线测试与 Desktop 运行时验证，不做自动 Flash/Pro 路由。
+- [ ] 取得 Flash 与显式 Pro 公开安装器的独立真实用户验收，并补充 Pro provider dashboard
+  归因/跨任务可靠性证据；不要把受控维护者 E2E 扩写为自动 Flash/Pro 路由或通用成功。
 - [ ] 按 StepFun -> 火山方舟顺序逐一进行真实 API 与 Codex 子代理验证。
 - [ ] 对通过验证的 Provider 单独新增 Pack、Keychain service、目录策略、离线测试和文档。
 - [ ] 对千帆与 TokenHub 保持“网关候选”标识，不把网关通过写成模型厂商直连通过。

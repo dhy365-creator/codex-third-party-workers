@@ -33,7 +33,7 @@ Statuses:
 | Provider / model | Access type | Current result | Next step |
 | --- | --- | --- | --- |
 | DeepSeek / `deepseek-v4-flash` | Official Responses | **Built-in pack; controlled maintainer E2E passed at Level 3** | Keep regression coverage; obtain independent user acceptance before broadening claims |
-| DeepSeek / `deepseek-v4-pro` | Official Responses | **API-verified candidate**: model list, basic Responses, SSE, a function-call round trip, supported reasoning levels, and controlled failure handling passed | Keep it out of the built-in pack until explicit model selection, installer, and Codex Desktop E2E evidence exist |
+| DeepSeek / `deepseek-v4-pro` | Official Responses | **Explicit-only profile; controlled maintainer E2E passed at Level 3**: attributable Host provider/model session, tool use, bridge release, and main review recorded | Keep automatic Flash/Pro routing disabled; obtain independent user acceptance before broadening claims |
 | MiniMax / `MiniMax-M3` | Official Responses and an official Codex Desktop guide | **Runtime verified: API, Codex CLI, Desktop subagent, and bridge release passed** | Keep regression coverage; verify public-installer apply separately |
 | StepFun / `step-3.7-flash` | Official `/v1/responses` | **Tier A, priority 2** | Verify streaming tool loops and Codex subagent execution |
 | Alibaba Model Studio / `qwen3.7-max` | Official Responses and current Codex configuration | **Runtime verified: API, SSE, automatic function call, Codex CLI, Desktop subagent, and bridge release passed** | Keep text-only boundary; thinking mode does not accept `tool_choice: required` |
@@ -46,10 +46,11 @@ Statuses:
 | Direct SiliconFlow | Current official text endpoint is `/chat/completions` | **Not currently compatible** | Wait for official Responses documentation |
 
 Tier A means “worth testing with an API key,” not “perfectly supported.” DeepSeek
-V4 Flash, MiniMax-M3, and Qwen3.7-Max are built-in packs. A controlled Flash
-E2E has been recorded, but independent user acceptance and broad routing claims
-remain pending. Under the strict gate above, no provider is currently labeled
-“perfectly supported.”
+V4 Flash, MiniMax-M3, and Qwen3.7-Max are built-in packs. V4 Pro has a separate
+explicit-only Custom Agent profile, never an automatic route. Controlled Flash
+and Pro maintainer E2Es are recorded, while independent user acceptance, broad
+public-installer, and broad routing claims remain pending. Under the strict gate
+above, no provider is currently labeled “perfectly supported.”
 
 ## DeepSeek V4 Flash controlled E2E — 2026-08-16
 
@@ -71,14 +72,19 @@ ordinary Responses, semantic SSE, a no-side-effect function-call round trip,
 `high` and `max` reasoning requests, and an invalid-model failure path. The
 sanitized record is in [the V4 Pro probe](validation/deepseek-v4-pro-probe-2026-08-16.md).
 
-This is evidence for a candidate only. The repository continues to install
-`deepseek-v4-flash` only. Two temporary, noninteractive custom-agent attempts
-did not yield a V4 Pro model request or bridge completion, so no V4 Pro runtime
-level was added. A later direct programmatic-path audit found that the current
-guarded worker registry does not register a V4 Pro probe; its full sanitized
-record is in [the direct Codex subagent audit](validation/deepseek-v4-pro-probe-2026-08-16.md#direct-codex-subagent-audit).
-No automatic Flash/Pro routing, public installer support, or Codex Desktop
-review is recorded for V4 Pro.
+The repository now has a separately named, explicit-only
+`deepseek_pro_worker` configuration profile and isolated installer/rollback
+coverage. A fresh Host session ran that identity on a read-only coding fixture,
+recorded the expected DeepSeek provider/model tuple, used tools, completed and
+released the bridge, and passed main-thread review. That is controlled
+maintainer **Level 3** evidence. The earlier rejected noninteractive attempts
+remain historical project-policy results, not Host registration limits.
+
+There is still no automatic Flash/Pro routing, provider-dashboard attribution,
+broad public-installer claim, or independent user acceptance. The verifier
+remains `runtimeVerified: false`. See the
+[Custom Subagents runtime record](validation/deepseek-custom-subagents-runtime-e2e-2026-08-16.md)
+and [Custom Agents migration guide](migration/custom-agents.md).
 
 ## Recommended test order
 

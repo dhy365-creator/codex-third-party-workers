@@ -1,6 +1,8 @@
 # 配置指南
 
-`codex-third-party-workers` 把可选 fallback provider 封装为 Codex Desktop 的有界子代理，不替换主线程 OpenAI 模型。本版本为非官方、macOS-only、公开 beta。
+**Codex Third-Party Subagents（Codex 第三方子代理）** 把可选 fallback provider 封装为
+Codex Desktop 的有界子代理，不替换主线程 OpenAI 模型。本版本为非官方、macOS-only、
+公开 beta；GitHub/package slug 为 `codex-third-party-subagents`。
 
 ## 安装前确认
 
@@ -69,6 +71,25 @@ provider-pack 策略校验后落盘。离线时可追加：
 
 仓库不附带官方完整目录或系统提示词。
 
+### Custom Agents 迁移与 DeepSeek V4 Pro
+
+当前 Codex Host 的 Agent 身份以 `~/.codex/agents/*.toml` 中的 `name` 为准；
+预检请求里的 `requestedAgent` 只是本项目的路由选择输入，不会注册 Host Agent。
+
+DeepSeek 默认配置为 `deepseek_worker -> deepseek-v4-flash`。V4 Pro 使用独立的
+`deepseek_pro_worker -> deepseek-v4-pro` 显式配置，只能由明确选择触发，绝不作为
+Flash 的自动替换或回退。
+
+如果 Doctor 提示“matching legacy Custom Agent”，先确认 dry-run，再在正式命令中加：
+
+```sh
+--migrate-legacy --apply
+```
+
+该选项只接管名称、模型、Provider 和文件名均匹配的用户级旧定义；先创建 owner-only
+备份，卸载时可恢复。存在重复、错配或项目级同名定义时会拒绝应用。详情见
+[Custom Agents 迁移说明](migration/custom-agents.md)。
+
 ## 3. 正式写入
 
 检查 dry-run 输出无误后，在相同命令末尾添加：
@@ -86,6 +107,7 @@ provider-pack 策略校验后落盘。离线时可追加：
 - owner-only 的安装清单和必要备份。
 
 不会修改 `~/.codex/config.toml`、主模型、主 provider、主 auth 或数据库。
+不会写入项目级 `.codex/agents`、改变 Host feature flags 或修改 Agent 优先级。
 
 ## 4. 重启并核验
 
@@ -96,8 +118,12 @@ node scripts/verify.mjs
 ```
 
 `configured: true` 只表示本地文件、权限、hash、Keychain 和 catalog 校验正确。
-`runtimeVerified` 仍会是 `false`，直到你真正运行一次适合的文本/代码子任务并由
-主线程复核结果。
+`runtimeVerified` 仍会是 `false`：当前验证器不摄取或独立接受外部运行记录。真实文本/
+代码子任务及主线程复核必须作为单独、按 Agent/Model 归因的证据记录。
+
+`verify` 还会按 Agent / Provider / Model 输出带时间戳的本地配置证据；它没有
+Host 返回的运行时元数据，不能把 Flash 的任何记录扩大为 Pro，也不能自动把已记录的
+受控维护者 E2E 写成 `runtimeVerified: true`。
 
 ## 路由规则
 

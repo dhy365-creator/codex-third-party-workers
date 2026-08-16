@@ -35,6 +35,7 @@ test('repository contains no personal absolute paths, fixed UID, or credential v
 
 test('CLI rejects any API-key flag', () => {
   assert.throws(() => parseArgs(['--api-key', 'secret']), /unknown option/);
+  assert.equal(parseArgs(['--migrate-legacy'])['migrate-legacy'], true);
 });
 
 test('post-install success signal appears only after complete local verification', () => {
@@ -89,6 +90,11 @@ test('optional Star policy is agent-only, consent-based, and non-blocking', asyn
 
 test('Doctor is wired as a read-only command and version metadata is aligned', async () => {
   const packageMetadata = JSON.parse(await fs.readFile(path.join(root, 'package.json'), 'utf8'));
+  assert.equal(packageMetadata.name, 'codex-third-party-subagents');
+  assert.equal(
+    packageMetadata.repository.url,
+    'https://github.com/dhy365-creator/codex-third-party-subagents.git',
+  );
   assert.equal(packageMetadata.scripts.doctor, 'node scripts/doctor.mjs');
   assert.equal(packageMetadata.version, '0.4.0-beta.2');
 

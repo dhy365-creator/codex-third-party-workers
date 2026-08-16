@@ -4,11 +4,11 @@
 mode: resume
 current_stage: discussions
 status: PUBLISHED
-repository: dhy365-creator/codex-third-party-workers
+repository: dhy365-creator/codex-third-party-subagents
 source_commit: 59100b08aeedfa299398d1330c25f863bf4aa8af
 release_tag: v0.4.0-beta.2
-release_url: https://github.com/dhy365-creator/codex-third-party-workers/releases/tag/v0.4.0-beta.2
-owned_repository_pr: https://github.com/dhy365-creator/codex-third-party-workers/pull/5
+release_url: https://github.com/dhy365-creator/codex-third-party-subagents/releases/tag/v0.4.0-beta.2
+owned_repository_pr: https://github.com/dhy365-creator/codex-third-party-subagents/pull/5
 owned_repository_state: merged
 last_updated: 2026-08-15
 checked_at: 2026-08-15T10:37:16+08:00
@@ -27,7 +27,7 @@ payloads, API responses, billing data, or private paths.
 
 ## Positioning
 
-**Codex Third-Party Workers** lets Codex delegate bounded text, code, research,
+**Codex Third-Party Subagents** lets Codex delegate bounded text, code, research,
 and local-validation tasks to reviewed third-party or Chinese model APIs while
 the main Codex thread remains on OpenAI and performs final review.
 
@@ -88,7 +88,7 @@ If a canonical website is added later, use:
 ```text
 utm_source=<community-or-repository>
 utm_medium=github
-utm_campaign=codex-third-party-workers
+utm_campaign=codex-third-party-subagents
 utm_content=<asset-or-post>
 ```
 

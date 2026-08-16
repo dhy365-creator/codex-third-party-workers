@@ -10,14 +10,18 @@
 - macOS Keychain is the only credential source.
 - Dry-run is the default; file mutation requires `--apply`.
 - Official provider metadata is acquired at install time, never vendored here.
+- A Custom Agent's Host identity comes from its official TOML `name` field,
+  not from a routing request or preflight role list. See
+  [the migration guide](migration/custom-agents.md).
 
 ### Read-only Doctor
 
 `npm run doctor -- --provider <provider>` inspects the local prerequisites
 before installation. It checks the platform, Node.js, recognizable Codex state,
-owner-only permissions, the reviewed provider/model pairing, Keychain item
-presence, OpenAI fallback hints, installed-manifest state, and prerequisites for
-the existing verifier.
+Custom Agent capability and multi-agent mode, expected name/model/provider,
+duplicate or project-scope identities, legacy migration state, owner-only
+permissions, Keychain item presence, OpenAI fallback hints, installed-manifest
+state, and prerequisites for the existing verifier.
 
 Doctor performs no writes, never asks Keychain to return a credential value,
 does not print private paths, and makes no network or paid provider API call.
@@ -28,9 +32,12 @@ provider, unsupported model, missing credential, or incompatible platform.
 
 ### Agent definition
 
-`~/.codex/agents/<provider>_worker.toml` selects the provider pack model, defines
-its model provider block, and reads credentials from Keychain. The installer never
-writes `~/.codex/config.toml`.
+`~/.codex/agents/<provider>_worker.toml` is a user-scoped official Custom
+Agent definition. Its TOML `name` is the Host identity; its
+`description` and `developer_instructions` are required. It selects the
+provider pack model, defines the model provider block, and reads credentials from
+Keychain. The installer never writes `~/.codex/config.toml` or project
+`.codex/agents` definitions.
 
 ### Runtime catalog
 
@@ -41,11 +48,15 @@ chain while validating every destination against the pack host policy, and appli
 pack policy:
 
 - model identity target
-- reviewed model policy (the built-in DeepSeek pack currently selects V4 Flash;
-  V4 Pro remains a separate candidate and is not installed)
+- reviewed model policy (V4 Flash is the default DeepSeek fallback; V4 Pro is
+  an explicit-only profile and is never auto-routed)
 - required source modalities and an installed text-only capability boundary
 
 The resulting catalog is written as owner-only runtime data.
+
+The public project and package slug is `codex-third-party-subagents`. Existing
+`codex-third-party-workers` on-disk library, manifest, backup, marker, and bridge
+names remain a legacy runtime namespace so upgrades and uninstall stay compatible.
 
 A local catalog or saved setup script can be used for offline installation.
 
@@ -61,7 +72,8 @@ bridge. If that slot is busy or invalid, it falls back to OpenAI.
 
 This is a policy-assisted guardrail. Codex Desktop collaboration calls are not
 always guaranteed to be intercepted natively, so the AGENTS rules instruct the
-main agent to run preflight before every new spawn or follow-up.
+main agent to run preflight before every new spawn or follow-up. It selects an
+already-declared Custom Agent role; it does not register or rename a Host agent.
 
 ### Task bridge
 
@@ -87,7 +99,9 @@ Archives are never deleted automatically.
 
 Every managed file records path, installed hash, mode, whether it pre-existed,
 and owner-only backup state when needed. Reinstallation preserves backups when
-managed files are unchanged.
+managed files are unchanged. A matching untracked legacy Custom Agent requires
+explicit `--migrate-legacy` before adoption; a mismatch, duplicate, or
+project-scope conflict stops the apply.
 
 Uninstall validates all actions before writing anything. It removes only exact hash
 matches, restores validated backups, and removes only the exact AGENTS marker
@@ -101,7 +115,7 @@ flowchart LR
     C --> P["Live preflight\nquota · suitability · readiness"]
     P -->|"OpenAI path"| O["Spark or Luna worker"]
     P -->|"provider path"| B["Owner-only single-slot task bridge"]
-    B --> W["Selected provider worker"]
+    B --> W["Host-discovered Custom Agent"]
     W --> R["External Responses API / model"]
     R --> A["Redacted completed/failed archive"]
     O --> S["Codex review and synthesis"]
@@ -112,6 +126,10 @@ flowchart LR
 
 - `configured`: files, permissions, hashes, catalog rules, marker, and Keychain
   checks are valid locally.
-- `runtimeVerified`: not claimed by verifier. It requires a real Codex task after
-  restarting the app.
+- `agentEvidence`: per agent/provider/model local configuration checks with
+  a timestamp; it intentionally has no Host runtime metadata.
+- `runtimeVerified`: not claimed by verifier. Real Codex tasks are recorded
+  separately after restarting or beginning a new Host session for the exact
+  agent/model tuple; the verifier does not ingest or independently accept those
+  external records.
 - `userAccepted`: separate from both local checks and runtime execution.

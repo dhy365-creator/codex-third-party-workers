@@ -25,7 +25,9 @@ export async function bridgeMain(argv = process.argv.slice(2), env = process.env
     process.stdout.write(`${JSON.stringify({
       ok: true,
       status: result.status,
-      archivePath: result.archivePath,
+      taskBasename: result.task.taskBasename,
+      providerRole: result.task.providerRole ?? null,
+      model: result.task.model ?? null,
     })}\n`);
   } catch (error) {
     process.stderr.write(`bridge helper: ${error?.message ?? 'failed'}\n`);

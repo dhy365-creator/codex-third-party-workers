@@ -1,6 +1,6 @@
-# Codex Third-Party Workers
+# Codex 第三方子代理
 
-[![CI](https://github.com/dhy365-creator/codex-third-party-workers/actions/workflows/test.yml/badge.svg)](https://github.com/dhy365-creator/codex-third-party-workers/actions/workflows/test.yml)
+[![CI](https://github.com/dhy365-creator/codex-third-party-subagents/actions/workflows/test.yml/badge.svg)](https://github.com/dhy365-creator/codex-third-party-subagents/actions/workflows/test.yml)
 [![License: MIT](https://img.shields.io/badge/License-MIT-8a7dff.svg)](LICENSE)
 [![macOS](https://img.shields.io/badge/platform-macOS-45dfff.svg)](#环境要求)
 
@@ -9,7 +9,7 @@
 把适合的 Codex 子代理任务委派给成本较低的 Provider API，同时让 **Codex 始终保持
 主代理**。
 
-![Codex Third-Party Workers 架构主视觉](assets/hero-social-preview.png)
+![Codex Third-Party Subagents 架构主视觉](assets/hero-social-preview.png)
 
 > 当前版本线为 `0.4.0-beta.2`。本项目非官方、仅支持 macOS，未经 OpenAI、DeepSeek、
 > MiniMax 或阿里云官方背书。
@@ -32,17 +32,21 @@
 只有经过审查的内置 Pack 才算受支持。兼容性申请或“候选”标记不等于已经支持；详细证据
 见[兼容性矩阵](docs/provider-compatibility.zh-CN.md)。
 
-DeepSeek V4 Pro 是“API 已验证候选”，不是内置 Pack；公开安装器和 Codex Desktop
-运行时路径仍未验证。见[脱敏兼容性探测记录](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
-和[受控运行时 E2E 记录](docs/validation/deepseek-runtime-e2e-2026-08-16.md)。
+DeepSeek V4 Pro 是仅能显式选择的 Custom Agent 配置 Profile（`--model pro`），不是
+自动 fallback。带 Host/provider/model 归因的受控维护者代码 fixture E2E 已通过；公开
+安装器与独立真实用户验收仍未完成。见
+[Custom Agents 迁移说明](docs/migration/custom-agents.md)和
+[脱敏 Custom Subagents 运行记录](docs/validation/deepseek-custom-subagents-runtime-e2e-2026-08-16.md)。
 
 ## 文档与社区导航
 
 - [快速开始](#快速开始)
 - [Doctor](#doctor)
 - [架构说明](docs/architecture.md)
+- [Custom Agents 迁移说明](docs/migration/custom-agents.md)
 - [兼容性矩阵](docs/provider-compatibility.zh-CN.md)
 - [DeepSeek 受控运行时 E2E](docs/validation/deepseek-runtime-e2e-2026-08-16.md)
+- [DeepSeek Custom Subagents 运行时 E2E](docs/validation/deepseek-custom-subagents-runtime-e2e-2026-08-16.md)
 - [DeepSeek V4 Pro 探测](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
 - [演示（Demos）](docs/demos/README.md)
 - [FAQ](docs/faq.zh-CN.md)
@@ -56,8 +60,8 @@ DeepSeek V4 Pro 是“API 已验证候选”，不是内置 Pack；公开安装�
 不会安装文件、修改 Codex 配置、输出凭据或调用付费 Provider API。
 
 ```sh
-git clone https://github.com/dhy365-creator/codex-third-party-workers.git
-cd codex-third-party-workers
+git clone https://github.com/dhy365-creator/codex-third-party-subagents.git
+cd codex-third-party-subagents
 
 /usr/bin/security add-generic-password \
   -a "$(id -un)" -s codex-deepseek-api-key -U -w
@@ -90,6 +94,7 @@ node scripts/install.mjs \
 - 只读，不会变更文件。
 - 不调用付费 API，不输出凭据。
 - 在开始真实委派前检查环境、Provider/Model、凭据、fallback 提示和安装前置条件。
+- 检查 Custom Agent capability、身份、重复项与迁移状态。
 
 ## 已验证的 Codex Desktop 运行记录
 
@@ -99,8 +104,9 @@ node scripts/install.mjs \
 ![真实 Codex Desktop Provider Worker 脱敏运行记录](assets/terminal-demo.png)
 
 MiniMax-M3 和 Qwen3.7-Max 已通过真实 API、CLI 与 Codex Desktop 检查。
-DeepSeek V4 Flash 也已完成一次有边界的维护者 E2E：显式选择的 Worker 对非敏感
-fixture 完成诊断，桥接完成归档并释放，且由主线程复核。这是该路径的 Level 3 证据，
+DeepSeek V4 Flash 与仅显式选择的 V4 Pro Profile 均已在新 Host session 完成一次有边界
+的维护者代码 fixture E2E：Custom Subagent 复现失败测试、指出准确的一行修复、使用预期
+Provider/Model、完成并释放桥接，最后由主线程复核。这是这些受控路径的 Level 3 证据，
 不是通用公开安装器或用户验收声明；验证器仍刻意输出 `runtimeVerified: false`。
 
 ## 兼容性速览
@@ -110,7 +116,7 @@ fixture 完成诊断，桥接完成归档并释放，且由主线程复核。这
 | 厂商直连路径 | 当前证据 |
 | --- | --- |
 | DeepSeek V4 Flash | 已内置；受控维护者 E2E 已通过（Level 3）；验证器保持保守状态 |
-| DeepSeek V4 Pro | API 已验证候选；不是内置 Pack，也未完成 Desktop 运行时验证 |
+| DeepSeek V4 Pro | 仅显式选择的 Custom Agent Profile；受控维护者 E2E 已通过（Level 3）；绝不自动路由 |
 | MiniMax-M3 | 已内置，Desktop 运行时已验证 |
 | 阿里云百炼 Qwen3.7-Max | 已内置，Desktop 运行时已验证 |
 | 阶跃星辰 Responses 模型 | 候选，尚未运行时验证 |
@@ -128,7 +134,7 @@ flowchart LR
     C --> P["预检路由\n额度 · 适配性 · 可用状态"]
     P -->|"OpenAI 路径"| O["Spark 或 Luna Worker"]
     P -->|"Provider 路径"| B["仅所有者可读的单任务桥接"]
-    B --> W["所选 Provider Worker"]
+    B --> W["由 Host 发现的 Custom Agent"]
     W --> R["Provider Responses API"]
     R --> A["脱敏 completed/failed 归档"]
     O --> S["Codex 复核与整合"]
@@ -142,7 +148,7 @@ Provider 桥接一次只允许一个仅所有者可读的任务，拒绝不安�
 
 ![验证与安全证据](assets/validation-proof.png)
 
-- 当前分支的 `51/51` 项隔离测试已通过，其中包含 macOS 桥接根目录默认值回归测试。
+- 当前分支的 `72/72` 项隔离测试已通过，覆盖 Custom Agent schema、重复、迁移与回滚。
 - GitHub Actions 会在 macOS + Node.js 20 上对 push 与 pull request 运行同一套测试。
 - API key 只从 macOS Keychain 读取，不接受 `--api-key`。
 - 桥接采用仅所有者权限和原子脱敏归档。
@@ -158,8 +164,9 @@ Provider 桥接一次只允许一个仅所有者可读的任务，拒绝不安�
 - 被委派的任务正文会发送给所选 Provider。不得委派凭据、隐私内容或无权外发的资料。
 - 仅适合文本、代码、研究整理和本地验证。图片、音频、视频、浏览器控制、桌面控制、
   MCP 和 Computer Use 不在支持范围内。
-- 当前内置 DeepSeek Pack 只会安装 `deepseek-v4-flash`。
-  `deepseek-v4-pro` 是 API 已验证候选，尚不是可选 Pack，也未完成运行时验证；MiniMax
+- DeepSeek V4 Flash 是默认 fallback。`deepseek-v4-pro` 是独立、仅显式选择的
+  Custom Agent Profile，绝不自动路由或静默替换 Flash；其受控维护者 E2E 不等于通用
+  公开安装器或用户验收。MiniMax
   只支持 `MiniMax-M3`；Qwen 只支持阿里云百炼按量计费的纯文本 `qwen3.7-max`。
 - 路由需要 Luna 时，用户必须已经配置可用的 `luna_worker`；本仓库不会安装或修改 Luna。
 - Codex Desktop 不保证原生拦截所有子代理调用。预检脚本是主代理必须在每次新派发或
@@ -195,8 +202,8 @@ dry-run、确认后应用配置、重启 Codex Desktop，并完成安装验证�
 ## 0. 下载仓库
 
 ```sh
-git clone https://github.com/dhy365-creator/codex-third-party-workers.git
-cd codex-third-party-workers
+git clone https://github.com/dhy365-creator/codex-third-party-subagents.git
+cd codex-third-party-subagents
 ```
 
 也可以在 GitHub 下载 ZIP，解压后进入该目录执行后续命令。
@@ -257,6 +264,11 @@ MiniMax 与 Qwen 使用相同路由参数，只需把 Provider 改成 `--provide
 安装器一次管理一个当前路由的 Provider fallback；切换 Pack 不会改变主线程 OpenAI
 模型、Provider 或认证。
 
+要检查仅显式选择的 DeepSeek V4 Pro Profile，在确认 dry-run 的命令中增加
+`--model pro`。它绝不变成自动 fallback。若 Doctor 检出匹配的旧用户 Custom
+Agent，只能在确认过的正式命令中增加 `--migrate-legacy`；见
+[迁移说明](docs/migration/custom-agents.md)。
+
 离线安装可以追加：
 
 ```sh
@@ -276,11 +288,13 @@ node scripts/verify.mjs
 - `configured: true`：文件、权限、hash、模型目录、AGENTS 标记和 Keychain 检查通过。
 - `runtimeVerified: false`：验证器不会自动把一次受控运行时观察升级为已验证状态；在本项目
   定义并独立接受运行时证据策略前，它会保持为 `false`。
+- `agentEvidence`：按 Agent / Provider / Model 输出带时间戳的本地身份检查；没有
+  Host 运行时元数据，也不能验证其他模型。
 
 ### 可选：支持本项目
 
 安装和验证成功后，如果本项目对你有帮助，欢迎在 GitHub 上给它一个 Star。这完全可选，
-安装和使用从不以 Star 为条件：[codex-third-party-workers](https://github.com/dhy365-creator/codex-third-party-workers)。
+安装和使用从不以 Star 为条件：[codex-third-party-subagents](https://github.com/dhy365-creator/codex-third-party-subagents)。
 
 ## 卸载
 
@@ -306,6 +320,9 @@ node scripts/uninstall.mjs --apply
 - `~/.codex/codex-third-party-workers-backups/`
 - `~/.codex/AGENTS.md` 中一段有明确边界标记的规则
 
+上述 `codex-third-party-workers` 路径和标记是为安全升级与卸载兼容保留的旧运行
+namespace，不代表当前公开项目名称或 GitHub slug。
+
 官方模型目录和提示词会在安装时获取，不会直接收录在本仓库中。
 
 ## 开发与扩展 Provider Pack
@@ -318,9 +335,10 @@ npm test
 Keychain、Codex 额度、`~/.codex` 或外部网络。
 
 本项目提供的是可扩展 Provider Pack 核心，并不代表所有第三方模型已经可以直接使用。
-DeepSeek V4 Flash、MiniMax-M3 与 Qwen3.7-Max 均已内置并通过隔离测试；Flash 已有一条
-受控维护者 E2E 的 Level 3 证据，MiniMax-M3 与 Qwen3.7-Max 还通过了真实 Codex Desktop
-子代理冒烟测试。通用用户验收和公开安装器声明仍单独记录。
+DeepSeek V4 Flash、MiniMax-M3 与 Qwen3.7-Max 均已内置并通过隔离测试；Flash 与仅显式
+选择的 V4 Pro Profile 均已有受控维护者代码 fixture E2E 的 Level 3 证据，MiniMax-M3 与
+Qwen3.7-Max 还通过了真实 Codex Desktop 子代理冒烟测试。通用用户验收和公开安装器声明
+仍单独记录。
 新增 Provider 需要以经过代码审查的方式修改
 `src/provider-packs.mjs` 并补充测试；安装器不会加载任意远程 Pack manifest。
 
@@ -339,9 +357,9 @@ DeepSeek V4 Flash、MiniMax-M3 与 Qwen3.7-Max 均已内置并通过隔离测试
 
 ## 反馈与安全问题
 
-- [报告 Bug](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=bug_report.yml)
-- [申请 Provider 兼容性评估](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=provider-compatibility.yml)
-- [提出功能建议](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=feature_request.yml)
+- [报告 Bug](https://github.com/dhy365-creator/codex-third-party-subagents/issues/new?template=bug_report.yml)
+- [申请 Provider 兼容性评估](https://github.com/dhy365-creator/codex-third-party-subagents/issues/new?template=provider-compatibility.yml)
+- [提出功能建议](https://github.com/dhy365-creator/codex-third-party-subagents/issues/new?template=feature_request.yml)
 - [私下报告安全问题](SECURITY.md)
 
 公开 Issue 中不得包含凭据、私密任务正文、私有文件路径或敏感漏洞细节。

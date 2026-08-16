@@ -78,12 +78,13 @@ pack files, helper artifacts, manifest/backups, and one bounded AGENTS block.
 
 ### Which providers are currently supported?
 
-Current built-in packs and evidence are:
+Current packs/profiles and evidence are:
 
 - DeepSeek V4 Flash: built-in and isolated-tested; a controlled maintainer E2E
   reached Level 3, while generic user acceptance remains pending.
-- DeepSeek V4 Pro: API-verified candidate only; it is not a built-in pack or a
-  Desktop-runtime verified model.
+- DeepSeek V4 Pro: an explicit-only Custom Agent profile with direct API and
+  controlled maintainer Level 3 E2E evidence; public-installer and independent
+  user acceptance remain pending.
 - MiniMax-M3: built-in and runtime verified for the recorded API, CLI, and
   Desktop worker path.
 - Qwen3.7-Max: built-in and runtime verified for the recorded API, CLI, and
@@ -113,16 +114,23 @@ This project verifies strict boundaries:
 
 Availability changes by model docs, pricing, and provider behavior.
 
-### Can I install DeepSeek V4 Pro now?
+### Can I configure DeepSeek V4 Pro now?
 
-No. The built-in DeepSeek pack still selects V4 Flash only. V4 Pro has native
-Responses API and limited direct API evidence, but it remains a candidate until
-explicit model selection, installer coverage, and a real Codex Desktop path are
-separately validated. See the [sanitized probe](validation/deepseek-v4-pro-probe-2026-08-16.md).
+You can review an explicit-only `--model pro` dry-run when Doctor confirms the
+Host and identity conditions. It never becomes the automatic fallback. A matching
+legacy user definition additionally requires `--migrate-legacy --apply`.
+
+A controlled maintainer run now records the expected Host provider/model tuple,
+tool use, bridge completion/release, and main-thread review. That does not claim
+automatic routing, provider-dashboard attribution, public-installer success in
+an unrelated environment, broad reliability, or independent user acceptance;
+the verifier remains `runtimeVerified: false`. See the
+[Custom Agents migration guide](migration/custom-agents.md) and
+[sanitized runtime record](validation/deepseek-custom-subagents-runtime-e2e-2026-08-16.md).
 
 ### How can I request another provider?
 
-Open the [Provider compatibility request form](https://github.com/dhy365-creator/codex-third-party-workers/issues/new?template=provider-compatibility.yml).
+Open the [Provider compatibility request form](https://github.com/dhy365-creator/codex-third-party-subagents/issues/new?template=provider-compatibility.yml).
 
 ## Installation
 

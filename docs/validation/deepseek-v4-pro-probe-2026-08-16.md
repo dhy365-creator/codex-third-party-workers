@@ -1,12 +1,18 @@
 # DeepSeek V4 Pro Compatibility Probe — 2026-08-16
 
+> Migration note: this is historical evidence from before the Custom Agents
+> architecture migration. Its `unknown requestedAgent` / registry language
+> describes the then-project preflight policy, not the current official Host
+> identity mechanism. The later explicit-only profile and controlled Pro runtime
+> E2E are documented in [the current runtime record](deepseek-custom-subagents-runtime-e2e-2026-08-16.md).
+
 ## Scope and conclusion
 
 This record evaluates whether `deepseek-v4-pro` fits the repository's existing
 native Responses transport. This V4 Pro probe does **not** add a pack, change
 routing, or claim V4 Pro Codex Desktop runtime verification. A separate
 Flash-plus-Pro runtime E2E record is available at
-[the controlled runtime record](deepseek-runtime-e2e-2026-08-16.md).
+[the current controlled runtime record](deepseek-custom-subagents-runtime-e2e-2026-08-16.md).
 
 **Decision: API-verified candidate.** The model is a native Responses API
 candidate for a later, explicitly reviewed model-selection design. It is not a
@@ -128,12 +134,12 @@ future Codex integration.
 | Worker result and independent main-thread review | NOT RUN |
 | Bridge completion and release | NOT RUN; no active slot remained |
 
-**Decision remains: API-verified candidate (Level 1).** This audit is a
-current Codex integration/registration blocker, not a model or API failure.
+**Historical decision: API-verified candidate (Level 1).** This audit records a
+then-current project policy blocker, not a model/API failure or a statement about
+the current official Host identity mechanism.
 
-The next V4 Pro runtime evidence must use a supported, registered custom-worker
-path or a user-visible interactive workflow, then verify an actual model
-request, tool use, bridge completion/release where applicable, and main-thread
-review. Only then should a separate design decide whether V4 Pro merits
-explicit selection or isolated installation coverage. Automatic Flash/Pro
-routing is out of scope.
+That required evidence was later obtained through an official, explicit-only
+Custom Agent in a fresh Host session; see the
+[current controlled runtime record](deepseek-custom-subagents-runtime-e2e-2026-08-16.md).
+This historical probe remains unchanged as the earlier Level 1 checkpoint.
+Automatic Flash/Pro routing remains out of scope.

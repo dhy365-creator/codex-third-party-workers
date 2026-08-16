@@ -10,10 +10,11 @@ import {
   extractCatalogFromScript,
   reduceCatalogForProvider,
 } from '../src/catalog.mjs';
-import { resolveProviderPack } from '../src/provider-packs.mjs';
+import { listProviderPackProfiles, resolveProviderPack } from '../src/provider-packs.mjs';
 
 const fixture = path.join(path.dirname(fileURLToPath(import.meta.url)), 'fixtures', 'catalog.json');
 const providerPack = resolveProviderPack('deepseek');
+const deepseekProPack = resolveProviderPack('deepseek', 'pro');
 const minimaxFixture = path.join(
   path.dirname(fileURLToPath(import.meta.url)),
   'fixtures',
@@ -85,11 +86,25 @@ test('rejects a Qwen model document without required official capability markers
   );
 });
 
-test('rejects a Pro-only catalog when reduced by provider policy', () => {
+test('DeepSeek profiles map their dedicated workers and reject the other model catalog', () => {
+  assert.deepEqual(
+    listProviderPackProfiles('deepseek').map((profile) => [profile.role, profile.model]),
+    [
+      ['deepseek_worker', 'deepseek-v4-flash'],
+      ['deepseek_pro_worker', 'deepseek-v4-pro'],
+    ],
+  );
+  assert.equal(deepseekProPack.role, 'deepseek_pro_worker');
   assert.throws(
     () => reduceCatalogForProvider({ models: [{ slug: 'deepseek-v4-pro' }] }, providerPack.catalog),
-    /unsupported provider model variant/,
+    /catalog does not contain deepseek-v4-flash/,
   );
+  assert.throws(
+    () => reduceCatalogForProvider({ models: [{ slug: 'deepseek-v4-flash' }] }, deepseekProPack.catalog),
+    /catalog does not contain deepseek-v4-pro/,
+  );
+  assert.equal(catalogIsSafe({ models: [{ slug: 'deepseek-v4-pro' }] }, providerPack.catalog), false);
+  assert.equal(catalogIsSafe({ models: [{ slug: 'deepseek-v4-flash' }] }, deepseekProPack.catalog), false);
 });
 
 test('oversized source is rejected', () => {

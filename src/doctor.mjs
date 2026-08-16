@@ -4,6 +4,10 @@ import path from 'node:path';
 import { discoverEnvironment, DEFAULT_PROVIDER_ID } from './environment.mjs';
 import { keychainReady } from './keychain.mjs';
 import { resolveProviderPack } from './provider-packs.mjs';
+import {
+  inspectCustomAgentDefinitions,
+  inspectCustomAgentHost,
+} from './custom-agents.mjs';
 import { verify } from './verifier.mjs';
 
 const STATUS = Object.freeze({ PASS: 'PASS', WARN: 'WARN', BLOCKED: 'BLOCKED' });
@@ -78,6 +82,18 @@ async function readInstallState(homeDir, env) {
   }
 }
 
+function profileIsInstalled(manifest, providerPack) {
+  const profiles = manifest?.options?.profiles;
+  if (Array.isArray(profiles) && profiles.length) {
+    return profiles.some((profile) => (
+      (profile.id === providerPack.profile || profile.profile === providerPack.profile)
+      && profile.model === providerPack.model
+      && (profile.providerRole ?? profile.role) === providerPack.role
+    ));
+  }
+  return manifest?.options?.model === providerPack.model;
+}
+
 export function parseDoctorArgs(argv = process.argv.slice(2)) {
   const parsed = {};
   for (let index = 0; index < argv.length; index += 1) {
@@ -146,16 +162,130 @@ export async function runDoctor(options = {}) {
   }
 
   let providerPack = null;
+  let providerAvailable = false;
   try {
-    providerPack = resolveProviderPack(providerId);
-    add(checks, 'Provider pack', STATUS.PASS, `${providerPack.displayName} is reviewed and built in`);
+    const basePack = resolveProviderPack(providerId);
+    add(checks, 'Provider pack', STATUS.PASS, `${basePack.displayName} is reviewed and built in`);
+    providerAvailable = true;
   } catch {
     add(checks, 'Provider pack', STATUS.BLOCKED, 'provider is not a reviewed built-in pack');
   }
-  const modelMatches = providerPack && (!options.model
-    || String(options.model).trim().toLowerCase() === providerPack.model.toLowerCase());
+  if (providerAvailable) {
+    try {
+      providerPack = resolveProviderPack(providerId, options.model);
+    } catch {
+      // The provider remains valid while the requested model fails closed below.
+    }
+  }
+  const modelMatches = providerPack !== null;
   add(checks, 'Model', modelMatches ? STATUS.PASS : STATUS.BLOCKED,
-    modelMatches ? `${providerPack.model} matches the provider pack` : 'model does not match the selected provider pack');
+    modelMatches
+      ? `${providerPack.model} (${providerPack.profile}) matches the selected provider pack`
+      : 'model does not match the selected provider pack');
+  add(checks, 'Expected worker', providerPack ? STATUS.PASS : STATUS.BLOCKED,
+    providerPack ? `${providerPack.role} is the expected worker for ${providerPack.model}` : 'expected worker is unavailable');
+
+  let customAgentHost = null;
+  try {
+    customAgentHost = await (options.inspectCustomAgentHostImpl ?? inspectCustomAgentHost)({
+      codexPath: options.codexPath,
+      commandRunner: options.commandRunner,
+    });
+    add(
+      checks,
+      'Custom Agent host',
+      customAgentHost.supported === true
+        ? STATUS.PASS
+        : customAgentHost.supported === false ? STATUS.BLOCKED : STATUS.WARN,
+      customAgentHost.supported === true
+        ? `Codex ${customAgentHost.version ?? 'CLI'} reports multi_agent enabled`
+        : customAgentHost.reason,
+    );
+    add(
+      checks,
+      'Multi-agent configuration',
+      customAgentHost.supported !== true
+        ? STATUS.WARN
+        : customAgentHost.multiAgentV2 === true ? STATUS.WARN : STATUS.PASS,
+      customAgentHost.supported !== true
+        ? 'cannot establish the active multi-agent configuration'
+        : customAgentHost.multiAgentV2 === true
+          ? 'multi_agent_v2 is also enabled; validate Host precedence before live dispatch'
+          : 'multi_agent is active; multi_agent_v2 is not required and was not changed',
+    );
+  } catch {
+    add(checks, 'Custom Agent host', STATUS.WARN, 'Custom Agent capability could not be inspected');
+    add(checks, 'Multi-agent configuration', STATUS.WARN, 'cannot establish the active multi-agent configuration');
+  }
+
+  if (providerPack) {
+    try {
+      const definitions = await (options.inspectCustomAgentDefinitionsImpl ?? inspectCustomAgentDefinitions)({
+        homeDir,
+        projectRoot: options.projectRoot,
+        expected: [{
+          name: providerPack.role,
+          model: providerPack.model,
+          modelProvider: providerPack.modelProvider,
+          fileName: providerPack.agentFile,
+        }],
+      });
+      const expected = definitions.expectedDefinitions[0];
+      const invalid = definitions.issues.length > 0
+        || expected?.duplicate
+        || expected?.projectPresent
+        || (expected?.present === true && expected?.configured !== true)
+        || (expected?.present === true && expected?.modelMatches !== true)
+        || (expected?.present === true && expected?.providerMatches !== true)
+        || (expected?.present === true && expected?.fileNameMatches === false)
+        || definitions.projectDuplicateNames.includes(providerPack.role);
+      add(
+        checks,
+        'Custom Agent definition',
+        invalid
+          ? STATUS.BLOCKED
+          : expected?.present ? STATUS.PASS : STATUS.WARN,
+        invalid
+          ? 'expected custom-agent identity is invalid, duplicated, or mismatched'
+          : expected?.present
+            ? `${providerPack.role} definition matches the selected provider/model; begin a new Codex session before live verification`
+            : `${providerPack.role} definition is not installed`,
+      );
+      const managedAgent = (installState.manifest?.managedFiles ?? []).some((record) => (
+        record.kind === 'agent' && record.path === path.join(baseEnv.agentsDir, providerPack.agentFile)
+      ));
+      const manifestHasCustomAgentIdentity = (installState.manifest?.options?.customAgents ?? [])
+        .some((agent) => (
+          agent.name === providerPack.role
+          && agent.model === providerPack.model
+          && agent.modelProvider === providerPack.modelProvider
+        ));
+      add(
+        checks,
+        'Custom Agent migration',
+        invalid
+          ? STATUS.BLOCKED
+          : expected?.present && !managedAgent ? STATUS.WARN
+            : installState.installed && !manifestHasCustomAgentIdentity ? STATUS.WARN
+              : expected?.present ? STATUS.PASS : STATUS.WARN,
+        invalid
+          ? 'resolve the conflicting Custom Agent definition before installation'
+          : expected?.present && !managedAgent
+            ? 'matching legacy Custom Agent detected; review dry-run then use --migrate-legacy with --apply'
+            : installState.installed && !manifestHasCustomAgentIdentity
+              ? 'installed manifest predates Custom Agent identity metadata; rerun the installer'
+              : expected?.present
+                ? 'installer-managed Custom Agent identity is ready for a new Codex session'
+                : 'install the selected Custom Agent before migration can be checked',
+      );
+    } catch {
+      add(checks, 'Custom Agent definition', STATUS.WARN, 'custom-agent identity could not be inspected');
+      add(checks, 'Custom Agent migration', STATUS.WARN, 'Custom Agent migration state could not be inspected');
+    }
+  } else {
+    add(checks, 'Custom Agent definition', STATUS.WARN, 'expected custom-agent identity is unavailable');
+    add(checks, 'Custom Agent migration', STATUS.WARN, 'Custom Agent migration state is unavailable');
+  }
 
   if (!installState.info) {
     add(checks, 'Installation state', STATUS.WARN, 'provider worker is not installed');
@@ -165,6 +295,8 @@ export async function runDoctor(options = {}) {
     add(checks, 'Installation state', STATUS.BLOCKED, 'install manifest must use mode 0600');
   } else if (options.provider && installedProvider !== providerId) {
     add(checks, 'Installation state', STATUS.BLOCKED, 'installed provider differs from the selected provider');
+  } else if (providerPack && !profileIsInstalled(installState.manifest, providerPack)) {
+    add(checks, 'Installation state', STATUS.BLOCKED, 'selected model profile is not installed');
   } else {
     add(checks, 'Installation state', STATUS.PASS, 'provider worker manifest is installed');
   }
@@ -197,6 +329,7 @@ export async function runDoctor(options = {}) {
     try {
       const result = await (options.verifyImpl ?? verify)({
         provider: providerId,
+        model: options.model,
         checkKeychain: false,
         env: options.env ?? process.env,
         platform,
@@ -220,7 +353,10 @@ export async function runDoctor(options = {}) {
     summary,
     provider: providerPack?.id ?? 'unsupported',
     model: providerPack?.model ?? null,
+    worker: providerPack?.role ?? null,
+    profile: providerPack?.profile ?? null,
     installed: installState.installed,
+    customAgentHost,
     checks,
   };
 }
