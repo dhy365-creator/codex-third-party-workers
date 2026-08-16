@@ -6,6 +6,16 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Fix the macOS default bridge-root resolution used by the bridge CLI when no
+  platform override is supplied, with regression coverage.
+- Record a bounded DeepSeek V4 Flash maintainer E2E: explicit worker execution,
+  non-sensitive fixture diagnosis, bridge completion/release, and main-thread
+  review. The verifier remains `runtimeVerified: false`; this does not add V4
+  Pro support, automatic routing, or a general public-installer claim.
+- Record a direct DeepSeek V4 Pro programmatic-subagent audit on Codex CLI
+  `0.147.0`. The current guarded worker registry exposes only the Flash worker,
+  so the named Pro probe was rejected before a provider request; V4 Pro remains
+  an API-verified candidate with no built-in, installer, or routing claim.
 - Add community documentation index and demos to improve first-contact user onboarding.
   Includes `docs/demos/qwen-worker-demo.md`, `docs/demos/minimax-worker-demo.md`,
   `docs/demos/deepseek-worker-demo.md`, and `docs/demos/README.md`.

@@ -21,8 +21,13 @@ Focus: documentation and operational maturity before adding new runtime claims.
   contributor guidance from real user feedback.
 - **planned** — keep provider evidence aligned across current state,
   compatibility, demos, and release notes.
-- **runtime verification pending** — complete the DeepSeek public-installer live
-  run and Codex review in an authorized real user environment.
+- **planned** — obtain independent real-user acceptance for the DeepSeek Flash
+  install path after the recorded controlled maintainer E2E; do not treat it as
+  broad routing evidence.
+- **under evaluation** — DeepSeek V4 Pro is an API-verified candidate, but no
+  selectable pack or automatic Flash/Pro routing is planned before the Flash
+  user-acceptance evidence, a supported registered custom-worker path or
+  user-visible interactive Pro E2E, and a separate model-selection review.
 
 ## Next — v0.5
 

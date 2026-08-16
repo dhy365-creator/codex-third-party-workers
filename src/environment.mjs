@@ -37,7 +37,7 @@ export function parseBoolean(value, name = 'boolean') {
   throw new Error(`${name} must be true or false`);
 }
 
-export function getBridgeRoot({ uid, platform, tmpDir, env = process.env } = {}) {
+export function getBridgeRoot({ uid, platform = process.platform, tmpDir, env = process.env } = {}) {
   const user = os.userInfo();
   const resolvedUid = uid ?? (typeof process.getuid === 'function' ? process.getuid() : user.uid);
   const override = env.CODEX_THIRD_PARTY_WORKER_BRIDGE_ROOT ?? env.DEEPSEEK_WORKER_BRIDGE_ROOT;

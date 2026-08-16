@@ -80,8 +80,10 @@ pack files, helper artifacts, manifest/backups, and one bounded AGENTS block.
 
 Current built-in packs and evidence are:
 
-- DeepSeek V4 Flash: built-in and isolated-tested; public-installer live runtime
-  verification pending.
+- DeepSeek V4 Flash: built-in and isolated-tested; a controlled maintainer E2E
+  reached Level 3, while generic user acceptance remains pending.
+- DeepSeek V4 Pro: API-verified candidate only; it is not a built-in pack or a
+  Desktop-runtime verified model.
 - MiniMax-M3: built-in and runtime verified for the recorded API, CLI, and
   Desktop worker path.
 - Qwen3.7-Max: built-in and runtime verified for the recorded API, CLI, and
@@ -95,6 +97,8 @@ Candidates and gateway listings are not supported packs. See the complete
 - **Built-in pack**: implemented and verified in isolation.
 - **Runtime-verified**: real Codex subagent run and human-reviewed result.
 - **Candidate**: protocol and docs alignment found, runtime verification pending.
+- **API-verified candidate**: a limited direct API probe also passed, but no
+  installer, Codex Desktop, bridge-release, or human-review claim follows.
 - **Incompatible**: missing protocol or required translator constraints.
 
 ### Why isn't model X supported?
@@ -108,6 +112,13 @@ This project verifies strict boundaries:
 - verified subagent handoff and release
 
 Availability changes by model docs, pricing, and provider behavior.
+
+### Can I install DeepSeek V4 Pro now?
+
+No. The built-in DeepSeek pack still selects V4 Flash only. V4 Pro has native
+Responses API and limited direct API evidence, but it remains a candidate until
+explicit model selection, installer coverage, and a real Codex Desktop path are
+separately validated. See the [sanitized probe](validation/deepseek-v4-pro-probe-2026-08-16.md).
 
 ### How can I request another provider?
 
@@ -141,7 +152,8 @@ The three values are triage states:
 
 ### What is `runtimeVerified`?
 
-`runtimeVerified` is `false` until a real live subagent task has been run and
-reviewed in a real environment.
+`runtimeVerified` remains `false` until this project records independently
+accepted runtime evidence. It does not auto-promote one controlled maintainer
+observation.
 
 Configured installers can still be healthy while `runtimeVerified` is false.

@@ -10,6 +10,14 @@ import {
   hasArchivedBridgeTask,
   readBridgeTask,
 } from '../src/bridge.mjs';
+import { BRIDGE_PREFIX, getBridgeRoot } from '../src/environment.mjs';
+
+test('bridge root uses the current platform when no platform override is supplied', () => {
+  const uid = 424242;
+  const root = getBridgeRoot({ uid, tmpDir: '/ignored-by-default-platform', env: {} });
+  const expectedParent = process.platform === 'darwin' ? '/private/tmp' : os.tmpdir();
+  assert.equal(root, path.join(expectedParent, `${BRIDGE_PREFIX}${uid}`));
+});
 
 test('bridge is single-slot, owner-only, atomic, and redacts archives', async (t) => {
   const parent = await fs.mkdtemp(path.join(os.tmpdir(), 'codex-dsw-bridge-'));
