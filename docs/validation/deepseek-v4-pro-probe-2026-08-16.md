@@ -92,8 +92,48 @@ a bounded patch plan, and a static function-call round trip.
 | V4 Flash | Built-in; separate controlled maintainer E2E recorded | `false` | Completed and released in the bounded Flash run | Main-thread reviewed |
 | V4 Pro | Not a selectable pack or installed configuration | `false` | Two temporary noninteractive attempts did not consume a bridge task | Not run |
 
-The next V4 Pro runtime evidence must use a user-visible interactive Codex
-workflow to invoke the temporary named worker and verify an actual model request,
-tool use, bridge completion/release, and main-thread review. Only then should a
-separate design decide whether V4 Pro merits explicit selection or isolated
-installation coverage. Automatic Flash/Pro routing is out of scope.
+## Direct Codex subagent audit
+
+On 2026-08-16, a separate current-environment audit checked supported
+programmatic paths without using an Agent Picker. It did not make a V4 Pro
+provider request and does not establish that the model is unusable in every
+future Codex integration.
+
+- Codex CLI version was `0.147.0`. `codex exec --help` exposes `--model`, but
+  no explicit `--agent` or subagent-selection option. A direct main-agent
+  `--model` invocation would not prove a bounded worker or bridge lifecycle,
+  so it was not used.
+- The available programmatic delegation surface has a registered
+  `deepseek_worker` fixed to `deepseek-v4-flash`. Its advertised model override
+  set does not expose DeepSeek V4 Pro.
+- The installed preflight guard has a fixed allowlist of Spark, Luna, and the
+  Flash DeepSeek worker. A version-1 preflight request for
+  `deepseek_v4_pro_probe_worker` returned `deny: unknown requestedAgent` before
+  bridge preparation or model dispatch.
+- The installed custom-agent directory had no V4 Pro probe entry. Adding an
+  isolated TOML alone would still not make the name selectable through the
+  current guarded programmatic path; changing that guard, the router, or the
+  Flash-only pack was intentionally out of scope.
+- Before the audit, the official usage dashboard was reread at
+  `2026-08-16 13:07:53 GMT+8` with the current-month and all-key filters. The
+  V4 Pro slice showed 14 requests and 3,763 tokens; the dashboard warns that
+  usage data can lag by about five minutes. No V4 Pro dispatch followed, so no
+  test-window after value or attribution delta is claimed.
+
+| Required runtime link | Result |
+| --- | --- |
+| Explicit registered V4 Pro subagent spawn | BLOCKED |
+| Runtime-confirmed `deepseek-v4-pro` | NOT RUN |
+| Real provider request and tool/function flow | NOT RUN |
+| Worker result and independent main-thread review | NOT RUN |
+| Bridge completion and release | NOT RUN; no active slot remained |
+
+**Decision remains: API-verified candidate (Level 1).** This audit is a
+current Codex integration/registration blocker, not a model or API failure.
+
+The next V4 Pro runtime evidence must use a supported, registered custom-worker
+path or a user-visible interactive workflow, then verify an actual model
+request, tool use, bridge completion/release where applicable, and main-thread
+review. Only then should a separate design decide whether V4 Pro merits
+explicit selection or isolated installation coverage. Automatic Flash/Pro
+routing is out of scope.

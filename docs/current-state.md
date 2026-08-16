@@ -77,14 +77,19 @@
 - DeepSeek V4 Pro 的直接 API 探测使用 Keychain 凭据且未记录或输出 credential value；两次临时、
   非交互 custom-agent 尝试均未生成 V4 Pro 模型请求或消费 bridge task，配置已移除、失败归档保留，
   因而它仍不是 Codex Desktop 子代理、公开安装器、桥接完成/释放或主线程复核证据。
+- 2026-08-16 的直接程序化子代理审计进一步确认：当前 Codex CLI 为 `0.147.0`，已注册的
+  程序化 DeepSeek worker 固定为 V4 Flash；对命名 V4 Pro probe 的 version-1 preflight 请求在
+  bridge 创建前返回 `unknown requestedAgent`。CLI 没有显式 `--agent` / subagent 选项；未改 Router、
+  Flash Pack 或主代理配置来绕过该边界，也未产生 V4 Pro 模型请求。见
+  [脱敏审计记录](validation/deepseek-v4-pro-probe-2026-08-16.md#direct-codex-subagent-audit)。
 
 ## 尚未完成或未声称
 
 - 已完成一次受控维护者 Flash E2E，但尚未取得独立真实用户验收；验证器仍不会自动把一次任务
   写成 `runtimeVerified: true`。
-- DeepSeek V4 Pro 尚未成为可选 Pack；其两个非交互尝试未达到运行时等级。下一步必须先通过
-  用户可见的交互式方式完成命名 V4 Pro worker 的实际请求、工具、bridge 释放与主线程复核，再单独
-  评审显式模型选择、安装、回退和运行时边界。
+- DeepSeek V4 Pro 尚未成为可选 Pack；现有非交互尝试及程序化注册审计均未达到运行时等级。下一步
+  必须先获得受支持的已注册 custom-worker 路径，或使用用户可见的交互式方式，完成命名 V4 Pro worker
+  的实际请求、工具、bridge 释放与主线程复核；随后才单独评审显式模型选择、安装、回退和运行时边界。
 - 本轮临时安装的托管文件和已记录的 `.codex` / `agents` 目录权限已恢复；`config.toml` 在测试
   活动后与快照 checksum 不同，安装器源码不写该文件，因此未覆盖。安装器会将现有父目录设为
   `0700`，而 `bin` / `lib` 的原始权限没有被快照记录；这是本机清理的 **WARN**，需单独修复和

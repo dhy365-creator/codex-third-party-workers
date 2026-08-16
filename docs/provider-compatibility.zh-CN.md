@@ -65,7 +65,9 @@ Chat Completions。受控直接探测也通过了普通 Responses、语义化 SS
 
 这只构成候选证据。仓库目前仍只安装 `deepseek-v4-flash`，未实现 Flash/Pro 自动路由。
 两次临时、非交互 custom-agent 尝试没有形成 V4 Pro 模型请求或桥接完成，因此 V4 Pro 没有新增
-运行时等级；仍没有它的公开安装器支持或 Codex Desktop 复核记录。
+运行时等级。后续直接程序化路径审计也确认当前受 guard 约束的 worker registry 未注册 V4 Pro probe；
+完整脱敏记录见[直接 Codex 子代理审计](validation/deepseek-v4-pro-probe-2026-08-16.md#direct-codex-subagent-audit)。
+仍没有它的公开安装器支持或 Codex Desktop 复核记录。
 
 ## 推荐测试顺序
 

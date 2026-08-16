@@ -26,8 +26,8 @@ Focus: documentation and operational maturity before adding new runtime claims.
   broad routing evidence.
 - **under evaluation** — DeepSeek V4 Pro is an API-verified candidate, but no
   selectable pack or automatic Flash/Pro routing is planned before the Flash
-  user-acceptance evidence, a user-visible interactive Pro E2E, and a separate
-  model-selection review.
+  user-acceptance evidence, a supported registered custom-worker path or
+  user-visible interactive Pro E2E, and a separate model-selection review.
 
 ## Next — v0.5
 

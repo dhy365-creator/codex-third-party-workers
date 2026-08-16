@@ -74,8 +74,11 @@ sanitized record is in [the V4 Pro probe](validation/deepseek-v4-pro-probe-2026-
 This is evidence for a candidate only. The repository continues to install
 `deepseek-v4-flash` only. Two temporary, noninteractive custom-agent attempts
 did not yield a V4 Pro model request or bridge completion, so no V4 Pro runtime
-level was added. No automatic Flash/Pro routing, public installer support, or
-Codex Desktop review is recorded for V4 Pro.
+level was added. A later direct programmatic-path audit found that the current
+guarded worker registry does not register a V4 Pro probe; its full sanitized
+record is in [the direct Codex subagent audit](validation/deepseek-v4-pro-probe-2026-08-16.md#direct-codex-subagent-audit).
+No automatic Flash/Pro routing, public installer support, or Codex Desktop
+review is recorded for V4 Pro.
 
 ## Recommended test order
 

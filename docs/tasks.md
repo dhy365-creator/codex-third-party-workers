@@ -30,6 +30,9 @@
   `deepseek_worker` 非敏感 fixture 诊断、默认 bridge root 完成/释放及主线程复核均有脱敏证据；
   结论仅为该路径的 Level 3，验证器仍保持 `runtimeVerified: false`。
 - [x] 修复 bridge CLI 未传 platform 时的 macOS 默认 bridge-root 解析，并补充回归测试。
+- [x] 2026-08-16 审计直接程序化 V4 Pro 子代理路径：Codex CLI `0.147.0` 的当前 guard 只注册
+  固定 V4 Flash 的 `deepseek_worker`，命名 V4 Pro probe 的 preflight 在 provider 请求前拒绝；结论
+  仍为 API 已验证候选，不更改 Router、Pack、默认模型或主代理配置。
 
 ## 公开仓库
 
@@ -61,9 +64,9 @@
 
 - [x] 重启 Codex Desktop，运行真实 `minimax_worker` 子任务并验证桥接完成与释放。
 - [ ] 取得 DeepSeek V4 Flash 独立真实用户验收；不要把维护者 E2E 扩写为自动路由或通用成功。
-- [ ] 通过用户可见的交互式 Codex 工作流，完成命名 `deepseek_v4_pro_probe_worker` 的实际模型请求、
-  工具、bridge 完成/释放和主线程复核；其后才单独评审 V4 Pro 的显式模型选择、安装器边界、离线
-  测试与 Desktop 运行时验证，不做自动 Flash/Pro 路由。
+- [ ] 先取得受支持的已注册 custom-worker 路径，或通过用户可见的交互式 Codex 工作流，完成命名
+  `deepseek_v4_pro_probe_worker` 的实际模型请求、工具、bridge 完成/释放和主线程复核；其后才单独
+  评审 V4 Pro 的显式模型选择、安装器边界、离线测试与 Desktop 运行时验证，不做自动 Flash/Pro 路由。
 - [ ] 按 StepFun -> 火山方舟顺序逐一进行真实 API 与 Codex 子代理验证。
 - [ ] 对通过验证的 Provider 单独新增 Pack、Keychain service、目录策略、离线测试和文档。
 - [ ] 对千帆与 TokenHub 保持“网关候选”标识，不把网关通过写成模型厂商直连通过。

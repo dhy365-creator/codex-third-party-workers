@@ -18,6 +18,7 @@ controlled maintainer E2E also completed on 2026-08-16.
 - `README.md` / `README.zh-CN.md` provider status section
 - `docs/provider-compatibility.md` and `docs/provider-compatibility.zh-CN.md`
 - [Sanitized controlled runtime E2E record](../validation/deepseek-runtime-e2e-2026-08-16.md)
+- [V4 Pro direct Codex subagent audit](../validation/deepseek-v4-pro-probe-2026-08-16.md#direct-codex-subagent-audit)
 - `docs/current-state.md` state and limitations
 
 ## What this demonstrates
@@ -35,8 +36,9 @@ response body is published here.
 
 1. Independent real-user acceptance of the documented install path.
 2. Broader reliability evidence across sessions and appropriate text/code tasks.
-3. A separate, user-visible interactive V4 Pro worker E2E before considering
-   explicit selection; this does not authorize Flash/Pro routing.
+3. A separate V4 Pro worker E2E through a supported registered custom-worker
+   path or a user-visible interactive workflow before considering explicit
+   selection; this does not authorize Flash/Pro routing.
 
 ## What to avoid in this state
 
