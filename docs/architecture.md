@@ -68,9 +68,10 @@ applies the routing policy. Spark entitlement and live Spark remaining quota are
 separate inputs. If quota lookup fails, routing stays on an OpenAI worker.
 
 After policy selects a provider role but before writing a task, preflight checks
-every project Custom Agent layer from the Git root through the requested `cwd`.
-Any project TOML definition or unreadable layer falls back to OpenAI so Host
-precedence cannot shadow the validated user identity. Only then does preflight
+every `.codex/agents` layer in the real task-`cwd` ancestor chain. It excludes
+only the user's own `~/.codex/agents` user layer. Any project TOML definition or
+unreadable layer falls back to OpenAI so custom project-root markers and nested
+repositories cannot shadow the validated user identity. Only then does preflight
 atomically create the single task bridge; a busy or invalid slot also falls back
 to OpenAI.
 

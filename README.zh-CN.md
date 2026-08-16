@@ -148,7 +148,7 @@ Provider 桥接一次只允许一个仅所有者可读的任务，拒绝不安�
 
 ![验证与安全证据](assets/validation-proof.png)
 
-- 当前分支的 `78/78` 项隔离测试已通过，覆盖 Custom Agent schema、重复、迁移、回滚与项目级 identity shadowing 防护。
+- 当前分支的 `79/79` 项隔离测试已通过，覆盖 Custom Agent schema、重复、迁移、回滚与项目级 identity shadowing 防护。
 - GitHub Actions 会在 macOS + Node.js 20 上对 push 与 pull request 运行同一套测试。
 - API key 只从 macOS Keychain 读取，不接受 `--api-key`。
 - 桥接采用仅所有者权限和原子脱敏归档。

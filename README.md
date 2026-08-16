@@ -163,7 +163,7 @@ final decision.
 
 ![Validation and security proof](assets/validation-proof.png)
 
-- `78/78` isolated local tests pass on the current branch, including Custom
+- `79/79` isolated local tests pass on the current branch, including Custom
   Agent schema, duplicate, migration, rollback, and project identity-shadowing
   coverage.
 - GitHub Actions runs the same suite on macOS with Node.js 20 for pushes and

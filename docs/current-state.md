@@ -14,8 +14,9 @@
   未启用。安装器的 `--apply` 会先阻止不支持的 Host、重复/错配/项目级冲突与
   未显式迁移的旧定义；dry-run 不写文件。
 - 安全 diff scan 发现项目级同名 Custom Agent 可覆盖预检验证过的用户级 identity；运行时
-  预检现会从 Git root 到任务 `cwd` 检查项目级 agent layers。发现任意 TOML 或无法安全读取时，
-  在创建 bridge 前回退 OpenAI，避免将私有任务交给被项目配置替换的 identity。
+  预检现会检查真实任务 `cwd` 的完整祖先 agent layers，仅排除用户级 `~/.codex/agents`。
+  发现任意项目 TOML 或无法安全读取时，在创建 bridge 前回退 OpenAI；该边界也覆盖自定义
+  project root markers 与嵌套 Git 仓库。
 - 新增四个 TOML identity profile：`deepseek_worker -> deepseek-v4-flash`、
   `deepseek_pro_worker -> deepseek-v4-pro`、`minimax_worker -> MiniMax-M3`、
   `qwen_worker -> qwen3.7-max`。Pro 只可显式选择，绝不自动替换 Flash。
@@ -84,7 +85,7 @@
 
 ## 已在隔离环境验证
 
-- `npm test`：2026-08-14 本地通过 `50/50` 项测试；本迁移分支当前通过 `78/78` 项测试，
+- `npm test`：2026-08-14 本地通过 `50/50` 项测试；本迁移分支当前通过 `79/79` 项测试，
   覆盖 Custom Agent TOML schema、Host capability、重复/错配 identity、legacy migration、
   rollback、per-agent verify evidence、Doctor 只读性和私有路径保护。
 - fake home 的 dry-run、apply、重复安装、verify、dry-run uninstall、正式 uninstall 与

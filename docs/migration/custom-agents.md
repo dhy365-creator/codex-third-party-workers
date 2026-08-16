@@ -48,12 +48,14 @@ The bridge carries the configured tuple so the worker can refuse a mismatched
 task. That is configuration metadata, not proof that a live Host/provider
 runtime returned the same metadata.
 
-Before preparing a provider bridge task, preflight also inspects the task
-project's Custom Agent layers from the Git root through the requested working
-directory. The presence of any project-scoped TOML definition, or an unreadable
-agent layer, keeps an OpenAI worker and writes no bridge task. This conservative
-fail-closed boundary prevents a higher-precedence project definition from
-silently replacing the user-scoped provider identity.
+Before preparing a provider bridge task, preflight also inspects every
+`.codex/agents` layer in the real task directory's ancestor chain, while
+excluding only the user's own `~/.codex/agents` user layer. The presence of any
+project-scoped TOML definition, or an unreadable agent layer, keeps an OpenAI
+worker and writes no bridge task. This conservative fail-closed boundary covers
+custom project-root markers and nested repositories, preventing a
+higher-precedence project definition from silently replacing the user-scoped
+provider identity.
 
 ## Installer migration
 
@@ -81,7 +83,9 @@ removes Keychain credentials or historical bridge archives.
 The installer does not edit `~/.codex/config.toml`, Host feature flags, the
 primary model/provider/authentication, or a project `.codex/agents` directory.
 After an apply, restart or begin a new Codex session so the Host can rediscover
-the user-scoped definition.
+the user-scoped definition. Do the same after any project `.codex/agents`
+change: preflight inspects current disk state but cannot rewrite an agent
+inventory already loaded by the Host.
 
 ## Doctor and verify
 

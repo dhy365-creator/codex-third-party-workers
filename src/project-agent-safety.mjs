@@ -1,46 +1,40 @@
 import fs from 'node:fs/promises';
+import os from 'node:os';
 import path from 'node:path';
 
-async function projectRootFor(cwd) {
-  let current = path.resolve(cwd);
-  while (true) {
-    try {
-      await fs.lstat(path.join(current, '.git'));
-      return current;
-    } catch (error) {
-      if (error?.code !== 'ENOENT') throw error;
-    }
-    const parent = path.dirname(current);
-    if (parent === current) return path.resolve(cwd);
-    current = parent;
+async function realPathOrResolved(value) {
+  const resolved = path.resolve(value);
+  try {
+    return await fs.realpath(resolved);
+  } catch (error) {
+    if (error?.code === 'ENOENT') return resolved;
+    throw error;
   }
 }
 
-function projectLayers(root, cwd) {
+function projectLayers(cwd, homeDir) {
   const layers = [];
   let current = path.resolve(cwd);
   while (true) {
-    layers.unshift(current);
-    if (current === root) return layers;
+    if (current !== homeDir) layers.unshift(current);
     const parent = path.dirname(current);
-    if (parent === current) return [path.resolve(cwd)];
+    if (parent === current) return layers;
     current = parent;
   }
 }
 
-export async function inspectProjectCustomAgentLayers({ cwd = process.cwd() } = {}) {
+export async function inspectProjectCustomAgentLayers({
+  cwd = process.cwd(),
+  homeDir = os.homedir(),
+} = {}) {
   const definitions = [];
   const issues = [];
   try {
-    const requestedCwd = path.resolve(cwd);
-    let resolvedCwd = requestedCwd;
-    try {
-      resolvedCwd = await fs.realpath(requestedCwd);
-    } catch (error) {
-      if (error?.code !== 'ENOENT') throw error;
-    }
-    const root = await projectRootFor(resolvedCwd);
-    for (const layer of projectLayers(root, resolvedCwd)) {
+    const [resolvedCwd, resolvedHome] = await Promise.all([
+      realPathOrResolved(cwd),
+      realPathOrResolved(homeDir),
+    ]);
+    for (const layer of projectLayers(resolvedCwd, resolvedHome)) {
       const directory = path.join(layer, '.codex', 'agents');
       let info;
       try {
