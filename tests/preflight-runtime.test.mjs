@@ -139,6 +139,41 @@ test('preflight accepts legacy deepseekSuitable compatibility flag', async (t) =
   assert.equal(result.bridgePrepared, true);
 });
 
+test('project Custom Agent layer forces OpenAI fallback before bridge creation', async (t) => {
+  const config = await fixture(t);
+  const project = path.join(path.dirname(config.agentPath), 'project');
+  const projectAgents = path.join(project, '.codex', 'agents');
+  await fs.mkdir(path.join(project, '.git'), { recursive: true });
+  await fs.mkdir(projectAgents, { recursive: true });
+  await fs.writeFile(
+    path.join(projectAgents, 'colliding-worker.toml'),
+    'name = "deepseek_worker"\n',
+  );
+  let bridgeCreated = false;
+  const result = await runPreflight(input({ cwd: project }), config, {
+    readRateLimits: async () => rateLimits(),
+    keychainReadyImpl: async () => true,
+    bridgeBusyImpl: async () => false,
+    createBridgeImpl: async () => { bridgeCreated = true; },
+  });
+  assert.equal(result.agentType, 'luna_worker');
+  assert.equal(result.bridgePrepared, false);
+  assert.equal(bridgeCreated, false);
+  assert.match(result.reason, /project custom-agent layer/);
+});
+
+test('project Custom Agent inspection error also fails closed', async (t) => {
+  const config = await fixture(t);
+  const result = await runPreflight(input(), config, {
+    readRateLimits: async () => rateLimits(),
+    keychainReadyImpl: async () => true,
+    bridgeBusyImpl: async () => false,
+    inspectProjectAgentLayersImpl: async () => { throw new Error('unreadable'); },
+  });
+  assert.equal(result.agentType, 'luna_worker');
+  assert.equal(result.bridgePrepared, false);
+});
+
 test('quota lookup failure keeps the requested OpenAI worker', async (t) => {
   const config = await fixture(t);
   const result = await runPreflight(input(), config, {

@@ -48,6 +48,13 @@ The bridge carries the configured tuple so the worker can refuse a mismatched
 task. That is configuration metadata, not proof that a live Host/provider
 runtime returned the same metadata.
 
+Before preparing a provider bridge task, preflight also inspects the task
+project's Custom Agent layers from the Git root through the requested working
+directory. The presence of any project-scoped TOML definition, or an unreadable
+agent layer, keeps an OpenAI worker and writes no bridge task. This conservative
+fail-closed boundary prevents a higher-precedence project definition from
+silently replacing the user-scoped provider identity.
+
 ## Installer migration
 
 The installer remains dry-run by default. Dry-run checks Host capability,

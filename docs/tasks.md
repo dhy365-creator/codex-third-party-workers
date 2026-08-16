@@ -44,6 +44,8 @@
   Pro 仍不自动路由，验证器仍为 `runtimeVerified: false`。
 - [x] 公开名称迁移为 **Codex Third-Party Subagents / Codex 第三方子代理**，目标 GitHub 与
   package slug 为 `codex-third-party-subagents`；保留旧磁盘 runtime namespace 以兼容升级与卸载。
+- [x] 修复安全 diff scan 发现的项目级 Custom Agent identity shadowing：运行时预检在 bridge
+  创建前检查任务项目 agent layers，存在 TOML 或检查不确定时 fail closed 到 OpenAI。
 
 ## 公开仓库
 

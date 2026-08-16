@@ -67,8 +67,12 @@ Codex app-server, verifies installed provider files and the Keychain item, and
 applies the routing policy. Spark entitlement and live Spark remaining quota are
 separate inputs. If quota lookup fails, routing stays on an OpenAI worker.
 
-Before a provider role is selected, preflight atomically creates a single task
-bridge. If that slot is busy or invalid, it falls back to OpenAI.
+After policy selects a provider role but before writing a task, preflight checks
+every project Custom Agent layer from the Git root through the requested `cwd`.
+Any project TOML definition or unreadable layer falls back to OpenAI so Host
+precedence cannot shadow the validated user identity. Only then does preflight
+atomically create the single task bridge; a busy or invalid slot also falls back
+to OpenAI.
 
 This is a policy-assisted guardrail. Codex Desktop collaboration calls are not
 always guaranteed to be intercepted natively, so the AGENTS rules instruct the

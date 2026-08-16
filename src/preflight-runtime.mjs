@@ -16,6 +16,7 @@ import {
   resolveProviderPackByRole,
 } from './provider-packs.mjs';
 import { validateCustomAgentToml } from './custom-agents.mjs';
+import { inspectProjectCustomAgentLayers } from './project-agent-safety.mjs';
 import { chooseRoute, ROLES, validatePreflightInput } from './routing.mjs';
 
 const FALLBACK_AGENT = PACKAGE_NAME;
@@ -256,6 +257,23 @@ export async function runPreflight(input, config, deps = {}) {
   let route = chooseRoute(routeInput);
   let selectedProfile = profiles.find((profile) => profile.providerRole === route.chosenAgent) ?? null;
   if (!selectedProfile) return outputFor(input, route, state, null);
+
+  let projectAgentsSafe = false;
+  try {
+    const inspect = deps.inspectProjectAgentLayersImpl ?? inspectProjectCustomAgentLayers;
+    projectAgentsSafe = (await inspect({ cwd: input.cwd })).safe === true;
+  } catch {
+    // An ambiguous Host identity must keep an OpenAI role.
+  }
+  if (!projectAgentsSafe) {
+    route = chooseRoute({ ...routeInput, providerReady: false });
+    route = {
+      ...route,
+      reason: 'project custom-agent layer present or unreadable; safe OpenAI fallback',
+    };
+    selectedProfile = profiles.find((profile) => profile.providerRole === route.chosenAgent) ?? null;
+    return outputFor(input, route, state, selectedProfile);
+  }
 
   let taskName = input.taskName;
   if (route.action === 'followup') {

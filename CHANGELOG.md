@@ -20,6 +20,10 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
   policy result, not a Host identity registration limitation.
 - Fix the macOS default bridge-root resolution used by the bridge CLI when no
   platform override is supplied, with regression coverage.
+- Fail closed to an OpenAI worker before bridge creation when the task project
+  contains a Custom Agent layer or that layer cannot be inspected safely. This
+  prevents project-scoped definitions from shadowing the preflight-validated
+  user provider identity.
 - Record a bounded DeepSeek V4 Flash maintainer E2E: explicit worker execution,
   non-sensitive fixture diagnosis, bridge completion/release, and main-thread
   review. The verifier remains `runtimeVerified: false`; this does not add an
