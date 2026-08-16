@@ -58,6 +58,11 @@ MiniMax 或 Qwen 把 `--provider deepseek` 改成 `--provider minimax` 或
 路由的 Provider Pack。Pro 用户把 `plan` 改为 `pro`、Spark 设为 `true`、阈值改为 `10`。不传完整
 参数并在交互式终端运行时，安装器会逐项询问。
 
+DeepSeek 不传 `--model` 时始终选择 Flash。`--model pro` 只用于显式配置
+`deepseek_pro_worker` -> `deepseek-v4-pro`，不会改变默认 fallback，也不会自动选择 Pro。
+当前 Codex host 在派发前拒绝该 role；因此 Pro 的 dry-run、apply、Doctor 或 verify 成功只说明
+本地配置，不可当作可用运行时路径。
+
 dry-run 会从官方地址下载目录来源文本，但绝不执行它；DeepSeek 提取
 `CODEX_MODELS_JSON`，MiniMax 提取官方 Codex 指南中的 JSON 目录，Qwen 从阿里云
 官方模型页核对模型、纯文本、Function Calling 与上下文元数据，再按
@@ -95,6 +100,12 @@ provider-pack 策略校验后落盘。离线时可追加：
 node scripts/verify.mjs
 ```
 
+若显式配置 Pro profile，则使用：
+
+```sh
+node scripts/verify.mjs --provider deepseek --model pro
+```
+
 `configured: true` 只表示本地文件、权限、hash、Keychain 和 catalog 校验正确。
 `runtimeVerified` 仍会是 `false`，直到你真正运行一次适合的文本/代码子任务并由
 主线程复核结果。
@@ -108,6 +119,8 @@ node scripts/verify.mjs
    fallback。
 4. 额度查询失败时保留 OpenAI worker，不自动外发给 provider。
 5. 图片、音视频、浏览器、桌面和非文本多模态任务不得交给 provider。
+6. `deepseek_pro_worker` 只允许显式请求；它不参加自动 fallback，且当前 host 未支持该
+   agent type 的真实派发。
 
 Codex Desktop 目前不保证原生拦截所有协作调用，因此预检属于需要主代理主动执行
 的策略护栏，不是系统级安全边界。
@@ -121,4 +134,5 @@ node scripts/uninstall.mjs --apply
 
 默认仍是 dry-run。正式卸载只删除 hash 未变化的托管文件，并只移除精确匹配
 的 AGENTS 标记块；发现用户修改后会停止，不做部分卸载。Keychain 凭据和历史
-桥接归档不会自动删除。
+桥接归档不会自动删除。卸载会处理该 Provider 的全部已安装 profile，不支持只删除 Pro 或
+只删除 Flash。

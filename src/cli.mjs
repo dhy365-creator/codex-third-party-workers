@@ -8,6 +8,7 @@ import { listProviderPackIds, DEFAULT_PROVIDER_ID } from './provider-packs.mjs';
 const VALUE_FLAGS = new Set([
   'plan',
   'provider',
+  'model',
   'spark-available',
   'luna-available',
   'threshold',
@@ -60,6 +61,10 @@ async function askInstallOptions(parsed, streams = { input, output }) {
       parsed.provider
       ?? await ask(`Provider pack [${DEFAULT_PROVIDER_ID}] (available: ${availableProviders.join(', ')}): `, DEFAULT_PROVIDER_ID)
     ).toLowerCase();
+    const model = parsed.model
+      ?? (provider === 'deepseek'
+        ? await ask('DeepSeek model profile (flash/pro) [flash]: ', 'flash')
+        : undefined);
     const plan = (parsed.plan ?? await ask('Subscription plan (plus/pro) [plus]: ', 'plus')).toLowerCase();
     const plus = plan === 'plus';
     const sparkAvailable = parsed['spark-available']
@@ -75,6 +80,7 @@ async function askInstallOptions(parsed, streams = { input, output }) {
     return {
       apply: parsed.apply === true,
       provider,
+      model,
       plan,
       sparkAvailable,
       lunaAvailable,
@@ -93,6 +99,7 @@ function installHelp() {
   return `Usage: node scripts/install.mjs [options]\n\n` +
     `Dry-run is the default. Add --apply to write files.\n\n` +
     `  --provider <provider-pack-id>\n` +
+    `  --model <profile-or-model-id>\n` +
     `  --plan <plus|pro>\n` +
     `  --spark-available <true|false>\n` +
     `  --luna-available <true|false>\n` +
@@ -105,7 +112,7 @@ function installHelp() {
 }
 
 function uninstallHelp() {
-  return 'Usage: node scripts/uninstall.mjs [--apply]\nDry-run is the default. Keychain credentials and bridge archives are never removed.\n';
+  return 'Usage: node scripts/uninstall.mjs [--provider <provider-pack-id>] [--apply]\nDry-run is the default. Uninstall removes every installed profile for that provider; Keychain credentials and bridge archives are never removed.\n';
 }
 
 function summarizeInstall(result) {
@@ -116,6 +123,8 @@ function summarizeInstall(result) {
     manifestPath: result.manifestPath,
     catalogAcquired: result.catalogAcquired,
     keychainVerified: result.keychainVerified,
+    profile: result.profile,
+    profiles: result.profiles,
     message: result.message,
   };
 }
@@ -125,6 +134,8 @@ export function summarizeVerify(result) {
     configured: result.configured,
     runtimeVerified: result.runtimeVerified,
     credentialReady: result.credentialReady,
+    profile: result.profile,
+    runtimeEvidence: result.runtimeEvidence,
     issues: result.issues,
     warnings: result.warnings,
   };
@@ -156,7 +167,11 @@ export function verifyCli(argv = process.argv.slice(2)) {
   return run(async () => {
     const parsed = parseArgs(argv);
     if (parsed.help) return process.stdout.write('Usage: node scripts/verify.mjs [--skip-keychain-check]\n');
-    const result = await verify({ checkKeychain: parsed['skip-keychain-check'] !== true, provider: parsed.provider });
+    const result = await verify({
+      checkKeychain: parsed['skip-keychain-check'] !== true,
+      provider: parsed.provider,
+      model: parsed.model,
+    });
     process.stdout.write(`${JSON.stringify(summarizeVerify(result), null, 2)}\n`);
     if (!result.configured) process.exitCode = 1;
   });
@@ -166,7 +181,11 @@ export function uninstallCli(argv = process.argv.slice(2)) {
   return run(async () => {
     const parsed = parseArgs(argv);
     if (parsed.help) return process.stdout.write(uninstallHelp());
-    const result = await uninstall({ apply: parsed.apply === true });
+    const result = await uninstall({
+      apply: parsed.apply === true,
+      provider: parsed.provider,
+      model: parsed.model,
+    });
     process.stdout.write(`${JSON.stringify(result, null, 2)}\n`);
     if (result.conflicts.length) process.exitCode = 1;
   });

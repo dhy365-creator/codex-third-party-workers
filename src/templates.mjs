@@ -21,8 +21,17 @@ export function agentsBlock({
   lunaAvailable,
   providerPack,
   providerRole,
+  providerProfiles,
+  defaultProviderRole,
 } = {}) {
   const provider = providerPack?.displayName ?? providerRole ?? 'third-party provider';
+  const profiles = providerProfiles?.length ? providerProfiles : [providerPack].filter(Boolean);
+  const profileSummary = profiles
+    .map((profile) => `${profile.role} -> ${profile.model}`)
+    .join(', ');
+  const defaultRole = defaultProviderRole ?? providerRole ?? providerPack?.role ?? null;
+  const defaultProfile = profiles.find((profile) => profile.role === defaultRole) ?? null;
+  const explicitProfiles = profiles.filter((profile) => profile.role !== defaultRole);
   return [
     AGENTS_START,
     `## ${PACKAGE_NAME} routing guardrail`,
@@ -34,7 +43,13 @@ export function agentsBlock({
     '- Never send a live probe task merely to discover quota.',
     `- When provider fallback is selected, spawn/follow with only a minimal instruction to use the configured bridge; the exact task is already in the owner-only bridge. For OpenAI roles, send the scoped task normally.`,
     '- Do not use status-only messaging to assign a new scoped task. Confirm that the provider bridge was archived before starting another provider task.',
-    `- Installed policy: Spark entitlement=${Boolean(sparkAvailable)}, Luna available=${Boolean(lunaAvailable)}, ${provider} threshold=${threshold}%. At the threshold use Luna; only below it may suitable bounded text/code work use provider fallback.`,
+    `- Installed worker profiles: ${profileSummary || `${provider} worker profile`}.`,
+    defaultProfile
+      ? `- Default provider fallback remains ${defaultProfile.role} -> ${defaultProfile.model}; it is considered only below the ${provider} threshold of ${threshold}%. At the threshold use Luna.`
+      : `- No provider role is configured for automatic fallback; keep suitable work on Spark or Luna unless an installed provider role is explicitly requested.`,
+    ...(explicitProfiles.length
+      ? [`- Explicit-only provider roles: ${explicitProfiles.map((profile) => `${profile.role} -> ${profile.model}`).join(', ')}. Never auto-route to them or silently substitute them for the default role.`]
+      : []),
     `- Provider fallback is limited to text, code, research synthesis, and local validation. Never delegate credentials, images, audio, video, desktop control, browser control, MCP, or computer use.`,
     `- Bridge root: ${shellQuoted(bridgePath)}. It is a single owner-only slot; never overwrite an active task or delete an archive.`,
     '- The Codex Desktop may not enforce this hook natively. The main agent must run it manually; treat this as a policy-assisted guardrail, not a security boundary.',
@@ -61,6 +76,7 @@ export function agentToml({
     'Do not handle credentials, images, audio, video, desktop control, browser control, destructive changes, public API changes, or persisted-schema changes without explicit user approval.',
     'Preserve unrelated and uncommitted workspace changes. Prefer minimal diffs and run relevant local checks.',
     `At the start of every turn, read only ${bridgePath}/active/task.json. Verify its parent directory is owner-only 0700, the file is owner-only 0600, version is 1, status is pending or running, and taskBasename matches the final normalized component of taskName.`,
+    `Verify the active task identifies providerId ${toml(pack.id)}, providerRole ${toml(providerRole)}, and model ${toml(model)} before doing any work.`,
     'Treat only message as the task and cwd as its working directory. If the bridge is absent or invalid, report failure and do not guess from encrypted content or scan archives.',
     `Before a successful final response run: ${shellQuoted(nodePath)} ${shellQuoted(bridgeCliPath)} complete "<taskBasename>"`,
     `If the task cannot complete run: ${shellQuoted(nodePath)} ${shellQuoted(bridgeCliPath)} fail "<taskBasename>"`,
@@ -101,12 +117,24 @@ export function agentToml({
 }
 
 export function workerConfig(options = {}) {
+  const profiles = (options.profiles ?? []).map((profile) => ({
+    id: profile.id ?? profile.profile,
+    providerRole: profile.providerRole ?? profile.role,
+    model: profile.model,
+    agentPath: profile.agentPath,
+    catalogPath: profile.catalogPath,
+  }));
   return `${JSON.stringify({
     schemaVersion: 1,
     role: options.providerRole,
     providerId: options.providerId,
     providerRole: options.providerRole,
     model: options.model,
+    modelProfile: options.modelProfile,
+    profiles,
+    defaultProviderRole: options.defaultProviderRole === undefined
+      ? options.providerRole
+      : options.defaultProviderRole,
     plan: options.plan,
     sparkAvailable: Boolean(options.sparkAvailable),
     lunaAvailable: Boolean(options.lunaAvailable),

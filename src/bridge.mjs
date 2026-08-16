@@ -69,6 +69,14 @@ function validateTask(task, statuses = ACTIVE_STATUSES) {
   if (!statuses.has(task.status)) throw new Error('invalid bridge task status');
   if (typeof task.taskName !== 'string' || !task.taskName.trim()) throw new Error('bridge taskName is empty');
   if (task.taskBasename !== normalizeBasename(task.taskName)) throw new Error('bridge taskBasename is invalid');
+  const identity = [task.providerId, task.providerRole, task.model];
+  const providedIdentityFields = identity.filter((value) => value !== undefined && value !== null);
+  if (providedIdentityFields.length && providedIdentityFields.length !== identity.length) {
+    throw new Error('bridge provider identity is incomplete');
+  }
+  if (providedIdentityFields.length && identity.some((value) => typeof value !== 'string' || !value.trim())) {
+    throw new Error('bridge provider identity is invalid');
+  }
   if (statuses === ARCHIVE_STATUSES) {
     if (task.message !== '[REDACTED]' || task.cwd !== '[REDACTED]') {
       throw new Error('bridge archive is not redacted');
@@ -89,6 +97,9 @@ export async function createBridgeTask({
   taskName,
   cwd,
   message,
+  providerId,
+  providerRole,
+  model,
   now = new Date(),
 } = {}) {
   if (typeof taskName !== 'string' || !taskName.trim()) throw new Error('taskName is required');
@@ -101,6 +112,9 @@ export async function createBridgeTask({
     taskBasename: normalizeBasename(taskName),
     cwd: path.resolve(String(cwd ?? '')),
     message,
+    ...(providerId !== undefined ? { providerId } : {}),
+    ...(providerRole !== undefined ? { providerRole } : {}),
+    ...(model !== undefined ? { model } : {}),
     createdAt: now.toISOString(),
   });
   const options = { root, uid, platform, tmpDir, env };

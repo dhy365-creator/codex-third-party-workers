@@ -22,7 +22,8 @@
 - **内置 Pack**：已写入仓库并通过隔离测试；真实用户环境验证单独记录。
 - **运行时已验证 Pack**：内置 Pack 已完成真实 Codex 子代理和人工复核。
 - **A 级候选**：官方文档满足核心协议要求，等待 API key 和真实运行验证。
-- **API 已验证候选**：官方协议证据与受控、脱敏的直接 API 探测均通过；仍不是内置 Pack、安装态或 Desktop 运行时验证。
+- **API 已验证候选**：官方协议证据与受控、脱敏的直接 API 探测均通过。即使已有本地可配置的显式 profile，
+  在真实 Codex worker 派发、工具循环、bridge 释放与主线程复核共同通过前，仍不是 Desktop 运行时已验证。
 - **B 级网关候选**：平台提供 Responses 兼容层，但底层可能是协议转换，能力有限制。
 - **暂不兼容**：官方当前只公开 Chat Completions，或必须依赖外部转换器。
 
@@ -31,7 +32,7 @@
 | Provider / 模型 | 接入类型 | 当前结论 | 下一步 |
 | --- | --- | --- | --- |
 | DeepSeek / `deepseek-v4-flash` | 官方 Responses | **内置 Pack；受控维护者 E2E 已达到 Level 3** | 保持回归测试；在扩大声明前取得独立用户验收 |
-| DeepSeek / `deepseek-v4-pro` | 官方 Responses | **API 已验证候选**：模型目录、普通 Responses、SSE、函数调用闭环、支持的推理级别与受控失败处理均通过 | 在有显式模型选择、安装器和 Codex Desktop E2E 证据前，不加入内置 Pack |
+| DeepSeek / `deepseek-v4-pro` | 官方 Responses | **API 已验证候选**：直接 API 检查通过；显式本地 profile 已覆盖 installer、Doctor、verifier 和 bridge，但当前 Codex host 在派发前拒绝该 agent type | 先取得 host 注册，再完成一次同一 Pro worker 的真实请求、工具循环、结果、completed bridge、释放与主线程复核 |
 | MiniMax / `MiniMax-M3` | 官方 Responses；官方给出 Codex Desktop 配置 | **运行时已验证 Pack：API、Codex CLI、Desktop 子代理和桥接释放均通过** | 保持回归测试；公开安装器 apply/verify 单独验收 |
 | 阶跃星辰 / `step-3.7-flash` | 官方 `/v1/responses` | **A 级候选，优先级 2** | 验证流式工具循环和 Codex 子代理运行 |
 | 阿里云百炼 / `qwen3.7-max` | 官方 Responses；官方给出最新版 Codex 配置 | **运行时已验证：API、SSE、自动 Function Calling、Codex CLI、Desktop 子代理和桥接释放均通过** | 保持纯文本边界；思考模式不接受 `tool_choice: required` |
@@ -44,7 +45,7 @@
 | SiliconFlow 直连 | 官方文本接口当前公开 `/chat/completions` | **暂不兼容** | 等待官方 Responses 文档，不用 API key 盲测 |
 
 这里的 “A 级” 仍然只是**值得提供 API key 测试**，不是已经完美支持。DeepSeek V4
-Flash、MiniMax-M3 与 Qwen3.7-Max 已内置。Flash 已有一次受控 E2E 记录，但独立用户验收和
+Flash、MiniMax-M3 与 Qwen3.7-Max 是内置运行时路径。Flash 已有一次受控 E2E 记录，但独立用户验收和
 广义路由声明仍待完成；按上述严格口径，目前没有任何 Provider 可以直接标成“完美支持”。
 
 ## DeepSeek V4 Flash 受控 E2E — 2026-08-16
@@ -63,11 +64,16 @@ Chat Completions。受控直接探测也通过了普通 Responses、语义化 SS
 闭环、`high` / `max` 推理请求和无效模型失败路径。脱敏记录见
 [V4 Pro 探测](validation/deepseek-v4-pro-probe-2026-08-16.md)。
 
-这只构成候选证据。仓库目前仍只安装 `deepseek-v4-flash`，未实现 Flash/Pro 自动路由。
-两次临时、非交互 custom-agent 尝试没有形成 V4 Pro 模型请求或桥接完成，因此 V4 Pro 没有新增
-运行时等级。后续直接程序化路径审计也确认当前受 guard 约束的 worker registry 未注册 V4 Pro probe；
-完整脱敏记录见[直接 Codex 子代理审计](validation/deepseek-v4-pro-probe-2026-08-16.md#direct-codex-subagent-audit)。
-仍没有它的公开安装器支持或 Codex Desktop 复核记录。
+仓库现在有一个显式本地 profile：
+`deepseek_pro_worker` -> `deepseek-v4-pro`。`--provider deepseek` 仍等价于 Flash；
+`--model pro` 才会 opt-in，Pro 永不参与自动路由。installer、Doctor、verifier、目录校验、
+bridge metadata、rollback 与离线测试均按 profile 区分。
+
+但本地注册没有带来 V4 Pro 的运行时等级。真实 Codex host 在派发前拒绝了显式 Pro agent type，
+因此没有 provider request、provider-returned model metadata、工具循环、worker result、completed
+bridge archive 或主线程结果复核。failed archive 已脱敏，active slot 已释放。见
+[worker-registration E2E 脱敏记录](validation/deepseek-v4-pro-worker-registration-2026-08-16.md)。
+V4 Pro 仍没有自动 Flash/Pro 路由、公开运行时成功或 Codex Desktop 复核记录。
 
 ## 推荐测试顺序
 

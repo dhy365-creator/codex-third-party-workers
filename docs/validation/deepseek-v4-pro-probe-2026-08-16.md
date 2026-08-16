@@ -1,5 +1,9 @@
 # DeepSeek V4 Pro Compatibility Probe — 2026-08-16
 
+> Historical record: this probe predates the explicit local V4 Pro profile.
+> See the [worker-registration E2E record](deepseek-v4-pro-worker-registration-2026-08-16.md)
+> for the later registration and host-dispatch result.
+
 ## Scope and conclusion
 
 This record evaluates whether `deepseek-v4-pro` fits the repository's existing

@@ -10,7 +10,11 @@ macOS-only beta; keep changes minimal and aligned with the project's scope.
 - Text, code, and local validation only. No image, audio, video, desktop, or
   browser handling.
 - CLI behavior: dry-run by default; changes require an explicit `--apply`.
-- The built-in DeepSeek pack targets V4 Flash and rejects V4 Pro.
+- DeepSeek keeps `deepseek_worker` -> `deepseek-v4-flash` as the default
+  fallback. `deepseek_pro_worker` -> `deepseek-v4-pro` is explicit-only, must
+  never become an automatic fallback, and must retain distinct model/catalog/
+  verifier/bridge evidence. Do not claim it runtime-verified until a supported
+  Codex host dispatch completes.
 - Add providers only as reviewed built-in pack definitions with deterministic
   tests. Do not add arbitrary remote pack or executable manifest loading.
 - A new pack must pin its HTTPS metadata origin, model identity, catalog policy,

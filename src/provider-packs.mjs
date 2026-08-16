@@ -10,28 +10,22 @@ export const PROVIDER_CAPABILITIES = Object.freeze({
   VALIDATION: 'local-validation',
 });
 
-function toPredicate(pattern) {
-  if (!pattern) return null;
-  if (pattern instanceof RegExp) return (value) => pattern.test(value);
-  if (typeof pattern === 'function') return pattern;
-  if (typeof pattern === 'string') {
-    const lower = pattern.toLowerCase();
-    return (value) => String(value ?? '').toLowerCase().includes(lower);
-  }
-  return null;
-}
-
 function toSet(values) {
   return new Set((values ?? []).map((value) => String(value ?? '')));
 }
 
 export const DEEPSEEK_V4_FLASH_ID = 'deepseek-v4-flash';
+export const DEEPSEEK_V4_PRO_ID = 'deepseek-v4-pro';
 export const MINIMAX_M3_ID = 'MiniMax-M3';
 export const QWEN_3_7_MAX_ID = 'qwen3.7-max';
+
+const DEEPSEEK_PROFILE_FLASH = 'flash';
+const DEEPSEEK_PROFILE_PRO = 'pro';
 
 const deepseekPack = {
   id: 'deepseek',
   displayName: 'DeepSeek',
+  defaultProfile: DEEPSEEK_PROFILE_FLASH,
   role: 'deepseek_worker',
   model: DEEPSEEK_V4_FLASH_ID,
   modelProvider: 'deepseek',
@@ -44,10 +38,39 @@ const deepseekPack = {
   catalog: {
     file: DEEPSEEK_V4_FLASH_ID + '.json',
     modelId: DEEPSEEK_V4_FLASH_ID,
-    rejectIf: toPredicate(/v4-pro/i),
     requiredModalities: toSet(['text']),
     extraMaxBytes: DEFAULT_MAX_CATALOG_BYTES,
   },
+  profiles: Object.freeze([
+    Object.freeze({
+      id: DEEPSEEK_PROFILE_FLASH,
+      aliases: Object.freeze([DEEPSEEK_PROFILE_FLASH, DEEPSEEK_V4_FLASH_ID]),
+      role: 'deepseek_worker',
+      model: DEEPSEEK_V4_FLASH_ID,
+      agentFile: 'deepseek_worker.toml',
+      catalog: Object.freeze({
+        file: DEEPSEEK_V4_FLASH_ID + '.json',
+        modelId: DEEPSEEK_V4_FLASH_ID,
+      }),
+      prompt: Object.freeze({
+        roleLine: 'Default DeepSeek fallback worker for bounded text, code, research synthesis, and local validation.',
+      }),
+    }),
+    Object.freeze({
+      id: DEEPSEEK_PROFILE_PRO,
+      aliases: Object.freeze([DEEPSEEK_PROFILE_PRO, DEEPSEEK_V4_PRO_ID]),
+      role: 'deepseek_pro_worker',
+      model: DEEPSEEK_V4_PRO_ID,
+      agentFile: 'deepseek_pro_worker.toml',
+      catalog: Object.freeze({
+        file: DEEPSEEK_V4_PRO_ID + '.json',
+        modelId: DEEPSEEK_V4_PRO_ID,
+      }),
+      prompt: Object.freeze({
+        roleLine: 'Explicit-only DeepSeek V4 Pro worker for bounded text, code, research synthesis, and local validation.',
+      }),
+    }),
+  ]),
   capabilities: {
     supported: toSet([
       PROVIDER_CAPABILITIES.TEXT,
@@ -204,11 +227,68 @@ export function listProviderPackIds() {
   return BUILTIN_PACKS.map((pack) => pack.id);
 }
 
-export function resolveProviderPack(value = DEFAULT_PROVIDER_ID) {
+function profilesFor(pack) {
+  if (Array.isArray(pack.profiles) && pack.profiles.length) return pack.profiles;
+  return [{
+    id: 'default',
+    aliases: [pack.model],
+    role: pack.role,
+    model: pack.model,
+    agentFile: pack.agentFile,
+    catalog: pack.catalog,
+    prompt: pack.prompt,
+  }];
+}
+
+function resolveProfile(pack, model) {
+  const profiles = profilesFor(pack);
+  const selection = String(model ?? '').trim().toLowerCase();
+  if (!selection) {
+    const defaultId = String(pack.defaultProfile ?? profiles[0].id).toLowerCase();
+    return profiles.find((profile) => String(profile.id).toLowerCase() === defaultId) ?? profiles[0];
+  }
+  const selected = profiles.find((profile) => [
+    profile.id,
+    profile.model,
+    ...(profile.aliases ?? []),
+  ].some((candidate) => String(candidate).toLowerCase() === selection));
+  if (!selected) throw new Error(`unsupported model for ${pack.id}: ${model}`);
+  return selected;
+}
+
+function withProfile(pack, profile) {
+  return Object.freeze({
+    ...pack,
+    profile: profile.id,
+    role: profile.role ?? pack.role,
+    model: profile.model ?? pack.model,
+    agentFile: profile.agentFile ?? pack.agentFile,
+    catalog: { ...pack.catalog, ...profile.catalog },
+    prompt: { ...pack.prompt, ...profile.prompt },
+  });
+}
+
+export function resolveProviderPack(value = DEFAULT_PROVIDER_ID, model) {
   const providerId = String(value ?? '').trim().toLowerCase();
   if (!providerId) throw new Error('provider is required');
   const found = BUILTIN_PACKS.find((pack) => pack.id === providerId);
   if (!found) throw new Error(`unsupported provider: ${providerId}`);
+  return withProfile(found, resolveProfile(found, model));
+}
+
+export function listProviderPackProfiles(value = DEFAULT_PROVIDER_ID) {
+  const providerId = String(value ?? '').trim().toLowerCase();
+  if (!providerId) throw new Error('provider is required');
+  const found = BUILTIN_PACKS.find((pack) => pack.id === providerId);
+  if (!found) throw new Error(`unsupported provider: ${providerId}`);
+  return profilesFor(found).map((profile) => withProfile(found, profile));
+}
+
+export function resolveProviderPackByRole(value, role) {
+  const targetRole = String(role ?? '').trim();
+  if (!targetRole) throw new Error('provider role is required');
+  const found = listProviderPackProfiles(value).find((profile) => profile.role === targetRole);
+  if (!found) throw new Error(`unsupported provider role: ${targetRole}`);
   return found;
 }
 

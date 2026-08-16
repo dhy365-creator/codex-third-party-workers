@@ -30,6 +30,7 @@ Delegate suitable Codex subagent tasks to lower-cost provider APIs while
 | Built-in provider pack | Current evidence |
 | --- | --- |
 | DeepSeek V4 Flash | Built-in; controlled maintainer E2E passed (Level 3); generic user acceptance pending |
+| DeepSeek V4 Pro (explicit profile) | Local installer/Doctor/verifier registration is covered; current Codex host dispatch is blocked, so it remains an API-verified candidate |
 | MiniMax-M3 | API, CLI, and Codex Desktop runtime verified |
 | Alibaba Model Studio Qwen3.7-Max | API, CLI, and Codex Desktop runtime verified |
 
@@ -37,10 +38,11 @@ Only reviewed built-in packs are supported. A compatibility request or
 candidate listing is not proof of support; see the
 [evidence matrix](docs/provider-compatibility.md).
 
-DeepSeek V4 Pro is an API-verified candidate, not a built-in pack. Its
-public-installer and Codex Desktop runtime paths remain unverified; see the
+DeepSeek V4 Pro is an API-verified candidate. The repository has an explicit
+`deepseek_pro_worker` configuration profile, but the current Codex host rejects
+that role before dispatch. Its public runtime path remains unverified; see the
 [sanitized compatibility probe](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
-and the [controlled runtime E2E record](docs/validation/deepseek-runtime-e2e-2026-08-16.md).
+and the [worker-registration E2E record](docs/validation/deepseek-v4-pro-worker-registration-2026-08-16.md).
 
 ## Documentation and community navigation
 
@@ -50,6 +52,7 @@ and the [controlled runtime E2E record](docs/validation/deepseek-runtime-e2e-202
 - [Provider Compatibility](docs/provider-compatibility.md)
 - [DeepSeek controlled runtime E2E](docs/validation/deepseek-runtime-e2e-2026-08-16.md)
 - [DeepSeek V4 Pro probe](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
+- [DeepSeek V4 Pro worker-registration E2E](docs/validation/deepseek-v4-pro-worker-registration-2026-08-16.md)
 - [Demos](docs/demos/README.md)
 - [FAQ](docs/faq.md)
 - [Security](SECURITY.md)
@@ -85,6 +88,12 @@ The installer remains a dry-run unless you explicitly add `--apply`. Review its
 plan first, then see the [complete install guide](#requirements), restart Codex
 Desktop after applying, and run `npm run verify -- --provider deepseek`.
 
+`--provider deepseek` remains the Flash default. `--model pro` is an explicit
+configuration opt-in for `deepseek_pro_worker`, never an automatic fallback.
+At the time of this record, the Codex host does not dispatch that custom role,
+so a successful local install or verification is not a Pro runtime-success
+claim.
+
 Do not put API keys, credentials, private task text, private filesystem paths,
 or sensitive data in issues, logs, or screenshots.
 
@@ -115,6 +124,11 @@ archived and released, and the main thread reviewed the result. This is Level 3
 evidence for that path, not a general public-installer or user-acceptance claim;
 the verifier deliberately continues to report `runtimeVerified: false`.
 
+The explicit V4 Pro profile passed local registration, installer, Doctor,
+verifier, and bridge-metadata checks. Its real Codex spawn stopped at the host
+agent-type registry before a provider request, tool call, worker result, or
+completed bridge. It therefore remains an API-verified candidate.
+
 ## Compatibility at a glance
 
 ![Provider compatibility summary](assets/provider-compatibility.png)
@@ -122,7 +136,7 @@ the verifier deliberately continues to report `runtimeVerified: false`.
 | Direct provider path | Current evidence |
 | --- | --- |
 | DeepSeek V4 Flash | Built-in; controlled maintainer E2E passed (Level 3); verifier remains conservative |
-| DeepSeek V4 Pro | API-verified candidate; not a built-in pack or Desktop-runtime verified |
+| DeepSeek V4 Pro | Explicit local profile; host dispatch blocked; API-verified candidate, not Desktop-runtime verified |
 | MiniMax-M3 | Built-in; Desktop runtime verified |
 | Alibaba Model Studio Qwen3.7-Max | Built-in; Desktop runtime verified |
 | StepFun Responses models | Candidate; not runtime tested |
@@ -156,8 +170,9 @@ final decision.
 
 ![Validation and security proof](assets/validation-proof.png)
 
-- `51/51` isolated local tests pass on the current branch, including a macOS
-  bridge-root default regression test.
+- `65/65` isolated local tests pass on the current branch, including Flash/Pro
+  registration, catalog isolation, explicit-only routing, profile-aware
+  installer/Doctor/verifier/bridge behavior, rollback, and privacy regressions.
 - GitHub Actions runs the same suite on macOS with Node.js 20 for pushes and
   pull requests.
 - API keys are read from macOS Keychain, never accepted through `--api-key`.
@@ -177,10 +192,12 @@ for the full threat boundary.
 - Supported work is text, code, research synthesis, and local validation only.
   Images, files-as-multimodal-input, audio, video, browser control, desktop
   control, MCP, and computer use are out of scope.
-- The built-in DeepSeek pack currently installs `deepseek-v4-flash` only.
-  `deepseek-v4-pro` is an API-verified candidate, not a selectable pack or a
-  runtime-verified model. MiniMax supports `MiniMax-M3` only. Qwen supports the
-  text-only `qwen3.7-max` model on Alibaba Model Studio pay-as-you-go.
+- The default DeepSeek path installs `deepseek-v4-flash` for `deepseek_worker`.
+  `--model pro` explicitly configures `deepseek_pro_worker` for
+  `deepseek-v4-pro`, with a separate catalog and local verifier state. Pro is
+  not an automatic fallback and is not runtime-verified: the current Codex host
+  rejects the role before dispatch. MiniMax supports `MiniMax-M3` only. Qwen
+  supports the text-only `qwen3.7-max` model on Alibaba Model Studio pay-as-you-go.
 - A configured `luna_worker` is expected when Luna is selected as the OpenAI
   fallback. This repository does not install or alter Luna.
 - Codex Desktop does not guarantee native interception of every collaboration
@@ -197,6 +214,7 @@ plan name alone.
 | Spark has live quota | `spark-worker` |
 | Spark unavailable; general quota above or equal to threshold | `luna_worker` |
 | Spark unavailable; general quota below threshold; task suitable and bridge free | provider fallback (default: `deepseek_worker`) |
+| Explicit Pro request | `deepseek_pro_worker` only; never selected automatically and requires host support for that role |
 | Quota lookup fails | An available OpenAI worker; never provider fallback |
 | Provider unsuitable/unavailable/bridge busy | `luna_worker` when available |
 
@@ -279,6 +297,25 @@ node scripts/install.mjs \
   --consent-data
 ```
 
+Explicit Pro configuration example (still a dry-run; do not treat it as a
+runtime-success check):
+
+```sh
+node scripts/install.mjs \
+  --provider deepseek \
+  --model pro \
+  --plan pro \
+  --spark-available true \
+  --luna-available true \
+  --threshold 10 \
+  --confirm-main-preserved \
+  --consent-data
+```
+
+The Pro profile shares the DeepSeek Keychain item, creates a distinct worker and
+catalog, and stays explicit-only. Current Codex host dispatch for that role is
+blocked; wait for a supported host registration before using it for real work.
+
 MiniMax and Qwen use the same routing options with `--provider minimax` or
 `--provider qwen`. The installer
 manages one selected provider fallback at a time; changing `--provider` changes
@@ -295,6 +332,10 @@ and run:
 ```sh
 node scripts/verify.mjs
 ```
+
+For an explicitly installed Pro profile, use
+`node scripts/verify.mjs --provider deepseek --model pro`. A `configured: true`
+result validates local configuration only; it does not change `runtimeVerified`.
 
 Verification distinguishes two states:
 
@@ -336,6 +377,10 @@ credentials and bridge archives are intentionally retained.
 - `~/.codex/codex-third-party-workers-backups/`
 - one bounded AGENTS block in `~/.codex/AGENTS.md`
 
+An explicit DeepSeek Pro profile additionally uses
+`~/.codex/agents/deepseek_pro_worker.toml` and its own Pro catalog. Uninstall
+removes every active profile for the installed provider, not one profile at a time.
+
 The official catalog/prompt are acquired at install time and are not vendored in
 this repository.
 
@@ -353,7 +398,9 @@ implementations. They do not access real API keys, Keychain, Codex quota,
 
 This release provides an extensible provider-pack core, not a claim that every
 third-party model already works. DeepSeek V4 Flash, MiniMax-M3, and Qwen3.7-Max
-are built-in, isolated-tested packs. Flash has Level 3 evidence for one bounded
+are built-in, isolated-tested runtime paths. The explicit V4 Pro profile is also
+isolated-tested but remains API-verified only because the current Codex host
+cannot dispatch its custom role. Flash has Level 3 evidence for one bounded
 maintainer E2E; MiniMax-M3 and Qwen3.7-Max have recorded real Codex Desktop
 subagent smoke tests. Generic user acceptance and public-installer claims remain
 separately tracked.

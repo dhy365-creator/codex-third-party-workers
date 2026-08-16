@@ -19,6 +19,7 @@ controlled maintainer E2E also completed on 2026-08-16.
 - `docs/provider-compatibility.md` and `docs/provider-compatibility.zh-CN.md`
 - [Sanitized controlled runtime E2E record](../validation/deepseek-runtime-e2e-2026-08-16.md)
 - [V4 Pro direct Codex subagent audit](../validation/deepseek-v4-pro-probe-2026-08-16.md#direct-codex-subagent-audit)
+- [V4 Pro worker-registration E2E record](../validation/deepseek-v4-pro-worker-registration-2026-08-16.md)
 - `docs/current-state.md` state and limitations
 
 ## What this demonstrates
@@ -36,16 +37,18 @@ response body is published here.
 
 1. Independent real-user acceptance of the documented install path.
 2. Broader reliability evidence across sessions and appropriate text/code tasks.
-3. A separate V4 Pro worker E2E through a supported registered custom-worker
-   path or a user-visible interactive workflow before considering explicit
-   selection; this does not authorize Flash/Pro routing.
+3. A V4 Pro worker E2E through a Codex host that can actually dispatch the
+   explicitly registered `deepseek_pro_worker`. The current host rejects that
+   role before a provider request, tool call, worker result, or completed
+   bridge archive; this does not authorize Flash/Pro routing.
 
 ## What to avoid in this state
 
 - Do not treat this one run as generic public-installer success.
 - Do not use this demo as proof of broader routing stability.
-- Do not claim V4 Pro support, automatic model selection, or complete readiness
-  for all tasks or environments.
+- Do not claim V4 Pro runtime support, automatic model selection, or complete
+  readiness for all tasks or environments. Local installer/Doctor/verifier
+  registration alone is not a successful Codex worker run.
 
 ## Boundary note
 

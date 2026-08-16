@@ -26,15 +26,17 @@
 | 内置 Provider Pack | 当前证据 |
 | --- | --- |
 | DeepSeek V4 Flash | 已内置；受控维护者 E2E 已通过（Level 3）；通用用户验收仍待完成 |
+| DeepSeek V4 Pro（显式 profile） | 已覆盖本地 installer / Doctor / verifier 注册；当前 Codex host 派发被阻塞，仍为 API 已验证候选 |
 | MiniMax-M3 | API、CLI 与 Codex Desktop 运行时已验证 |
 | 阿里云百炼 Qwen3.7-Max | API、CLI 与 Codex Desktop 运行时已验证 |
 
 只有经过审查的内置 Pack 才算受支持。兼容性申请或“候选”标记不等于已经支持；详细证据
 见[兼容性矩阵](docs/provider-compatibility.zh-CN.md)。
 
-DeepSeek V4 Pro 是“API 已验证候选”，不是内置 Pack；公开安装器和 Codex Desktop
-运行时路径仍未验证。见[脱敏兼容性探测记录](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
-和[受控运行时 E2E 记录](docs/validation/deepseek-runtime-e2e-2026-08-16.md)。
+DeepSeek V4 Pro 是“API 已验证候选”。仓库已有显式的
+`deepseek_pro_worker` 配置 profile，但当前 Codex host 在派发前拒绝该 role，公开运行时路径
+仍未验证。见[脱敏兼容性探测记录](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
+和[worker-registration E2E 记录](docs/validation/deepseek-v4-pro-worker-registration-2026-08-16.md)。
 
 ## 文档与社区导航
 
@@ -44,6 +46,7 @@ DeepSeek V4 Pro 是“API 已验证候选”，不是内置 Pack；公开安装�
 - [兼容性矩阵](docs/provider-compatibility.zh-CN.md)
 - [DeepSeek 受控运行时 E2E](docs/validation/deepseek-runtime-e2e-2026-08-16.md)
 - [DeepSeek V4 Pro 探测](docs/validation/deepseek-v4-pro-probe-2026-08-16.md)
+- [DeepSeek V4 Pro worker-registration E2E](docs/validation/deepseek-v4-pro-worker-registration-2026-08-16.md)
 - [演示（Demos）](docs/demos/README.md)
 - [FAQ](docs/faq.zh-CN.md)
 - [安全策略](SECURITY.md)
@@ -78,6 +81,10 @@ node scripts/install.mjs \
 [完整安装步骤](#环境要求)；应用后重启 Codex Desktop，并运行
 `npm run verify -- --provider deepseek`。
 
+`--provider deepseek` 继续等价于 Flash 默认路径。`--model pro` 是
+`deepseek_pro_worker` 的显式配置 opt-in，绝不属于自动 fallback。当前 Codex host 尚不能
+派发该自定义 role，因此本地安装或验证成功不等于 Pro 运行时成功。
+
 不要在 issue、日志或截图中放入 API key、凭据、私密任务正文、私有文件路径或敏感数据。
 
 本项目不是 OpenAI 官方产品，不是 Codex 替代品，不代表所有模型都兼容，也不证明成本
@@ -103,6 +110,10 @@ DeepSeek V4 Flash 也已完成一次有边界的维护者 E2E：显式选择的 
 fixture 完成诊断，桥接完成归档并释放，且由主线程复核。这是该路径的 Level 3 证据，
 不是通用公开安装器或用户验收声明；验证器仍刻意输出 `runtimeVerified: false`。
 
+显式 V4 Pro profile 已通过本地注册、installer、Doctor、verifier 与 bridge metadata 检查。
+真实 Codex spawn 在 host agent-type registry 处停止，尚未发生 provider request、工具调用、
+worker result 或 completed bridge，因此仍是 API 已验证候选。
+
 ## 兼容性速览
 
 ![Provider 兼容性摘要](assets/provider-compatibility.png)
@@ -110,7 +121,7 @@ fixture 完成诊断，桥接完成归档并释放，且由主线程复核。这
 | 厂商直连路径 | 当前证据 |
 | --- | --- |
 | DeepSeek V4 Flash | 已内置；受控维护者 E2E 已通过（Level 3）；验证器保持保守状态 |
-| DeepSeek V4 Pro | API 已验证候选；不是内置 Pack，也未完成 Desktop 运行时验证 |
+| DeepSeek V4 Pro | 显式本地 profile；host 派发被阻塞；仍为 API 已验证候选，未完成 Desktop 运行时验证 |
 | MiniMax-M3 | 已内置，Desktop 运行时已验证 |
 | 阿里云百炼 Qwen3.7-Max | 已内置，Desktop 运行时已验证 |
 | 阶跃星辰 Responses 模型 | 候选，尚未运行时验证 |
@@ -142,7 +153,8 @@ Provider 桥接一次只允许一个仅所有者可读的任务，拒绝不安�
 
 ![验证与安全证据](assets/validation-proof.png)
 
-- 当前分支的 `51/51` 项隔离测试已通过，其中包含 macOS 桥接根目录默认值回归测试。
+- 当前分支的 `65/65` 项隔离测试已通过，覆盖 Flash/Pro 注册、目录隔离、显式路由、
+  profile-aware installer / Doctor / verifier / bridge、rollback 与隐私回归。
 - GitHub Actions 会在 macOS + Node.js 20 上对 push 与 pull request 运行同一套测试。
 - API key 只从 macOS Keychain 读取，不接受 `--api-key`。
 - 桥接采用仅所有者权限和原子脱敏归档。
@@ -158,9 +170,11 @@ Provider 桥接一次只允许一个仅所有者可读的任务，拒绝不安�
 - 被委派的任务正文会发送给所选 Provider。不得委派凭据、隐私内容或无权外发的资料。
 - 仅适合文本、代码、研究整理和本地验证。图片、音频、视频、浏览器控制、桌面控制、
   MCP 和 Computer Use 不在支持范围内。
-- 当前内置 DeepSeek Pack 只会安装 `deepseek-v4-flash`。
-  `deepseek-v4-pro` 是 API 已验证候选，尚不是可选 Pack，也未完成运行时验证；MiniMax
-  只支持 `MiniMax-M3`；Qwen 只支持阿里云百炼按量计费的纯文本 `qwen3.7-max`。
+- 默认 DeepSeek 路径为 `deepseek_worker` 安装 `deepseek-v4-flash`。
+  `--model pro` 才会为 `deepseek_pro_worker` 显式配置 `deepseek-v4-pro`，使用独立目录和
+  本地 verifier 状态。Pro 不属于自动 fallback，也未完成运行时验证：当前 Codex host 在派发前
+  拒绝该 role；MiniMax 只支持 `MiniMax-M3`；Qwen 只支持阿里云百炼按量计费的纯文本
+  `qwen3.7-max`。
 - 路由需要 Luna 时，用户必须已经配置可用的 `luna_worker`；本仓库不会安装或修改 Luna。
 - Codex Desktop 不保证原生拦截所有子代理调用。预检脚本是主代理必须在每次新派发或
   follow-up 前执行的策略护栏，并不是系统级安全边界。
@@ -174,6 +188,7 @@ Provider 桥接一次只允许一个仅所有者可读的任务，拒绝不安�
 | Spark 仍有实时额度 | `spark-worker` |
 | Spark 不可用，通用额度大于或等于阈值 | `luna_worker` |
 | Spark 不可用，通用额度低于阈值，任务适合且桥接空闲 | Provider fallback，默认 `deepseek_worker` |
+| 显式 Pro 请求 | 仅 `deepseek_pro_worker`；绝不自动选择，且需要 host 支持该 role |
 | 额度查询失败 | 保留可用的 OpenAI Worker，不外发给 Provider |
 | Provider 不适合、不可用或桥接繁忙 | 有 Luna 时回退到 `luna_worker` |
 
@@ -252,6 +267,23 @@ node scripts/install.mjs \
   --consent-data
 ```
 
+显式 Pro 配置示例（仍为 dry-run，不能当作运行时成功检查）：
+
+```sh
+node scripts/install.mjs \
+  --provider deepseek \
+  --model pro \
+  --plan pro \
+  --spark-available true \
+  --luna-available true \
+  --threshold 10 \
+  --confirm-main-preserved \
+  --consent-data
+```
+
+Pro profile 复用 DeepSeek Keychain 项，但创建独立 worker 与目录，并保持显式选择。当前
+Codex host 对该 role 的派发被阻塞；在 host 注册支持前，不应将它用于真实工作。
+
 MiniMax 与 Qwen 使用相同路由参数，只需把 Provider 改成 `--provider minimax`
 或 `--provider qwen`。
 安装器一次管理一个当前路由的 Provider fallback；切换 Pack 不会改变主线程 OpenAI
@@ -270,6 +302,10 @@ MiniMax 与 Qwen 使用相同路由参数，只需把 Provider 改成 `--provide
 ```sh
 node scripts/verify.mjs
 ```
+
+若已显式安装 Pro profile，使用
+`node scripts/verify.mjs --provider deepseek --model pro`。`configured: true` 只说明本地配置
+正确，不会改变 `runtimeVerified`。
 
 验证结果分为两个层级：
 
@@ -306,6 +342,9 @@ node scripts/uninstall.mjs --apply
 - `~/.codex/codex-third-party-workers-backups/`
 - `~/.codex/AGENTS.md` 中一段有明确边界标记的规则
 
+显式 DeepSeek Pro profile 还会使用 `~/.codex/agents/deepseek_pro_worker.toml` 及独立 Pro
+目录。卸载按已安装 Provider 的全部 active profile 处理，不支持只卸载其中一个 profile。
+
 官方模型目录和提示词会在安装时获取，不会直接收录在本仓库中。
 
 ## 开发与扩展 Provider Pack
@@ -318,9 +357,10 @@ npm test
 Keychain、Codex 额度、`~/.codex` 或外部网络。
 
 本项目提供的是可扩展 Provider Pack 核心，并不代表所有第三方模型已经可以直接使用。
-DeepSeek V4 Flash、MiniMax-M3 与 Qwen3.7-Max 均已内置并通过隔离测试；Flash 已有一条
-受控维护者 E2E 的 Level 3 证据，MiniMax-M3 与 Qwen3.7-Max 还通过了真实 Codex Desktop
-子代理冒烟测试。通用用户验收和公开安装器声明仍单独记录。
+DeepSeek V4 Flash、MiniMax-M3 与 Qwen3.7-Max 均是内置、通过隔离测试的运行时路径；显式
+V4 Pro profile 也已通过隔离测试，但当前 Codex host 无法派发其自定义 role，因此仍仅是
+API 已验证候选。Flash 已有一条受控维护者 E2E 的 Level 3 证据，MiniMax-M3 与 Qwen3.7-Max
+还通过了真实 Codex Desktop 子代理冒烟测试。通用用户验收和公开安装器声明仍单独记录。
 新增 Provider 需要以经过代码审查的方式修改
 `src/provider-packs.mjs` 并补充测试；安装器不会加载任意远程 Pack manifest。
 

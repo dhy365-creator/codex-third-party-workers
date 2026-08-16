@@ -24,10 +24,11 @@ Focus: documentation and operational maturity before adding new runtime claims.
 - **planned** — obtain independent real-user acceptance for the DeepSeek Flash
   install path after the recorded controlled maintainer E2E; do not treat it as
   broad routing evidence.
-- **under evaluation** — DeepSeek V4 Pro is an API-verified candidate, but no
-  selectable pack or automatic Flash/Pro routing is planned before the Flash
-  user-acceptance evidence, a supported registered custom-worker path or
-  user-visible interactive Pro E2E, and a separate model-selection review.
+- **runtime verification pending** — DeepSeek V4 Pro has an explicit local
+  profile (`deepseek_pro_worker` -> `deepseek-v4-pro`) with installer, Doctor,
+  verifier, and bridge metadata coverage. The current Codex host registry still
+  rejects that custom role before dispatch, so it remains an API-verified
+  candidate. It will never enter automatic Flash/Pro routing.
 
 ## Next — v0.5
 

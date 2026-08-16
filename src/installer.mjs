@@ -17,6 +17,7 @@ import {
 } from './catalog.mjs';
 import { keychainReady } from './keychain.mjs';
 import {
+  listProviderPackProfiles,
   resolveProviderPack,
   listProviderPackIds,
 } from './provider-packs.mjs';
@@ -60,7 +61,7 @@ function normalizeOptions(options) {
   const providerId = String(options.provider ?? DEFAULT_PROVIDER_ID).toLowerCase();
   const plan = String(options.plan ?? '').toLowerCase();
   if (!['plus', 'pro'].includes(plan)) throw new Error('plan must be plus or pro');
-  const providerPack = resolveProviderPack(providerId);
+  const providerPack = resolveProviderPack(providerId, options.model);
   const providerDefaultThreshold = plan === 'plus' ? providerPack.thresholds?.plus ?? 50 : providerPack.thresholds?.pro ?? 10;
   const threshold = parseThreshold(options.threshold ?? providerDefaultThreshold);
   const sparkAvailable = parseBoolean(
@@ -87,6 +88,41 @@ function normalizeOptions(options) {
   };
 }
 
+function profileFromManifest(providerId, value) {
+  const candidate = value?.id ?? value?.profile ?? value?.model ?? value;
+  try {
+    return resolveProviderPack(providerId, candidate);
+  } catch {
+    return null;
+  }
+}
+
+function activeProfiles(normalized, previousManifest) {
+  if (normalized.providerId !== 'deepseek') return [normalized.providerPack];
+  const previous = previousManifest?.options?.providerId === normalized.providerId
+    ? (previousManifest.options?.profiles ?? [previousManifest.options?.model])
+      .map((value) => profileFromManifest(normalized.providerId, value))
+      .filter(Boolean)
+    : [];
+  const requested = normalized.providerPack;
+  const requestedProfiles = new Set([...previous, requested].map((profile) => profile.profile));
+  return listProviderPackProfiles(normalized.providerId)
+    .filter((profile) => requestedProfiles.has(profile.profile));
+}
+
+function automaticProviderRole(providerId, profiles) {
+  if (providerId === 'deepseek') {
+    return profiles.find((profile) => profile.profile === 'flash')?.role ?? null;
+  }
+  return profiles[0]?.role ?? null;
+}
+
+function profileEnvironment(env, profile) {
+  const found = env.profileEnvironments.find((candidate) => candidate.profile === profile.profile);
+  if (!found) throw new Error(`provider profile environment is missing: ${profile.profile}`);
+  return found;
+}
+
 async function regularFile(filePath) {
   const info = await lstatIfExists(filePath);
   if (!info) return null;
@@ -94,6 +130,24 @@ async function regularFile(filePath) {
     throw new Error(`refusing to manage non-regular file: ${filePath}`);
   }
   return info;
+}
+
+async function managedDirectory(filePath, previousDirectories = []) {
+  const info = await lstatIfExists(filePath);
+  if (info && (info.isSymbolicLink() || !info.isDirectory())) {
+    throw new Error(`refusing to manage non-directory: ${filePath}`);
+  }
+  const previous = previousDirectories.find((record) => record?.path === filePath);
+  if (previous && typeof previous.preExisting !== 'boolean') {
+    throw new Error('existing install manifest has an invalid managed directory');
+  }
+  return {
+    path: filePath,
+    // A later profile install sees the runtime directory created by the first
+    // install. Preserve its original ownership instead of treating it as user
+    // owned and leaving an empty directory behind on rollback.
+    preExisting: previous?.preExisting ?? Boolean(info),
+  };
 }
 
 async function readPreviousManifest(env) {
@@ -111,7 +165,7 @@ async function makeBackup(filePath, env) {
   const info = await regularFile(filePath);
   if (!info) return null;
   const data = await fs.readFile(filePath);
-  await ensureDir(env.backupDir, 0o700);
+  await ensureDir(env.backupDir, 0o700, { enforceMode: false });
   const name = `${path.basename(filePath)}.${stamp()}-${crypto.randomBytes(5).toString('hex')}.bak`;
   const backupPath = path.join(env.backupDir, name);
   await copyOwnerOnly(filePath, backupPath);
@@ -169,6 +223,17 @@ export async function install(options = {}) {
   const dryRun = normalized.apply !== true;
   if (!dryRun) assertSupportedPlatform(platform);
 
+  const previousManifest = await readPreviousManifest(env);
+  const managedDirectories = [await managedDirectory(
+    env.runtimeDir,
+    previousManifest?.managedDirectories ?? [],
+  )];
+  const profiles = activeProfiles(normalized, previousManifest);
+  const profileEnvironments = profiles.map((profile) => ({
+    profile,
+    environment: profileEnvironment(env, profile),
+  }));
+  const defaultProviderRole = automaticProviderRole(providerPack.id, profiles);
   const source = normalized.catalogSource ?? 'auto';
   const setupScriptUrl = normalized.setupScriptUrl ?? providerPack.catalogSourceHint;
   const acquired = await acquireCatalog({
@@ -187,9 +252,13 @@ export async function install(options = {}) {
       }
       return candidate;
     },
-    reduce: (catalog) => reduceCatalogForProvider(catalog, providerPack.catalog),
+    reduce: (catalog) => catalog,
     fetchImpl: normalized.fetchImpl,
   });
+  const catalogs = new Map(profiles.map((profile) => [
+    profile.profile,
+    reduceCatalogForProvider(acquired.catalog, profile.catalog),
+  ]));
 
   if (!dryRun) {
     const check = normalized.keychainReadyImpl ?? keychainReady;
@@ -205,7 +274,6 @@ export async function install(options = {}) {
     }
   }
 
-  const previousManifest = await readPreviousManifest(env);
   const previous = previousByPath(previousManifest);
   const block = agentsBlock({
     nodePath: env.nodePath,
@@ -216,6 +284,8 @@ export async function install(options = {}) {
     lunaAvailable: normalized.lunaAvailable,
     providerPack,
     providerRole: providerPack.role,
+    providerProfiles: profiles,
+    defaultProviderRole,
   });
   const existingAgents = await pathExists(env.agentsMarkerPath)
     ? await fs.readFile(env.agentsMarkerPath, 'utf8')
@@ -238,25 +308,42 @@ export async function install(options = {}) {
     providerId: providerPack.id,
     providerRole: providerPack.role,
     model: providerPack.model,
+    modelProfile: providerPack.profile,
+    profiles: profileEnvironments.map(({ profile, environment }) => ({
+      id: profile.profile,
+      providerRole: profile.role,
+      model: profile.model,
+      agentPath: environment.agentPath,
+      catalogPath: environment.catalogPath,
+    })),
+    defaultProviderRole,
     providerCapabilities: Array.from(providerPack.capabilities.supported.values()),
   };
 
   const entries = [
     ...(await runtimeEntries(env, normalized.sourceDir ?? SOURCE_DIR)),
-    {
-      filePath: env.agentPath,
-      contents: agentToml({
-        catalogPath: env.catalogPath,
-        bridgePath: env.bridgePath,
-        bridgeCliPath: env.bridgeCliPath,
-        nodePath: env.nodePath,
-        keychainAccount: env.keychainAccount,
-        keychainService: providerPack.keychainService,
-        providerPack,
-      }),
-      mode: 0o600,
-      kind: 'agent',
-    },
+    ...profileEnvironments.flatMap(({ profile, environment }) => [
+      {
+        filePath: environment.agentPath,
+        contents: agentToml({
+          catalogPath: environment.catalogPath,
+          bridgePath: env.bridgePath,
+          bridgeCliPath: env.bridgeCliPath,
+          nodePath: env.nodePath,
+          keychainAccount: env.keychainAccount,
+          keychainService: profile.keychainService,
+          providerPack: profile,
+        }),
+        mode: 0o600,
+        kind: 'agent',
+      },
+      {
+        filePath: environment.catalogPath,
+        contents: catalogJson(catalogs.get(profile.profile)),
+        mode: 0o600,
+        kind: 'catalog',
+      },
+    ]),
     {
       filePath: env.configPath,
       contents: workerConfig(configOptions),
@@ -280,12 +367,6 @@ export async function install(options = {}) {
       contents: replaceAgentsBlock(existingAgents, block),
       mode: agentsMode,
       kind: 'agents-marker',
-    },
-    {
-      filePath: env.catalogPath,
-      contents: catalogJson(acquired.catalog),
-      mode: 0o600,
-      kind: 'catalog',
     },
   ];
 
@@ -311,6 +392,11 @@ export async function install(options = {}) {
       nodePath: env.nodePath,
       bridgePath: env.bridgePath,
       providerId: providerPack.id,
+      profiles: profiles.map((profile) => ({
+        id: profile.profile,
+        providerRole: profile.role,
+        model: profile.model,
+      })),
     },
     options: {
       providerId: providerPack.id,
@@ -319,10 +405,18 @@ export async function install(options = {}) {
       lunaAvailable: normalized.lunaAvailable,
       threshold: normalized.threshold,
       model: providerPack.model,
+      modelProfile: providerPack.profile,
+      profiles: profiles.map((profile) => ({
+        id: profile.profile,
+        providerRole: profile.role,
+        model: profile.model,
+      })),
+      defaultProviderRole,
       mainModelPreserved: true,
       delegatedDataConsent: true,
     },
     managedFiles,
+    managedDirectories,
     agentsBlock: block,
     secretStorage: {
       service: providerPack.keychainService,
@@ -345,6 +439,16 @@ export async function install(options = {}) {
     manifestPath: env.manifestPath,
     catalogAcquired: Boolean(acquired),
     keychainVerified: !dryRun,
+    profile: {
+      id: providerPack.profile,
+      providerRole: providerPack.role,
+      model: providerPack.model,
+    },
+    profiles: profiles.map((profile) => ({
+      id: profile.profile,
+      providerRole: profile.role,
+      model: profile.model,
+    })),
     message: dryRun ? 'dry-run: no files or keychain entries were changed' : 'installation applied',
   };
 }

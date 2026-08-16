@@ -27,9 +27,17 @@
 - 已发布中英文国产模型 Provider 兼容性矩阵；矩阵中的候选状态仅代表官方文档筛选，
   不等于本仓库已经支持。
 - 已完成 DeepSeek V4 Pro 的官方资料核对与受控直接 Responses API 探测：模型目录、普通
-  请求、SSE、函数调用闭环、`high` / `max` 推理请求与受控失败处理均有脱敏证据。V4 Pro
-  当前仅为 **API 已验证候选**；内置 Pack 仍只安装 V4 Flash，不存在 V4 Pro 的安装器、
-  Desktop 运行时或自动路由声明。
+  请求、SSE、函数调用闭环、`high` / `max` 推理请求与受控失败处理均有脱敏证据。
+- 本分支新增 DeepSeek 多 profile：既有 `deepseek_worker` 继续绑定
+  `deepseek-v4-flash` 并作为默认 fallback；`deepseek_pro_worker` 绑定
+  `deepseek-v4-pro`，只能通过 `--model pro` 和显式 worker 请求选择。安装器、Doctor、
+  verifier、预检、bridge metadata 与卸载均按 profile 区分；不会自动在 Flash/Pro 之间切换。
+- 已在真实 macOS profile 对 Pro 配置完成 dry-run、授权 apply、Doctor、verify 与 rollback。
+  本地预检认可完整的 Pro role/model tuple 并创建脱敏 bridge task，但当前 Codex Desktop
+  host registry 在派发前拒绝 `deepseek_pro_worker`。因此没有 Pro provider request、工具调用、
+  worker result、completed bridge 或主线程结果复核；分类仍为 **API 已验证候选**，
+  `runtimeVerified` 仍为 `false`。见
+  [脱敏 worker-registration E2E 记录](validation/deepseek-v4-pro-worker-registration-2026-08-16.md)。
 - 已完成 DeepSeek V4 Flash 的受控维护者 E2E：在已授权的真实 macOS Codex profile 对既有
   Pack 先 dry-run 再 `--apply`，显式派发 `deepseek_worker` 处理一个非敏感、故意失败的代码
   fixture，得到预期诊断；桥接归档完成、active slot 已释放，并由主线程复核。该路径为
@@ -43,8 +51,8 @@
   与通用用户验收待完成的 DeepSeek 页面。
 - 新增 `ROADMAP.md`，并记录 v0.4.x 当前边界、v0.5 规划评估项、Later 探索项。
 - README 与 CONTRIBUTING 增加 Documentation/community 的入口导航与链接。
-- 架构为通用 provider-pack 形态，当前内置 Pack 为 DeepSeek V4 Flash、MiniMax-M3
-  与 Qwen3.7-Max。
+- 架构为通用 provider-pack 形态；DeepSeek 默认 Flash profile、显式 Pro profile、MiniMax-M3
+  与 Qwen3.7-Max 均有隔离配置与测试边界。
 - 安装器、预检、桥接、验证器和卸载器全部支持 provider pack 的路径、文件名和
   配置。
 - 默认通道：Spark -> Luna -> provider fallback；provider 仅在额度低于阈值且任务
@@ -58,9 +66,9 @@
 
 ## 已在隔离环境验证
 
-- `npm test`：2026-08-14 本地通过 `50/50` 项测试；2026-08-16 当前分支通过 `51/51` 项测试，
-  新增 macOS bridge-root 默认值回归；Doctor 覆盖平台、凭据、安装态、
-  Provider/Model、只读性和私有路径保护，Issue Forms 覆盖必需证据字段和安全入口。
+- `npm test`：2026-08-14 本地通过 `50/50` 项测试；2026-08-16 当前分支通过 `65/65` 项测试，
+  覆盖 Flash/Pro mapping、显式 Pro registration、catalog fail-closed、默认路由不选 Pro、
+  安装/verify/Doctor/bridge metadata、rollback、已有父目录权限保护和卸载输出隐私边界。
 - fake home 的 dry-run、apply、重复安装、verify、dry-run uninstall、正式 uninstall 与
   冲突停止通过。
 - 官方 catalog 文本提取、本地约束（V4 限制、文本模型）及逐跳 host 校验通过。
@@ -74,26 +82,22 @@
   已释放。思考模式不支持 `tool_choice = "required"`，但 `auto` 已验证可用。测试后本机
   Qwen Keychain 凭据已按用户要求删除；本次 Desktop 验证是显式调用，不代表旧版全局
   DeepSeek 专用预检已经自动路由到 Qwen。
-- DeepSeek V4 Pro 的直接 API 探测使用 Keychain 凭据且未记录或输出 credential value；两次临时、
-  非交互 custom-agent 尝试均未生成 V4 Pro 模型请求或消费 bridge task，配置已移除、失败归档保留，
-  因而它仍不是 Codex Desktop 子代理、公开安装器、桥接完成/释放或主线程复核证据。
-- 2026-08-16 的直接程序化子代理审计进一步确认：当前 Codex CLI 为 `0.147.0`，已注册的
-  程序化 DeepSeek worker 固定为 V4 Flash；对命名 V4 Pro probe 的 version-1 preflight 请求在
-  bridge 创建前返回 `unknown requestedAgent`。CLI 没有显式 `--agent` / subagent 选项；未改 Router、
-  Flash Pack 或主代理配置来绕过该边界，也未产生 V4 Pro 模型请求。见
-  [脱敏审计记录](validation/deepseek-v4-pro-probe-2026-08-16.md#direct-codex-subagent-audit)。
+- DeepSeek V4 Pro 的直接 API 探测使用 Keychain 凭据且未记录或输出 credential value。此次
+  worker-registration 验证也未记录 credential value；失败 bridge archive 已脱敏并释放 active
+  slot。当前阻塞来自 Codex host agent-type registry，而不是 Flash/Pro catalog、Keychain、
+  本地 allowlist 或 bridge 文件状态。
 
 ## 尚未完成或未声称
 
 - 已完成一次受控维护者 Flash E2E，但尚未取得独立真实用户验收；验证器仍不会自动把一次任务
   写成 `runtimeVerified: true`。
-- DeepSeek V4 Pro 尚未成为可选 Pack；现有非交互尝试及程序化注册审计均未达到运行时等级。下一步
-  必须先获得受支持的已注册 custom-worker 路径，或使用用户可见的交互式方式，完成命名 V4 Pro worker
-  的实际请求、工具、bridge 释放与主线程复核；随后才单独评审显式模型选择、安装、回退和运行时边界。
-- 本轮临时安装的托管文件和已记录的 `.codex` / `agents` 目录权限已恢复；`config.toml` 在测试
-  活动后与快照 checksum 不同，安装器源码不写该文件，因此未覆盖。安装器会将现有父目录设为
-  `0700`，而 `bin` / `lib` 的原始权限没有被快照记录；这是本机清理的 **WARN**，需单独修复和
-  覆盖后才能声称精确目录权限回滚。
+- DeepSeek V4 Pro 现在可以显式生成和本地验证 profile，但当前 Codex host 仍不能派发
+  `deepseek_pro_worker`。必须先由 host 注册该 agent type，或采用用户可见的受支持交互路径，
+  再取得同一 worker/model 的实际请求、工具、结果、completed bridge、释放和主线程复核；
+  在此之前不能称为运行时支持或公开安装器运行时成功。
+- 本轮 installer hardening 保留既有父目录权限，并在无内容时清理由安装新建的 runtime directory；
+  已有目录、文件和 AGENTS marker 的 rollback 由隔离测试覆盖。主线程 `config.toml` 仍不在
+  写入范围内。
 - GitHub Social Preview 图片已准备，但仍需在 GitHub Settings 手工上传并目视确认。
 - 尚未提交 Awesome List 外部 PR 或任何新增第三方评论。
 - 未由用户进行人工验收。

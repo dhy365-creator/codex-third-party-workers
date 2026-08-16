@@ -79,7 +79,8 @@ Codex 订阅、配额和其自身计费边界仍然成立。
 当前内置 Pack 与证据状态是：
 
 - DeepSeek V4 Flash：已内置并通过隔离测试；一次受控维护者 E2E 已达到 Level 3，但通用用户验收仍待完成。
-- DeepSeek V4 Pro：仅为 API 已验证候选；不是内置 Pack，也未完成 Desktop 运行时验证。
+- DeepSeek V4 Pro：显式本地 profile 已覆盖 installer、Doctor、verifier 与离线测试，但当前
+  Codex host 在派发前拒绝其 worker role；仍为 API 已验证候选，未完成 Desktop 运行时验证。
 - MiniMax-M3：已内置；已记录 API、CLI 与 Desktop Worker 运行时验证。
 - Qwen3.7-Max：已内置；已记录 API、CLI 与 Desktop Worker 运行时验证。
 
@@ -98,9 +99,10 @@ Codex 订阅、配额和其自身计费边界仍然成立。
 
 ### 现在可以安装 DeepSeek V4 Pro 吗？
 
-不能。内置 DeepSeek Pack 仍只选择 V4 Flash。V4 Pro 已有原生 Responses API 和受控直接
-API 证据，但在显式模型选择、安装器覆盖和真实 Codex Desktop 路径分别验证前，仍只是候选。
-见[脱敏探测记录](validation/deepseek-v4-pro-probe-2026-08-16.md)。
+可以通过 `--provider deepseek --model pro` 显式配置本地 profile，但它目前不能作为真实
+Codex worker 使用：当前 host 会在派发前拒绝 `deepseek_pro_worker`。默认 DeepSeek 安装
+仍为 Flash。Pro 的 dry-run、安装、Doctor 或 verify 成功不等于运行时验证。见
+[worker-registration E2E 脱敏记录](validation/deepseek-v4-pro-worker-registration-2026-08-16.md)。
 
 ### 什么时候可以申请新 provider？
 

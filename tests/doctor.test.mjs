@@ -173,6 +173,68 @@ test('doctor blocks when model does not match selected provider', async (t) => {
   assert.equal(result.status, 'BLOCKED');
 });
 
+test('doctor reports the selected Pro worker and keeps Flash distinct', async (t) => {
+  const homeDir = await setupHome(t);
+  const options = {
+    homeDir,
+    uid: process.getuid(),
+    username: 'fixture-user',
+    nodePath: process.execPath,
+    platform: 'darwin',
+    env: {
+      ...process.env,
+      DEEPSEEK_WORKER_BRIDGE_ROOT: path.join(homeDir, 'fake-bridge'),
+    },
+    plan: 'plus',
+    sparkAvailable: false,
+    lunaAvailable: true,
+    threshold: 50,
+    confirmMainPreserved: true,
+    consentData: true,
+    catalogSource: fixtureCatalog,
+    keychainReadyImpl: async () => true,
+  };
+  await install({ ...options, apply: true });
+  await install({ ...options, model: 'pro', apply: true });
+  const pro = await runDoctor({ ...options, provider: 'deepseek', model: 'pro' });
+  assert.equal(pro.model, 'deepseek-v4-pro');
+  assert.equal(pro.worker, 'deepseek_pro_worker');
+  assert.equal(pro.profile, 'pro');
+  assert.equal(pro.checks.find((check) => check.name === 'Expected worker')?.status, 'PASS');
+  assert.equal(pro.checks.find((check) => check.name === 'Installation state')?.status, 'PASS');
+
+  const flash = await runDoctor({ ...options, provider: 'deepseek', model: 'flash' });
+  assert.equal(flash.model, 'deepseek-v4-flash');
+  assert.equal(flash.worker, 'deepseek_worker');
+});
+
+test('doctor blocks an explicit Pro selection when only Flash is installed', async (t) => {
+  const homeDir = await setupHome(t);
+  const options = {
+    homeDir,
+    uid: process.getuid(),
+    username: 'fixture-user',
+    nodePath: process.execPath,
+    platform: 'darwin',
+    env: {
+      ...process.env,
+      DEEPSEEK_WORKER_BRIDGE_ROOT: path.join(homeDir, 'fake-bridge'),
+    },
+    plan: 'plus',
+    sparkAvailable: false,
+    lunaAvailable: true,
+    threshold: 50,
+    confirmMainPreserved: true,
+    consentData: true,
+    catalogSource: fixtureCatalog,
+    keychainReadyImpl: async () => true,
+  };
+  await install({ ...options, apply: true });
+  const result = await runDoctor({ ...options, provider: 'deepseek', model: 'pro' });
+  assert.equal(result.status, 'BLOCKED');
+  assert.equal(result.checks.find((check) => check.name === 'Installation state')?.detail, 'selected model profile is not installed');
+});
+
 test('doctor summary output does not leak private paths', async (t) => {
   const homeDir = await setupHome(t);
   const result = await runDoctor({

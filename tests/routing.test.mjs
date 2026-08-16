@@ -71,3 +71,33 @@ test('followup is reused only when the chosen role matches', () => {
   assert.equal(changedRole.action, 'spawn');
   assert.equal(changedRole.chosenAgent, providerRole);
 });
+
+test('registered Pro is explicit-only and never becomes the automatic fallback', () => {
+  const profiles = ['deepseek_worker', 'deepseek_pro_worker'];
+  const explicit = chooseRoute({
+    ...base,
+    requestedAgent: 'deepseek_pro_worker',
+    providerRoles: profiles,
+    defaultProviderRole: 'deepseek_worker',
+    sparkRemaining: 100,
+    generalRemaining: 100,
+  });
+  assert.equal(explicit.chosenAgent, 'deepseek_pro_worker');
+  assert.equal(explicit.reason, 'explicit-provider-ready');
+
+  const automatic = chooseRoute({
+    ...base,
+    providerRoles: profiles,
+    defaultProviderRole: 'deepseek_worker',
+    sparkRemaining: 0,
+    generalRemaining: 1,
+  });
+  assert.equal(automatic.chosenAgent, 'deepseek_worker');
+});
+
+test('unregistered Pro worker is rejected by the routing allowlist', () => {
+  assert.throws(
+    () => chooseRoute({ ...base, requestedAgent: 'deepseek_pro_worker' }),
+    /unknown requested agent/,
+  );
+});

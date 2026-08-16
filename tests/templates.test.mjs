@@ -29,6 +29,23 @@ test('agent TOML keeps DeepSeek inside the child and uses Keychain auth', () => 
   assert.doesNotMatch(result, /deepseek-v4-pro/i);
 });
 
+test('agent TOML configures the dedicated explicit DeepSeek V4 Pro worker', () => {
+  const providerPack = resolveProviderPack('deepseek', 'pro');
+  const result = agentToml({
+    catalogPath: '/tmp/deepseek-pro-catalog.json',
+    bridgePath: '/tmp/bridge',
+    bridgeCliPath: '/tmp/bridge-cli.mjs',
+    nodePath: '/usr/local/bin/node',
+    keychainAccount: 'fixture-user',
+    providerPack,
+  });
+  assert.match(result, /name = "deepseek_pro_worker"/);
+  assert.match(result, /model = "deepseek-v4-pro"/);
+  assert.match(result, /model_provider = "deepseek"/);
+  assert.match(result, /providerRole "deepseek_pro_worker"/);
+  assert.match(result, /model "deepseek-v4-pro"/);
+});
+
 test('agent TOML configures MiniMax M3 with command-backed Keychain auth', () => {
   const providerPack = resolveProviderPack('minimax');
   const result = agentToml({
@@ -84,6 +101,26 @@ test('AGENTS marker update is idempotent and removable without touching user tex
   assert.match(removed.text, /# User rules/);
   assert.match(removed.text, /# Later user rule/);
   assert.doesNotMatch(removed.text, new RegExp(AGENTS_START));
+});
+
+test('AGENTS block preserves Flash fallback and calls Pro explicit-only', () => {
+  const block = agentsBlock({
+    nodePath: '/node',
+    preflightPath: '/preflight',
+    bridgePath: '/bridge',
+    threshold: 10,
+    sparkAvailable: true,
+    lunaAvailable: true,
+    providerPack: resolveProviderPack('deepseek'),
+    providerProfiles: [
+      resolveProviderPack('deepseek'),
+      resolveProviderPack('deepseek', 'pro'),
+    ],
+    defaultProviderRole: 'deepseek_worker',
+  });
+  assert.match(block, /Default provider fallback remains deepseek_worker -> deepseek-v4-flash/);
+  assert.match(block, /Explicit-only provider roles: deepseek_pro_worker -> deepseek-v4-pro/);
+  assert.match(block, /Never auto-route/);
 });
 
 test('malformed markers fail closed', () => {

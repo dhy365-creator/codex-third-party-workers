@@ -1,5 +1,9 @@
 # DeepSeek Controlled Runtime E2E — 2026-08-16
 
+> Historical record: this describes the pre-profile V4 Pro attempt. The later
+> [worker-registration E2E record](deepseek-v4-pro-worker-registration-2026-08-16.md)
+> documents the explicit local profile and the current host-dispatch blocker.
+
 ## Scope and verdict
 
 This is a sanitized, maintainer-controlled runtime record. It keeps the two

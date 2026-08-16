@@ -5,7 +5,9 @@
 - Unofficial, macOS-only public beta for `codex-third-party-workers`:
   a provider-pack-based Codex Desktop fallback routing stack.
 - Text, code, research synthesis, and local validation only. No image, audio,
-  video, desktop, or browser handling. No V4 Pro support in the built-in pack.
+  video, desktop, or browser handling. DeepSeek V4 Pro is an explicit-only
+  profile; it is never an automatic fallback and is not runtime-verified until
+  a supported Codex host dispatch completes.
 - Node.js `>=20`, standard library only. No third-party runtime dependencies.
 
 ## Rules for agents working here

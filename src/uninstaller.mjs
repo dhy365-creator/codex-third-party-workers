@@ -1,5 +1,6 @@
 import path from 'node:path';
 import { discoverEnvironment } from './environment.mjs';
+import { resolveProviderPack } from './provider-packs.mjs';
 import {
   copyOwnerOnly,
   fs,
@@ -23,16 +24,37 @@ const RUNTIME_FILES = [
   'routing.mjs',
 ];
 
-function allowedPaths(env) {
+function allowedPaths(env, profiles) {
   return new Set([
     ...RUNTIME_FILES.map((name) => path.join(env.runtimeDir, name)),
-    env.agentPath,
+    ...profiles.flatMap((profile) => [profile.agentPath, profile.catalogPath]),
     env.configPath,
-    env.catalogPath,
     env.preflightPath,
     env.bridgeCliPath,
     env.agentsMarkerPath,
   ]);
+}
+
+function profilesFromManifest(manifest, env) {
+  const providerId = manifest.options?.providerId ?? manifest.environment?.providerId;
+  if (!providerId) throw new Error('install manifest provider is missing');
+  const records = Array.isArray(manifest.options?.profiles) && manifest.options.profiles.length
+    ? manifest.options.profiles
+    : [{ id: manifest.options?.modelProfile, model: manifest.options?.model }];
+  const profiles = records.map((record) => {
+    const pack = resolveProviderPack(providerId, record.id ?? record.profile ?? record.model);
+    const role = record.providerRole ?? record.role;
+    if (record.id && record.id !== pack.profile) throw new Error('install manifest profile id is invalid');
+    if (record.model && record.model !== pack.model) throw new Error('install manifest profile model is invalid');
+    if (role && role !== pack.role) throw new Error('install manifest profile role is invalid');
+    const paths = env.profileEnvironments.find((candidate) => candidate.profile === pack.profile);
+    if (!paths) throw new Error('install manifest profile paths are invalid');
+    return { ...pack, ...paths };
+  });
+  if (!profiles.length || new Set(profiles.map((profile) => profile.role)).size !== profiles.length) {
+    throw new Error('install manifest profiles are invalid');
+  }
+  return { providerId, profiles };
 }
 
 async function loadManifest(env) {
@@ -52,26 +74,26 @@ async function planRegular(record, env) {
   const info = await lstatIfExists(record.path);
   if (!info) return { type: 'already-missing', record };
   if (info.isSymbolicLink() || !info.isFile()) {
-    throw new Error(`managed path is not a regular file: ${record.path}`);
+    throw new Error('managed path is not a regular file');
   }
   if (await sha256File(record.path) !== record.hash) {
-    throw new Error(`managed file was modified: ${record.path}`);
+    throw new Error('managed file was modified');
   }
   if (record.backup) {
     if (!isPathInside(env.backupDir, record.backup.path)) {
-      throw new Error(`backup escapes the managed backup directory: ${record.path}`);
+      throw new Error('backup escapes the managed backup directory');
     }
     const backupInfo = await lstatIfExists(record.backup.path);
     if (!backupInfo || backupInfo.isSymbolicLink() || !backupInfo.isFile()) {
-      throw new Error(`backup is missing or invalid: ${record.path}`);
+      throw new Error('backup is missing or invalid');
     }
     if ((backupInfo.mode & 0o777) !== 0o600 || await sha256File(record.backup.path) !== record.backup.hash) {
-      throw new Error(`backup failed integrity validation: ${record.path}`);
+      throw new Error('backup failed integrity validation');
     }
     if (!Number.isInteger(record.backup.originalMode)
       || record.backup.originalMode < 0
       || record.backup.originalMode > 0o777) {
-      throw new Error(`backup mode is invalid: ${record.path}`);
+      throw new Error('backup mode is invalid');
     }
     return { type: 'restore', record };
   }
@@ -96,16 +118,60 @@ async function planAgents(record, manifest) {
   };
 }
 
+function summarizeAction(action) {
+  return {
+    type: action.type,
+    kind: action.record.kind,
+    preExisting: action.record.preExisting === true,
+  };
+}
+
+function plannedDirectoryActions(manifest, env) {
+  const records = manifest.managedDirectories ?? [];
+  return records.map((record) => {
+    if (record?.path !== env.runtimeDir || typeof record.preExisting !== 'boolean') {
+      throw new Error('install manifest contains an unmanaged directory');
+    }
+    return record.preExisting ? null : {
+      type: 'remove-empty-directory',
+      record: { kind: 'runtime-directory', preExisting: false, path: record.path },
+    };
+  }).filter(Boolean);
+}
+
+async function removeIfEmpty(action) {
+  const info = await lstatIfExists(action.record.path);
+  if (!info) return;
+  if (info.isSymbolicLink() || !info.isDirectory()) return;
+  try {
+    await fs.rmdir(action.record.path);
+  } catch {
+    // Directory cleanup is best-effort after every managed file is already safe.
+    // Preserve an unexpected or concurrently populated directory rather than
+    // turning optional cleanup into a destructive action.
+  }
+}
+
 export async function uninstall(options = {}) {
-  const env = discoverEnvironment({ ...options, env: options.env ?? process.env });
+  if (options.model) {
+    throw new Error('uninstall removes the whole installed provider registry; omit --model');
+  }
+  let env = discoverEnvironment({ ...options, env: options.env ?? process.env });
   const dryRun = options.apply !== true;
   const manifest = await loadManifest(env);
-  const allowed = allowedPaths(env);
+  const providerId = manifest.options?.providerId ?? manifest.environment?.providerId;
+  if (!providerId) throw new Error('install manifest provider is missing');
+  if (options.provider && String(options.provider).trim().toLowerCase() !== providerId) {
+    throw new Error('selected provider does not match the installed provider');
+  }
+  env = discoverEnvironment({ ...options, provider: providerId, env: options.env ?? process.env });
+  const { profiles } = profilesFromManifest(manifest, env);
+  const allowed = allowedPaths(env, profiles);
   const actions = [];
   const conflicts = [];
   for (const record of manifest.managedFiles ?? []) {
     if (!allowed.has(record.path)) {
-      conflicts.push(`manifest contains an unmanaged path: ${record.path}`);
+      conflicts.push('manifest contains an unmanaged path');
       continue;
     }
     try {
@@ -116,11 +182,18 @@ export async function uninstall(options = {}) {
       conflicts.push(error.message);
     }
   }
+  let directoryActions = [];
+  try {
+    directoryActions = plannedDirectoryActions(manifest, env);
+  } catch (error) {
+    conflicts.push(error.message);
+  }
+  const allActions = [...actions, ...directoryActions];
   if (conflicts.length || dryRun) {
     return {
       dryRun,
       applied: false,
-      actions,
+      actions: allActions.map(summarizeAction),
       conflicts,
       keychainRemoved: false,
       manifestRemoved: false,
@@ -136,11 +209,12 @@ export async function uninstall(options = {}) {
       await writeFileIfChanged(action.record.path, action.text, { mode: action.mode });
     }
   }
+  for (const action of directoryActions) await removeIfEmpty(action);
   await removeFileIfExists(env.manifestPath);
   return {
     dryRun: false,
     applied: true,
-    actions,
+    actions: allActions.map(summarizeAction),
     conflicts: [],
     keychainRemoved: false,
     manifestRemoved: true,

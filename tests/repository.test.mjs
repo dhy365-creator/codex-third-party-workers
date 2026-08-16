@@ -35,6 +35,10 @@ test('repository contains no personal absolute paths, fixed UID, or credential v
 
 test('CLI rejects any API-key flag', () => {
   assert.throws(() => parseArgs(['--api-key', 'secret']), /unknown option/);
+  assert.deepEqual(parseArgs(['--provider', 'deepseek', '--model', 'pro']), {
+    provider: 'deepseek',
+    model: 'pro',
+  });
 });
 
 test('post-install success signal appears only after complete local verification', () => {

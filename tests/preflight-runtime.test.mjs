@@ -28,12 +28,15 @@ async function fixture(t) {
   const agentPath = path.join(root, 'deepseek_worker.toml');
   const catalogPath = path.join(root, 'catalog.json');
   const configPath = path.join(root, 'worker.json');
-  await fs.writeFile(agentPath, 'model = "deepseek-v4-flash"\n');
+  await fs.writeFile(agentPath, [
+    'name = "deepseek_worker"',
+    'model = "deepseek-v4-flash"',
+    'model_provider = "deepseek"',
+  ].join('\n'));
   await fs.writeFile(catalogPath, JSON.stringify({
     models: [{ slug: 'deepseek-v4-flash', input_modalities: ['text'] }],
   }));
-  await fs.writeFile(configPath, '{}');
-  return {
+  const config = {
     threshold: 10,
     sparkAvailable: true,
     lunaAvailable: true,
@@ -45,7 +48,38 @@ async function fixture(t) {
     keychainService: 'fixture-service',
     providerId: 'deepseek',
     platform: 'darwin',
+    profiles: [{
+      id: 'flash',
+      providerRole: 'deepseek_worker',
+      model: 'deepseek-v4-flash',
+      agentPath,
+      catalogPath,
+    }],
+    defaultProviderRole: 'deepseek_worker',
   };
+  await fs.writeFile(configPath, JSON.stringify(config));
+  return config;
+}
+
+async function registerPro(config) {
+  const root = path.dirname(config.agentPath);
+  const agentPath = path.join(root, 'deepseek_pro_worker.toml');
+  const catalogPath = path.join(root, 'deepseek-v4-pro.json');
+  await fs.writeFile(agentPath, [
+    'name = "deepseek_pro_worker"',
+    'model = "deepseek-v4-pro"',
+    'model_provider = "deepseek"',
+  ].join('\n'));
+  await fs.writeFile(catalogPath, JSON.stringify({
+    models: [{ slug: 'deepseek-v4-pro', input_modalities: ['text'] }],
+  }));
+  config.profiles.push({
+    id: 'pro',
+    providerRole: 'deepseek_pro_worker',
+    model: 'deepseek-v4-pro',
+    agentPath,
+    catalogPath,
+  });
 }
 
 function input(overrides = {}) {
@@ -73,7 +107,13 @@ test('preflight prepares DeepSeek only after Spark is exhausted and quota is low
   assert.equal(result.agentType, 'deepseek_worker');
   assert.equal(result.action, 'spawn');
   assert.equal(result.bridgePrepared, true);
+  assert.deepEqual(result.worker, {
+    providerId: 'deepseek',
+    providerRole: 'deepseek_worker',
+    model: 'deepseek-v4-flash',
+  });
   assert.equal(bridgeRequest.message, 'bounded text and code task');
+  assert.equal(bridgeRequest.model, 'deepseek-v4-flash');
 });
 
 test('preflight accepts legacy deepseekSuitable compatibility flag', async (t) => {
@@ -127,4 +167,52 @@ test('bridge-compatible DeepSeek followup reuses its existing target', async (t)
   assert.equal(result.action, 'followup');
   assert.equal(result.target, '/root/existing_task');
   assert.equal(bridgeRequest.taskName, '/root/existing_task');
+});
+
+test('explicit Pro worker is allowed only after its registered profile is ready', async (t) => {
+  const config = await fixture(t);
+  await registerPro(config);
+  let bridgeRequest;
+  const result = await runPreflight(input({ requestedAgent: 'deepseek_pro_worker' }), config, {
+    readRateLimits: async () => rateLimits({ sparkUsed: 0, generalUsed: 0 }),
+    keychainReadyImpl: async () => true,
+    bridgeBusyImpl: async () => false,
+    createBridgeImpl: async (request) => { bridgeRequest = request; },
+  });
+  assert.equal(result.agentType, 'deepseek_pro_worker');
+  assert.equal(result.reason, 'explicit-provider-ready');
+  assert.equal(result.bridgePrepared, true);
+  assert.deepEqual(result.worker, {
+    providerId: 'deepseek',
+    providerRole: 'deepseek_pro_worker',
+    model: 'deepseek-v4-pro',
+  });
+  assert.equal(bridgeRequest.providerRole, 'deepseek_pro_worker');
+  assert.equal(bridgeRequest.model, 'deepseek-v4-pro');
+});
+
+test('unregistered Pro and unknown workers fail closed', async (t) => {
+  const config = await fixture(t);
+  await assert.rejects(
+    runPreflight(input({ requestedAgent: 'deepseek_pro_worker' }), config),
+    /unknown requested agent/,
+  );
+  await assert.rejects(
+    runPreflight(input({ requestedAgent: 'not_a_worker' }), config),
+    /unknown requested agent/,
+  );
+});
+
+test('automatic low-quota fallback never selects Pro', async (t) => {
+  const config = await fixture(t);
+  await registerPro(config);
+  const flash = config.profiles.find((profile) => profile.id === 'flash');
+  await fs.unlink(flash.agentPath);
+  const result = await runPreflight(input(), config, {
+    readRateLimits: async () => rateLimits(),
+    keychainReadyImpl: async () => true,
+    bridgeBusyImpl: async () => false,
+  });
+  assert.equal(result.agentType, 'luna_worker');
+  assert.equal(result.bridgePrepared, false);
 });

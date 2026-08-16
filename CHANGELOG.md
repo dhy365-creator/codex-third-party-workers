@@ -6,16 +6,28 @@ versions follow [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
 ## [Unreleased]
 
+- Add DeepSeek model profiles: the default `deepseek_worker` remains bound to
+  `deepseek-v4-flash`, while explicit `--model pro` configures
+  `deepseek_pro_worker` for `deepseek-v4-pro`. Preflight, bridge metadata,
+  installer, Doctor, verifier, manifest, and uninstall distinguish the profiles;
+  automatic routing never selects Pro.
+- Add isolated coverage for profile mapping, catalog fail-closed behavior,
+  explicit Pro registration, Flash-default routing, lifecycle metadata, rollback,
+  existing-directory permission preservation, and sanitized uninstall output
+  (`65/65` local tests).
+- Preserve pre-existing installer parent-directory modes and remove a newly
+  created empty runtime directory on safe uninstall.
 - Fix the macOS default bridge-root resolution used by the bridge CLI when no
   platform override is supplied, with regression coverage.
 - Record a bounded DeepSeek V4 Flash maintainer E2E: explicit worker execution,
   non-sensitive fixture diagnosis, bridge completion/release, and main-thread
   review. The verifier remains `runtimeVerified: false`; this does not add V4
   Pro support, automatic routing, or a general public-installer claim.
-- Record a direct DeepSeek V4 Pro programmatic-subagent audit on Codex CLI
-  `0.147.0`. The current guarded worker registry exposes only the Flash worker,
-  so the named Pro probe was rejected before a provider request; V4 Pro remains
-  an API-verified candidate with no built-in, installer, or routing claim.
+- Record a DeepSeek V4 Pro worker-registration E2E: local preflight accepted the
+  explicit Pro role and prepared a redacted bridge task, but the current Codex
+  host registry rejected the role before dispatch. No provider request, tool
+  call, worker result, model identity, or completed bridge was observed, so V4
+  Pro remains an API-verified candidate rather than a runtime-support claim.
 - Add community documentation index and demos to improve first-contact user onboarding.
   Includes `docs/demos/qwen-worker-demo.md`, `docs/demos/minimax-worker-demo.md`,
   `docs/demos/deepseek-worker-demo.md`, and `docs/demos/README.md`.

@@ -33,10 +33,19 @@
 - [x] 2026-08-16 审计直接程序化 V4 Pro 子代理路径：Codex CLI `0.147.0` 的当前 guard 只注册
   固定 V4 Flash 的 `deepseek_worker`，命名 V4 Pro probe 的 preflight 在 provider 请求前拒绝；结论
   仍为 API 已验证候选，不更改 Router、Pack、默认模型或主代理配置。
+- [x] 2026-08-16 新增 DeepSeek Flash/Pro model profiles：保留
+  `deepseek_worker -> deepseek-v4-flash` 默认 fallback，并新增显式
+  `deepseek_pro_worker -> deepseek-v4-pro`。Installer、Doctor、verifier、bridge、
+  manifest、uninstall 与离线回归测试均按 profile 区分；Pro 永不参加自动 routing。
+- [x] 2026-08-16 完成本地 Pro registration E2E 前置检查与临时 apply/rollback：`65/65` 测试、
+  dry-run、Doctor、verify、redacted bridge failure/release 与无私有路径输出通过；当前 host
+  registry 在实际 spawn 前拒绝 Pro agent type，故没有 provider request、tool call 或 worker result，
+  状态维持 API 已验证候选。
 
 ## 公开仓库
 
-- [x] 通用 provider-pack 核心与首个 DeepSeek V4 Flash pack。
+- [x] 通用 provider-pack 核心、默认 DeepSeek V4 Flash profile 与显式 V4 Pro profile（后者的
+  Codex host runtime dispatch 仍被阻塞）。
 - [x] GitHub Actions 只读测试流程与 MIT 开源文件。
 - [x] 远程 catalog 逐跳 host 校验及无网络回归测试。
 - [x] GitHub 仓库入口提供中英文双语说明与完整下载、配置、验证步骤。
@@ -64,9 +73,9 @@
 
 - [x] 重启 Codex Desktop，运行真实 `minimax_worker` 子任务并验证桥接完成与释放。
 - [ ] 取得 DeepSeek V4 Flash 独立真实用户验收；不要把维护者 E2E 扩写为自动路由或通用成功。
-- [ ] 先取得受支持的已注册 custom-worker 路径，或通过用户可见的交互式 Codex 工作流，完成命名
-  `deepseek_v4_pro_probe_worker` 的实际模型请求、工具、bridge 完成/释放和主线程复核；其后才单独
-  评审 V4 Pro 的显式模型选择、安装器边界、离线测试与 Desktop 运行时验证，不做自动 Flash/Pro 路由。
+- [ ] 取得 host 端受支持的 `deepseek_pro_worker` 注册，或通过用户可见的交互式 Codex 工作流，
+  完成同一 role/model 的实际模型请求、工具、bridge 完成/释放和主线程复核；其后才可升级 V4 Pro
+  runtime 结论，且不做自动 Flash/Pro 路由。
 - [ ] 按 StepFun -> 火山方舟顺序逐一进行真实 API 与 Codex 子代理验证。
 - [ ] 对通过验证的 Provider 单独新增 Pack、Keychain service、目录策略、离线测试和文档。
 - [ ] 对千帆与 TokenHub 保持“网关候选”标识，不把网关通过写成模型厂商直连通过。

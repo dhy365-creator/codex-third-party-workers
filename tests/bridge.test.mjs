@@ -29,11 +29,15 @@ test('bridge is single-slot, owner-only, atomic, and redacts archives', async (t
     taskName: '/root/example_task',
     cwd: '/tmp/example-worktree',
     message: 'private bounded task body',
+    providerId: 'deepseek',
+    providerRole: 'deepseek_pro_worker',
+    model: 'deepseek-v4-pro',
   });
   assert.equal(created.task.taskBasename, 'example_task');
   assert.equal((await fs.stat(path.join(root, 'active'))).mode & 0o777, 0o700);
   assert.equal((await fs.stat(path.join(root, 'active', 'task.json'))).mode & 0o777, 0o600);
   assert.equal((await readBridgeTask({ root })).status, 'pending');
+  assert.equal((await readBridgeTask({ root })).model, 'deepseek-v4-pro');
 
   await assert.rejects(
     createBridgeTask({ root, taskName: 'second', cwd: '/tmp', message: 'second task' }),
@@ -51,6 +55,8 @@ test('bridge is single-slot, owner-only, atomic, and redacts archives', async (t
   assert.equal(archived.status, 'completed');
   assert.equal(archived.message, '[REDACTED]');
   assert.equal(archived.cwd, '[REDACTED]');
+  assert.equal(archived.providerRole, 'deepseek_pro_worker');
+  assert.equal(archived.model, 'deepseek-v4-pro');
   assert.equal(JSON.stringify(archived).includes('private bounded task body'), false);
   assert.equal(await hasArchivedBridgeTask('/root/example_task', { root }), true);
 });
@@ -64,4 +70,14 @@ test('bridge rejects missing task fields before creating a slot', async (t) => {
     /cwd is required/,
   );
   await assert.rejects(fs.stat(path.join(root, 'active')), /ENOENT/);
+  await assert.rejects(
+    createBridgeTask({
+      root,
+      taskName: 'identity',
+      cwd: '/tmp',
+      message: 'body',
+      providerRole: 'deepseek_pro_worker',
+    }),
+    /provider identity is incomplete/,
+  );
 });

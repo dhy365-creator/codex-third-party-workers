@@ -24,7 +24,7 @@ Statuses:
 - **Built-in pack**: implemented and isolated-tested; live user-environment status is tracked separately.
 - **Runtime-verified pack**: a built-in pack that passed a real Codex subagent run and human review.
 - **Tier A candidate**: official documentation meets the core protocol gate; live testing is pending.
-- **API-verified candidate**: official protocol evidence and a limited, sanitized direct API probe passed; it is not installed, a built-in pack, or Desktop-runtime verified.
+- **API-verified candidate**: official protocol evidence and a limited, sanitized direct API probe passed. A locally configured explicit profile may exist, but it is not Desktop-runtime verified until a real Codex worker dispatch, tool loop, bridge release, and main-thread review pass together.
 - **Tier B gateway candidate**: a Responses compatibility gateway exists, but it may translate another protocol and impose limitations.
 - **Not currently compatible**: official direct access is Chat Completions-only or requires an external translator.
 
@@ -33,7 +33,7 @@ Statuses:
 | Provider / model | Access type | Current result | Next step |
 | --- | --- | --- | --- |
 | DeepSeek / `deepseek-v4-flash` | Official Responses | **Built-in pack; controlled maintainer E2E passed at Level 3** | Keep regression coverage; obtain independent user acceptance before broadening claims |
-| DeepSeek / `deepseek-v4-pro` | Official Responses | **API-verified candidate**: model list, basic Responses, SSE, a function-call round trip, supported reasoning levels, and controlled failure handling passed | Keep it out of the built-in pack until explicit model selection, installer, and Codex Desktop E2E evidence exist |
+| DeepSeek / `deepseek-v4-pro` | Official Responses | **API-verified candidate**: direct API checks passed; an explicit local profile has installer/Doctor/verifier/bridge coverage, but the current Codex host rejects its agent type before dispatch | Obtain host registration and then a single real Pro worker request, tool loop, result, completed bridge, release, and main-thread review |
 | MiniMax / `MiniMax-M3` | Official Responses and an official Codex Desktop guide | **Runtime verified: API, Codex CLI, Desktop subagent, and bridge release passed** | Keep regression coverage; verify public-installer apply separately |
 | StepFun / `step-3.7-flash` | Official `/v1/responses` | **Tier A, priority 2** | Verify streaming tool loops and Codex subagent execution |
 | Alibaba Model Studio / `qwen3.7-max` | Official Responses and current Codex configuration | **Runtime verified: API, SSE, automatic function call, Codex CLI, Desktop subagent, and bridge release passed** | Keep text-only boundary; thinking mode does not accept `tool_choice: required` |
@@ -46,7 +46,7 @@ Statuses:
 | Direct SiliconFlow | Current official text endpoint is `/chat/completions` | **Not currently compatible** | Wait for official Responses documentation |
 
 Tier A means “worth testing with an API key,” not “perfectly supported.” DeepSeek
-V4 Flash, MiniMax-M3, and Qwen3.7-Max are built-in packs. A controlled Flash
+V4 Flash, MiniMax-M3, and Qwen3.7-Max are built-in runtime paths. A controlled Flash
 E2E has been recorded, but independent user acceptance and broad routing claims
 remain pending. Under the strict gate above, no provider is currently labeled
 “perfectly supported.”
@@ -71,14 +71,20 @@ ordinary Responses, semantic SSE, a no-side-effect function-call round trip,
 `high` and `max` reasoning requests, and an invalid-model failure path. The
 sanitized record is in [the V4 Pro probe](validation/deepseek-v4-pro-probe-2026-08-16.md).
 
-This is evidence for a candidate only. The repository continues to install
-`deepseek-v4-flash` only. Two temporary, noninteractive custom-agent attempts
-did not yield a V4 Pro model request or bridge completion, so no V4 Pro runtime
-level was added. A later direct programmatic-path audit found that the current
-guarded worker registry does not register a V4 Pro probe; its full sanitized
-record is in [the direct Codex subagent audit](validation/deepseek-v4-pro-probe-2026-08-16.md#direct-codex-subagent-audit).
-No automatic Flash/Pro routing, public installer support, or Codex Desktop
-review is recorded for V4 Pro.
+The repository now has an explicit local profile:
+`deepseek_pro_worker` -> `deepseek-v4-pro`. `--provider deepseek` remains Flash;
+`--model pro` is opt-in, and Pro is never selected by automatic routing. Its
+installer, Doctor, verifier, catalog validation, bridge metadata, rollback, and
+offline tests are profile-specific.
+
+That local registration did not produce a V4 Pro runtime level. The real Codex
+host rejected the explicit Pro agent type before dispatch, so there was no
+provider request, provider-returned model metadata, tool loop, worker result,
+completed bridge archive, or main-thread result review. The failed archive was
+redacted and the active slot released. See the [sanitized worker-registration
+E2E record](validation/deepseek-v4-pro-worker-registration-2026-08-16.md).
+No automatic Flash/Pro routing, public runtime success, or Codex Desktop review
+is recorded for V4 Pro.
 
 ## Recommended test order
 

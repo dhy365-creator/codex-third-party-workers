@@ -3,7 +3,9 @@
 ## Boundaries
 
 - Main Codex model/provider/auth are never changed.
-- DeepSeek is the default provider pack. MiniMax-M3 and Qwen3.7-Max are the
+- DeepSeek is the default provider pack. Its default Flash profile remains the
+  automatic DeepSeek fallback; an explicit-only V4 Pro profile is separately
+  registered for local configuration. MiniMax-M3 and Qwen3.7-Max are the
   second and third built-in packs.
   Additional providers are added as reviewed built-in definitions with tests;
   arbitrary remote pack manifests are intentionally not loaded.
@@ -13,7 +15,7 @@
 
 ### Read-only Doctor
 
-`npm run doctor -- --provider <provider>` inspects the local prerequisites
+`npm run doctor -- --provider <provider> [--model <profile>]` inspects the local prerequisites
 before installation. It checks the platform, Node.js, recognizable Codex state,
 owner-only permissions, the reviewed provider/model pairing, Keychain item
 presence, OpenAI fallback hints, installed-manifest state, and prerequisites for
@@ -29,8 +31,10 @@ provider, unsupported model, missing credential, or incompatible platform.
 ### Agent definition
 
 `~/.codex/agents/<provider>_worker.toml` selects the provider pack model, defines
-its model provider block, and reads credentials from Keychain. The installer never
-writes `~/.codex/config.toml`.
+its model provider block, and reads credentials from Keychain. DeepSeek keeps
+`deepseek_worker` bound to `deepseek-v4-flash`; the explicit Pro profile writes
+`deepseek_pro_worker` bound to `deepseek-v4-pro`. The installer never writes
+`~/.codex/config.toml`.
 
 ### Runtime catalog
 
@@ -41,8 +45,8 @@ chain while validating every destination against the pack host policy, and appli
 pack policy:
 
 - model identity target
-- reviewed model policy (the built-in DeepSeek pack currently selects V4 Flash;
-  V4 Pro remains a separate candidate and is not installed)
+- reviewed model policy (Flash accepts only `deepseek-v4-flash`; the explicit
+  Pro profile accepts only `deepseek-v4-pro`; mismatches fail closed)
 - required source modalities and an installed text-only capability boundary
 
 The resulting catalog is written as owner-only runtime data.
@@ -57,7 +61,10 @@ applies the routing policy. Spark entitlement and live Spark remaining quota are
 separate inputs. If quota lookup fails, routing stays on an OpenAI worker.
 
 Before a provider role is selected, preflight atomically creates a single task
-bridge. If that slot is busy or invalid, it falls back to OpenAI.
+bridge. Automatic DeepSeek fallback can select only `deepseek_worker` (Flash).
+`deepseek_pro_worker` requires an explicit request and never silently falls
+back to Flash. If the slot is busy or invalid, automatic routing falls back to
+OpenAI.
 
 This is a policy-assisted guardrail. Codex Desktop collaboration calls are not
 always guaranteed to be intercepted natively, so the AGENTS rules instruct the
@@ -74,6 +81,7 @@ The bridge root defaults to:
 `active/` is mode `0700`; `active/task.json` is `0600`. The task validates:
 
 - bridge version and `pending`/`running` status;
+- optional provider, worker-role, and model identity as one complete tuple;
 - task name and normalized final basename;
 - absolute working directory and non-empty task message;
 - regular-file/directory type, ownership, mode, and absence of symlinks.
@@ -86,12 +94,16 @@ Archives are never deleted automatically.
 ### Install manifest and uninstall
 
 Every managed file records path, installed hash, mode, whether it pre-existed,
-and owner-only backup state when needed. Reinstallation preserves backups when
-managed files are unchanged.
+and owner-only backup state when needed. The manifest records every active model
+profile and whether the runtime directory pre-existed; a later profile install
+preserves that original directory ownership. Reinstallation preserves backups
+when managed files are unchanged.
 
 Uninstall validates all actions before writing anything. It removes only exact hash
-matches, restores validated backups, and removes only the exact AGENTS marker
-block. Any conflict stops the whole uninstall plan.
+matches, restores validated backups, removes only the exact AGENTS marker block,
+and best-effort removes a newly created empty runtime directory. Any conflict
+stops the whole uninstall plan; its public plan summary omits managed paths and
+user-authored AGENTS text.
 
 ## Data flow
 
@@ -111,7 +123,8 @@ flowchart LR
 ## Verification levels
 
 - `configured`: files, permissions, hashes, catalog rules, marker, and Keychain
-  checks are valid locally.
+  checks are valid locally for the selected provider/model profile.
 - `runtimeVerified`: not claimed by verifier. It requires a real Codex task after
-  restarting the app.
+  restarting the app, with the worker, provider, model, bridge lifecycle, and
+  main-thread review tied to the same evidence.
 - `userAccepted`: separate from both local checks and runtime execution.

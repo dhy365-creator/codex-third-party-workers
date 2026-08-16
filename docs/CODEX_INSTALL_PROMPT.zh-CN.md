@@ -11,7 +11,9 @@
    `docs/configuration-zh.md` 和 `docs/current-state.md`，并检查当前 worktree。
 2. 在修改任何配置前，先向我确认：
    - 我要安装 `deepseek`、`minimax` 还是 `qwen` Provider Pack；只允许选择仓库
-     README 标为内置的 Pack，不要把兼容性矩阵中的候选或暂不兼容模型当成已支持；
+     README 标为内置的运行时路径，不要把兼容性矩阵中的候选或暂不兼容模型当成已支持；
+     若选 DeepSeek，默认只用 Flash；`--model pro` 只能作为显式本地配置，当前 Codex host
+     无法派发 `deepseek_pro_worker`，不得把它说成可用运行时路径；
    - 我的套餐是 Plus 还是 Pro；
    - 是否真实具备 Spark worker；
    - 是否已经有可调用的 `luna_worker`；
@@ -31,8 +33,9 @@
    本地已写入、配置已验证、Keychain 已连接、App 已重启、真实运行时已验证、
    用户已验收。不能把前一层写成后一层。
 7. 在我重启 Codex Desktop 之前，不得宣称新 worker 已加载。重启后只用一个
-   不敏感的文本/代码子任务验证路由；图片、音视频、浏览器、桌面、MCP 或凭据
-   任务不得发给 fallback provider。
+   不敏感的文本/代码子任务验证已支持的运行时路径；当前不得对 Pro profile 发起真实
+   派发或用其他 worker 替代它证明成功。图片、音视频、浏览器、桌面、MCP 或凭据任务
+   不得发给 fallback provider。
 8. 遇到冲突、未知额度、bridge busy 或任何校验失败时停止外发，保留 OpenAI
    worker，并说明具体阻塞。不要用真实 Spark 试运行任务探测额度。
 9. 只有安装器已经正式应用配置、当前任务没有失败，并且 `verify` 输出

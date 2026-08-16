@@ -82,7 +82,9 @@ Current built-in packs and evidence are:
 
 - DeepSeek V4 Flash: built-in and isolated-tested; a controlled maintainer E2E
   reached Level 3, while generic user acceptance remains pending.
-- DeepSeek V4 Pro: API-verified candidate only; it is not a built-in pack or a
+- DeepSeek V4 Pro: an explicit local profile is covered by installer, Doctor,
+  verifier, and offline tests, but the current Codex host rejects its worker
+  role before dispatch. It remains an API-verified candidate, not a
   Desktop-runtime verified model.
 - MiniMax-M3: built-in and runtime verified for the recorded API, CLI, and
   Desktop worker path.
@@ -97,8 +99,9 @@ Candidates and gateway listings are not supported packs. See the complete
 - **Built-in pack**: implemented and verified in isolation.
 - **Runtime-verified**: real Codex subagent run and human-reviewed result.
 - **Candidate**: protocol and docs alignment found, runtime verification pending.
-- **API-verified candidate**: a limited direct API probe also passed, but no
-  installer, Codex Desktop, bridge-release, or human-review claim follows.
+- **API-verified candidate**: a limited direct API probe also passed. A local
+  installer profile may exist, but no Codex Desktop, bridge-release, tool-loop,
+  or human-review claim follows until a real worker run completes.
 - **Incompatible**: missing protocol or required translator constraints.
 
 ### Why isn't model X supported?
@@ -115,10 +118,12 @@ Availability changes by model docs, pricing, and provider behavior.
 
 ### Can I install DeepSeek V4 Pro now?
 
-No. The built-in DeepSeek pack still selects V4 Flash only. V4 Pro has native
-Responses API and limited direct API evidence, but it remains a candidate until
-explicit model selection, installer coverage, and a real Codex Desktop path are
-separately validated. See the [sanitized probe](validation/deepseek-v4-pro-probe-2026-08-16.md).
+You can explicitly configure the local profile with `--provider deepseek --model
+pro`, but it is not currently usable as a real Codex worker: the current host
+rejects `deepseek_pro_worker` before dispatch. Default DeepSeek installation
+remains Flash. A successful Pro dry-run, install, Doctor, or verify result is
+not runtime verification. See the [sanitized worker-registration E2E
+record](validation/deepseek-v4-pro-worker-registration-2026-08-16.md).
 
 ### How can I request another provider?
 

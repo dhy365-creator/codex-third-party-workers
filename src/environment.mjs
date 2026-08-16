@@ -1,12 +1,23 @@
 import os from 'node:os';
 import path from 'node:path';
-import { DEFAULT_PROVIDER_ID, resolveProviderPack, PACKAGE_NAME } from './provider-packs.mjs';
+import {
+  DEFAULT_PROVIDER_ID,
+  listProviderPackProfiles,
+  PACKAGE_NAME,
+  resolveProviderPack,
+} from './provider-packs.mjs';
 
 export const BRIDGE_PREFIX = 'codex-third-party-worker-task-bridge-';
 
 function getPack(options = {}) {
-  if (options.providerPack) return options.providerPack;
-  return resolveProviderPack(options.provider ?? DEFAULT_PROVIDER_ID);
+  if (options.providerPack?.profile) return options.providerPack;
+  if (options.providerPack) {
+    return resolveProviderPack(
+      options.providerPack.id ?? options.provider ?? DEFAULT_PROVIDER_ID,
+      options.model ?? options.providerPack.model,
+    );
+  }
+  return resolveProviderPack(options.provider ?? DEFAULT_PROVIDER_ID, options.model);
 }
 
 export function parseThreshold(value) {
@@ -55,6 +66,7 @@ export function discoverEnvironment({
   tmpDir,
   env = process.env,
   provider,
+  model,
   providerPack,
 } = {}) {
   const user = os.userInfo();
@@ -62,10 +74,20 @@ export function discoverEnvironment({
   const resolvedUid = uid ?? (typeof process.getuid === 'function' ? process.getuid() : user.uid);
   const resolvedUsername = username ?? user.username;
   const resolvedNode = nodePath ?? process.execPath;
-  const pack = getPack({ providerPack, provider });
+  const pack = getPack({ providerPack, provider, model });
   const bridgePath = getBridgeRoot({ uid: resolvedUid, platform, tmpDir, env });
   const codexDir = path.join(resolvedHome, '.codex');
   const runtimeDir = path.join(codexDir, 'lib', pack.files.runtimeDir);
+  const profileEnvironments = listProviderPackProfiles(pack.id).map((profile) => ({
+    profile: profile.profile,
+    providerPack: profile,
+    providerRole: profile.role,
+    model: profile.model,
+    agentPath: path.join(codexDir, 'agents', profile.agentFile),
+    catalogPath: path.join(codexDir, 'model-catalogs', profile.catalog.file),
+  }));
+  const selected = profileEnvironments.find((profile) => profile.profile === pack.profile);
+  if (!selected) throw new Error(`provider profile is not available: ${pack.profile}`);
   return {
     platform,
     homeDir: resolvedHome,
@@ -77,9 +99,11 @@ export function discoverEnvironment({
     codexDir,
     runtimeDir,
     providerPack: pack,
-    agentPath: path.join(codexDir, 'agents', pack.agentFile),
+    profileEnvironments,
+    providerRole: selected.providerRole,
+    agentPath: selected.agentPath,
     configPath: path.join(codexDir, pack.files.configFile),
-    catalogPath: path.join(codexDir, 'model-catalogs', pack.catalog.file),
+    catalogPath: selected.catalogPath,
     preflightPath: path.join(codexDir, 'bin', pack.files.preflightFile),
     bridgeCliPath: path.join(codexDir, 'bin', pack.files.bridgeFile),
     manifestPath: path.join(codexDir, pack.files.manifestFile),

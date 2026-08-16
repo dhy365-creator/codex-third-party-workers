@@ -44,11 +44,22 @@ function result(base, chosenAgent, reason) {
   };
 }
 
-function validateRoles(roles) {
-  if (!roles || !roles.requested || !roles.providerRole) {
+function providerRoleSet(providerRole, providerRoles, defaultProviderRole) {
+  const roles = [...new Set((providerRoles ?? [providerRole]).filter((role) => typeof role === 'string' && role.trim()))];
+  const defaultRole = defaultProviderRole === undefined
+    ? providerRole ?? roles[0]
+    : defaultProviderRole;
+  if (!roles.length || (defaultRole !== null && !roles.includes(defaultRole))) {
     throw new Error('routing roles are required');
   }
-  if (![ROLES.SPARK, ROLES.LUNA, roles.providerRole].includes(roles.requested)) {
+  return { roles, defaultRole };
+}
+
+function validateRoles(roles) {
+  if (!roles || !roles.requested || !roles.providerRoles?.length) {
+    throw new Error('routing roles are required');
+  }
+  if (![ROLES.SPARK, ROLES.LUNA, ...roles.providerRoles].includes(roles.requested)) {
     throw new Error('unknown requested agent');
   }
 }
@@ -66,6 +77,8 @@ export function chooseRoute({
   providerSuitable = false,
   providerReady = false,
   providerRole = 'deepseek_worker',
+  providerRoles,
+  defaultProviderRole,
   threshold = 20,
   sparkAvailable = false,
   sparkRemaining,
@@ -75,9 +88,10 @@ export function chooseRoute({
   bridgeBusy = false,
 } = {}) {
   const resolvedOperation = kind ?? operation;
+  const providerRegistry = providerRoleSet(providerRole, providerRoles, defaultProviderRole);
   const provider = {
     requested: requestedAgent,
-    providerRole,
+    providerRoles: providerRegistry.roles,
   };
   validateRoles(provider);
   const general = generalRemaining ?? quotaRemaining;
@@ -90,7 +104,8 @@ export function chooseRoute({
     generalRemaining: finite(general) ? Number(general) : null,
     providerSuitable,
     bridgeBusy: bridgeBusy === true,
-    providerRole,
+    providerRole: providerRegistry.defaultRole,
+    providerRoles: providerRegistry.roles,
   };
 
   if (!['spawn', 'followup'].includes(resolvedOperation)) {
@@ -103,10 +118,10 @@ export function chooseRoute({
   const providerUsable = base.providerSuitable === true && ready(providerReady) && !base.bridgeBusy;
   const sparkQuotaKnown = finite(sparkRemaining);
   const sparkUsable = sparkAvailable === true && sparkQuotaKnown && Number(sparkRemaining) > 0;
-  const providerRequested = requestedAgent === providerRole;
+  const providerRequested = providerRegistry.roles.includes(requestedAgent);
 
-  if (requestedAgent === providerRole) {
-    if (providerUsable) return result(base, providerRole, 'explicit-provider-ready');
+  if (providerRequested) {
+    if (providerUsable) return result(base, requestedAgent, 'explicit-provider-ready');
     return result(
       base,
       availableOpenAi({ requestedAgent: requestedAgent === ROLES.LUNA ? ROLES.LUNA : ROLES.SPARK, sparkUsable, lunaAvailable }),
@@ -134,8 +149,8 @@ export function chooseRoute({
     return result(base, fallback, fallback ? reason : 'no-openai-fallback-available');
   }
 
-  if (providerUsable) {
-    return result(base, providerRole, 'quota-below-threshold-provider-ready');
+  if (providerUsable && providerRegistry.defaultRole) {
+    return result(base, providerRegistry.defaultRole, 'quota-below-threshold-provider-ready');
   }
 
   const fallback = availableOpenAi({ requestedAgent, sparkUsable, lunaAvailable });

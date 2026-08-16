@@ -78,6 +78,18 @@ async function readInstallState(homeDir, env) {
   }
 }
 
+function profileIsInstalled(manifest, providerPack) {
+  const profiles = manifest?.options?.profiles;
+  if (Array.isArray(profiles) && profiles.length) {
+    return profiles.some((profile) => (
+      (profile.id === providerPack.profile || profile.profile === providerPack.profile)
+      && profile.model === providerPack.model
+      && (profile.providerRole ?? profile.role) === providerPack.role
+    ));
+  }
+  return manifest?.options?.model === providerPack.model;
+}
+
 export function parseDoctorArgs(argv = process.argv.slice(2)) {
   const parsed = {};
   for (let index = 0; index < argv.length; index += 1) {
@@ -146,16 +158,28 @@ export async function runDoctor(options = {}) {
   }
 
   let providerPack = null;
+  let providerAvailable = false;
   try {
-    providerPack = resolveProviderPack(providerId);
-    add(checks, 'Provider pack', STATUS.PASS, `${providerPack.displayName} is reviewed and built in`);
+    const basePack = resolveProviderPack(providerId);
+    add(checks, 'Provider pack', STATUS.PASS, `${basePack.displayName} is reviewed and built in`);
+    providerAvailable = true;
   } catch {
     add(checks, 'Provider pack', STATUS.BLOCKED, 'provider is not a reviewed built-in pack');
   }
-  const modelMatches = providerPack && (!options.model
-    || String(options.model).trim().toLowerCase() === providerPack.model.toLowerCase());
+  if (providerAvailable) {
+    try {
+      providerPack = resolveProviderPack(providerId, options.model);
+    } catch {
+      // The provider remains valid while the requested model fails closed below.
+    }
+  }
+  const modelMatches = providerPack !== null;
   add(checks, 'Model', modelMatches ? STATUS.PASS : STATUS.BLOCKED,
-    modelMatches ? `${providerPack.model} matches the provider pack` : 'model does not match the selected provider pack');
+    modelMatches
+      ? `${providerPack.model} (${providerPack.profile}) matches the selected provider pack`
+      : 'model does not match the selected provider pack');
+  add(checks, 'Expected worker', providerPack ? STATUS.PASS : STATUS.BLOCKED,
+    providerPack ? `${providerPack.role} is the expected worker for ${providerPack.model}` : 'expected worker is unavailable');
 
   if (!installState.info) {
     add(checks, 'Installation state', STATUS.WARN, 'provider worker is not installed');
@@ -165,6 +189,8 @@ export async function runDoctor(options = {}) {
     add(checks, 'Installation state', STATUS.BLOCKED, 'install manifest must use mode 0600');
   } else if (options.provider && installedProvider !== providerId) {
     add(checks, 'Installation state', STATUS.BLOCKED, 'installed provider differs from the selected provider');
+  } else if (providerPack && !profileIsInstalled(installState.manifest, providerPack)) {
+    add(checks, 'Installation state', STATUS.BLOCKED, 'selected model profile is not installed');
   } else {
     add(checks, 'Installation state', STATUS.PASS, 'provider worker manifest is installed');
   }
@@ -197,6 +223,7 @@ export async function runDoctor(options = {}) {
     try {
       const result = await (options.verifyImpl ?? verify)({
         provider: providerId,
+        model: options.model,
         checkKeychain: false,
         env: options.env ?? process.env,
         platform,
@@ -220,6 +247,8 @@ export async function runDoctor(options = {}) {
     summary,
     provider: providerPack?.id ?? 'unsupported',
     model: providerPack?.model ?? null,
+    worker: providerPack?.role ?? null,
+    profile: providerPack?.profile ?? null,
     installed: installState.installed,
     checks,
   };

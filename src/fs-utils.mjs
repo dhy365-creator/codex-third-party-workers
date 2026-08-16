@@ -32,10 +32,12 @@ export async function sha256File(filePath) {
   return sha256(await fs.readFile(filePath));
 }
 
-export async function ensureDir(dirPath, mode = 0o700) {
-  await fs.mkdir(dirPath, { recursive: true, mode });
-  // mkdir's mode is affected by umask; make the security boundary explicit.
-  await fs.chmod(dirPath, mode);
+export async function ensureDir(dirPath, mode = 0o700, { enforceMode = true } = {}) {
+  const created = await fs.mkdir(dirPath, { recursive: true, mode });
+  // New managed directories need an explicit mode because mkdir honors umask.
+  // Existing parent directories retain their user-selected mode unless a caller
+  // explicitly owns that directory's permission boundary.
+  if (enforceMode || created) await fs.chmod(dirPath, mode);
 }
 
 export async function writeFileIfChanged(filePath, contents, { mode = 0o600 } = {}) {
@@ -48,7 +50,7 @@ export async function writeFileIfChanged(filePath, contents, { mode = 0o600 } = 
       return { changed: false, hash: sha256(data), mode };
     }
   }
-  await ensureDir(path.dirname(filePath), 0o700);
+  await ensureDir(path.dirname(filePath), 0o700, { enforceMode: false });
   const tempPath = `${filePath}.tmp-${process.pid}-${crypto.randomBytes(6).toString('hex')}`;
   const handle = await fs.open(tempPath, 'wx', mode);
   try {
@@ -64,7 +66,7 @@ export async function writeFileIfChanged(filePath, contents, { mode = 0o600 } = 
 
 export async function copyOwnerOnly(sourcePath, destinationPath) {
   const data = await fs.readFile(sourcePath);
-  await ensureDir(path.dirname(destinationPath), 0o700);
+  await ensureDir(path.dirname(destinationPath), 0o700, { enforceMode: false });
   const tempPath = `${destinationPath}.tmp-${process.pid}-${crypto.randomBytes(6).toString('hex')}`;
   const handle = await fs.open(tempPath, 'wx', 0o600);
   try {
